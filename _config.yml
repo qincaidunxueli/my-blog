@@ -1,0 +1,124 @@
+# Hexo 站点配置
+## 文档: https://hexo.io/docs/configuration.html
+
+# ===== 站点信息（最常改的地方）=====
+title: 芹菜炖雪梨的小屋
+subtitle: '记录生活与技术'
+description: '芹菜炖雪梨的小屋，用来存放一些想法和记录。'
+keywords:
+author: 芹菜炖雪梨
+language: zh-CN
+timezone: 'Asia/Shanghai'
+
+# ===== URL =====
+## 部署后改成你的真实域名，例如 https://blog.example.com
+url: https://example.com
+permalink: :year/:month/:day/:title/
+permalink_defaults:
+pretty_urls:
+  trailing_index: true
+  trailing_html: true
+
+# ===== 目录 =====
+source_dir: source
+public_dir: public
+tag_dir: tags
+archive_dir: archives
+category_dir: categories
+code_dir: downloads/code
+i18n_dir: :lang
+skip_render:
+  # 搜索引擎/平台验证文件放在 source 根目录时，加到这里可避免被渲染
+  # - baidu_verify_codeva-xxxxx.html
+  # - google1234567890abcdef.html
+
+# ===== 写作 =====
+new_post_name: :title.md
+default_layout: post
+titlecase: false
+external_link:
+  enable: true
+  field: site
+  exclude: ''
+filename_case: 0
+render_drafts: false
+post_asset_folder: true
+relative_link: false
+future: true
+syntax_highlighter: highlight.js
+highlight:
+  line_number: true
+  auto_detect: false
+  tab_replace: ''
+  wrap: true
+  hljs: false
+prismjs:
+  preprocess: false
+  line_number: true
+  tab_replace: ''
+
+# ===== 首页 =====
+index_generator:
+  path: ''
+  per_page: 8
+  order_by: -date
+
+# ===== 分类与标签 =====
+default_category: 未分类
+category_map:
+tag_map:
+
+meta_generator: true
+
+# ===== 日期格式 =====
+date_format: YYYY-MM-DD
+time_format: HH:mm
+updated_option: 'date'
+
+# ===== 分页 =====
+per_page: 8
+pagination_dir: page
+
+include:
+exclude:
+ignore:
+
+# ===== 主题 =====
+theme: next
+
+# ===== 站内搜索（首页/侧栏搜索框）=====
+search:
+  path: search.xml
+  field: post
+  content: true
+  format: html
+
+# ===== SEO：sitemap =====
+sitemap:
+  path:
+    - sitemap.xml
+    - sitemap.txt
+  rel: false
+  tags: true
+  categories: true
+
+# ===== RSS 订阅 =====
+feed:
+  type: atom
+  path: atom.xml
+  limit: 20
+  hub:
+  content: true
+  content_limit: 140
+  content_limit_delim: ' '
+
+# ===== SEO：出站链接加 nofollow（避免权重流失）=====
+nofollow:
+  enable: true
+  field: site
+  exclude:
+    - 'your-own-domain.com'
+
+# ===== 部署（GitHub Pages 用；Cloudflare Pages 走 Git 集成，不需要这里）=====
+deploy:
+  type: ''
