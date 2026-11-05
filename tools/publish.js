@@ -28,8 +28,40 @@ function fixImagePaths() {
   if (fixed.length) console.log('  已修正图片路径：' + fixed.join('、'));
 }
 
+// 文件名是日期时，按文章标题重命名，这样 Obsidian 里看到的名字就是标题
+function renameToTitle() {
+  const postsDir = path.join(root, 'source', '_posts');
+  const renamed = [];
+  for (const f of fs.readdirSync(postsDir)) {
+    if (!f.endsWith('.md')) continue;
+    const base = f.replace(/\.md$/, '');
+    if (!/^\d{4}-\d{2}-\d{2}-\d{4}(-\d+)?$/.test(base)) continue;
+
+    const p = path.join(postsDir, f);
+    const src = fs.readFileSync(p, 'utf8');
+    const m = src.match(/^---[\s\S]*?\ntitle:\s*(.+?)\s*\n/);
+    if (!m) continue;
+    const title = m[1].replace(/^["']|["']$/g, '').trim();
+    if (!title || title === '在这里写标题') continue;
+
+    let slug = title
+      .replace(/[\\/:*?"<>|]/g, ' ')
+      .replace(/\s+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60);
+    if (!slug) continue;
+
+    let target = path.join(postsDir, slug + '.md');
+    if (fs.existsSync(target)) continue; // 已有同名文件就不动，避免覆盖
+    fs.renameSync(p, target);
+    renamed.push(`${base} → ${slug}`);
+  }
+  if (renamed.length) console.log('  已按标题重命名：' + renamed.join('、'));
+}
+
 try {
   fixImagePaths();
+  renameToTitle();
 
   const status = run('git status --porcelain');
   if (!status.trim()) {
@@ -42,6 +74,11 @@ try {
 
   console.log('');
   console.log('  正在发布...');
+  if (process.env.PUBLISH_DRY === '1') {
+    console.log('  （试运行模式，不提交）');
+    console.log('');
+    process.exit(0);
+  }
   run('git add -A');
   run(`git commit -m "${msg}"`);
   const out = run('git push');
