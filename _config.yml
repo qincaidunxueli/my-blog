@@ -112,6 +112,15 @@ feed:
   content_limit: 140
   content_limit_delim: ' '
 
+# ===== 字数与阅读时长统计 =====
+# 只统计单篇文章；关闭全站合计，避免文章少的时候页脚出现 "0k"
+symbols_count_time:
+  symbols: true
+  time: true
+  total_symbols: false
+  total_time: false
+  exclude_codeblock: false
+
 # ===== SEO：出站链接加 nofollow（避免权重流失）=====
 nofollow:
   enable: true

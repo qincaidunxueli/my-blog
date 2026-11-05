@@ -58,10 +58,10 @@ lightdark:
 # ---------------------------------------------------------------
 
 favicon:
-  small: /images/favicon-16x16-next.png
-  medium: /images/favicon-32x32-next.png
-  apple_touch_icon: /images/apple-touch-icon-next.png
-  safari_pinned_tab: /images/logo.svg
+  small: /images/favicon-32.png
+  medium: /images/favicon.png
+  apple_touch_icon: /images/apple-touch-icon.png
+  safari_pinned_tab: /images/favicon.png
   #android_manifest: /manifest.json
 
 # Custom Logo (Warning: Do not support scheme Mist)
@@ -148,8 +148,7 @@ sidebar:
 
 # Sidebar Avatar
 avatar:
-  # 放一张 200x200 的图到 source/images/avatar.png，然后取消下一行注释
-  url: #/images/avatar.png
+  url: /images/avatar.png
   # If true, the avatar will be displayed in circle.
   rounded: true
   # If true, the avatar will be rotated with the cursor.
