@@ -1,5 +1,6 @@
 const { execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const root = path.join(__dirname, '..');
 const run = (cmd) => execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -8,12 +9,33 @@ function pad(n) { return String(n).padStart(2, '0'); }
 const now = new Date();
 const msg = `更新文章 ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
+// 把 Obsidian 生成的相对图片路径改成站点绝对路径：../images/x.png  ->  /images/x.png
+function fixImagePaths() {
+  const postsDir = path.join(root, 'source', '_posts');
+  let fixed = [];
+  for (const f of fs.readdirSync(postsDir)) {
+    if (!f.endsWith('.md')) continue;
+    const p = path.join(postsDir, f);
+    const src = fs.readFileSync(p, 'utf8');
+    const out = src
+      .replace(/\]\(\.\.\/images\//g, '](/images/')
+      .replace(/\]\(images\//g, '](/images/');
+    if (out !== src) {
+      fs.writeFileSync(p, out, 'utf8');
+      fixed.push(f);
+    }
+  }
+  if (fixed.length) console.log('  已修正图片路径：' + fixed.join('、'));
+}
+
 try {
+  fixImagePaths();
+
   const status = run('git status --porcelain');
   if (!status.trim()) {
     console.log('');
     console.log('  没有检测到修改。是不是文章没保存？');
-    console.log('  先去 VS Code 里按 Ctrl+S 保存，再双击这个。');
+    console.log('  先在编辑器里按 Ctrl+S 保存，再双击这个。');
     console.log('');
     process.exit(0);
   }

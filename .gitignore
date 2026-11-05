@@ -5,3 +5,5 @@ db.json
 *.log
 .DS_Store
 Thumbs.db
+source/.obsidian/workspace*.json
+source/.obsidian/cache
