@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# 部署后把下面一行改成你的真实域名
+Sitemap: https://qincaidunxueli.pages.dev/sitemap.xml
