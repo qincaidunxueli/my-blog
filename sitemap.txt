@@ -1,7 +1,7 @@
-https://qincaidunxueli.2701278848.workers.dev/2026/11/05/hello-blog/
-https://qincaidunxueli.2701278848.workers.dev/about/index.html
-https://qincaidunxueli.2701278848.workers.dev/categories/index.html
-https://qincaidunxueli.2701278848.workers.dev/tags/index.html
-https://qincaidunxueli.2701278848.workers.dev/
-https://qincaidunxueli.2701278848.workers.dev/tags/%E9%9A%8F%E7%AC%94/
-https://qincaidunxueli.2701278848.workers.dev/categories/%E5%BC%80%E5%A7%8B/
+https://qincaidunxueli.liqin.workers.dev/2026/11/05/hello-blog/
+https://qincaidunxueli.liqin.workers.dev/about/index.html
+https://qincaidunxueli.liqin.workers.dev/tags/index.html
+https://qincaidunxueli.liqin.workers.dev/categories/index.html
+https://qincaidunxueli.liqin.workers.dev/
+https://qincaidunxueli.liqin.workers.dev/tags/%E9%9A%8F%E7%AC%94/
+https://qincaidunxueli.liqin.workers.dev/categories/%E5%BC%80%E5%A7%8B/
