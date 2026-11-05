@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://qincaidunxueli.pages.dev/2026/11/05/hello-blog/</loc>
+    <loc>https://qincaidunxueli.2701278848.workers.dev/2026/11/05/hello-blog/</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -11,7 +11,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.pages.dev/categories/index.html</loc>
+    <loc>https://qincaidunxueli.2701278848.workers.dev/about/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -20,7 +20,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.pages.dev/about/index.html</loc>
+    <loc>https://qincaidunxueli.2701278848.workers.dev/categories/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -29,7 +29,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.pages.dev/tags/index.html</loc>
+    <loc>https://qincaidunxueli.2701278848.workers.dev/tags/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -39,7 +39,7 @@
   
 
   <url>
-    <loc>https://qincaidunxueli.pages.dev/</loc>
+    <loc>https://qincaidunxueli.2701278848.workers.dev/</loc>
     <lastmod>2026-11-05</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -47,7 +47,7 @@
 
   
   <url>
-    <loc>https://qincaidunxueli.pages.dev/tags/%E9%9A%8F%E7%AC%94/</loc>
+    <loc>https://qincaidunxueli.2701278848.workers.dev/tags/%E9%9A%8F%E7%AC%94/</loc>
     <lastmod>2026-11-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -56,7 +56,7 @@
 
   
   <url>
-    <loc>https://qincaidunxueli.pages.dev/categories/%E5%BC%80%E5%A7%8B/</loc>
+    <loc>https://qincaidunxueli.2701278848.workers.dev/categories/%E5%BC%80%E5%A7%8B/</loc>
     <lastmod>2026-11-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
