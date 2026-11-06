@@ -1,3 +1,13 @@
+---
+title: Oracle sql
+date: 2026-11-6
+tags:
+  - Orclesql
+categories:
+  - 技术
+description: 关于Oracle sql 与Mysql 的不同之处
+---
+<!-- more -->
 # MySQL & Oracle 手工 SQL 注入 整合完整版手册
 
 > 适用：PortSwigger 靶场、CTF 手工注入
