@@ -33,7 +33,7 @@
 </tr>
 <tr>
 <td>仓库</td>
-<td><a href="mailto:&#x67;&#x69;&#116;&#x40;&#103;&#105;&#116;&#x68;&#117;&#x62;&#x2e;&#99;&#111;&#x6d;">&#x67;&#x69;&#116;&#x40;&#103;&#105;&#116;&#x68;&#117;&#x62;&#x2e;&#99;&#111;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
+<td><a href="mailto:&#103;&#x69;&#x74;&#x40;&#x67;&#x69;&#116;&#104;&#x75;&#x62;&#x2e;&#x63;&#x6f;&#109;">&#103;&#x69;&#x74;&#x40;&#x67;&#x69;&#116;&#104;&#x75;&#x62;&#x2e;&#x63;&#x6f;&#109;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
 </tr>
 <tr>
 <td>部署</td>
@@ -1096,77 +1096,6 @@
       </tags>
   </entry>
   <entry>
-    <title>XSS 高频事件</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
-    <content><![CDATA[<span id="more"></span>
-<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
-<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
-</blockquote>
-<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
-<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
-<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
-<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
-<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
-<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
-<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
-</ul>
-<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
-<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
-<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
-<li><code>onkeydown</code>：按下按键瞬间触发</li>
-<li><code>onkeyup</code>：松开按键触发</li>
-<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
-</ul>
-<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
-<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
-</blockquote>
-<ul>
-<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
-<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
-</ul>
-<blockquote>
-<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
-</blockquote>
-<ul>
-<li><code>onpageshow</code>：页面展示时触发（body）</li>
-</ul>
-<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
-<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
-<li><code>onselect</code>：选中输入框里面文字时触发</li>
-<li><code>oncopy</code>：复制内容触发</li>
-<li><code>oncut</code>：剪切内容触发</li>
-<li><code>onpaste</code>：粘贴内容触发</li>
-</ul>
-<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
-<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
-<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
-</ul>
-<hr>
-<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
-<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
-<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
-</ol>
-<blockquote>
-<p>举 onerror 例子：</p>
-<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
-<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
-</blockquote>
-<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
-<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
-<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
-<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
-<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
-</ol>
-<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
-<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-        <category>XSS</category>
-      </categories>
-  </entry>
-  <entry>
     <title>XSS深化总结</title>
     <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%E6%B7%B1%E5%8C%96%E6%80%BB%E7%BB%93/</url>
     <content><![CDATA[<span id="more"></span>
@@ -1461,6 +1390,77 @@
         <category>JAVA安全</category>
         <category>反序列化</category>
         <category>CC链</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>XSS 高频事件</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
+<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
+</blockquote>
+<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
+<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
+<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
+<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
+<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
+<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
+<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
+</ul>
+<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
+<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
+<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
+<li><code>onkeydown</code>：按下按键瞬间触发</li>
+<li><code>onkeyup</code>：松开按键触发</li>
+<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
+</ul>
+<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
+<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
+</blockquote>
+<ul>
+<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
+<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
+</ul>
+<blockquote>
+<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
+</blockquote>
+<ul>
+<li><code>onpageshow</code>：页面展示时触发（body）</li>
+</ul>
+<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
+<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
+<li><code>onselect</code>：选中输入框里面文字时触发</li>
+<li><code>oncopy</code>：复制内容触发</li>
+<li><code>oncut</code>：剪切内容触发</li>
+<li><code>onpaste</code>：粘贴内容触发</li>
+</ul>
+<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
+<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
+<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
+</ul>
+<hr>
+<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
+<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
+<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
+</ol>
+<blockquote>
+<p>举 onerror 例子：</p>
+<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
+<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
+</blockquote>
+<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
+<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
+<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
+<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
+<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
+</ol>
+<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
+<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>基础漏洞</category>
+        <category>XSS</category>
       </categories>
   </entry>
 </search>
