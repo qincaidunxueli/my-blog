@@ -2,24 +2,6 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</loc>
-    
-    <lastmod>2026-11-06</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/</loc>
-    
-    <lastmod>2026-11-06</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E8%AF%AD%E6%B3%95/</loc>
     
     <lastmod>2026-11-06</lastmod>
@@ -29,7 +11,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sqli/sqlilab/</loc>
+    <loc>https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</loc>
     
     <lastmod>2026-11-06</lastmod>
     
@@ -39,6 +21,15 @@
   
   <url>
     <loc>https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/hexo-blog-notes/</loc>
+    
+    <lastmod>2026-11-05</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -65,7 +56,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.cn/about/index.html</loc>
+    <loc>https://qincaidunxueli.cn/tags/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -74,7 +65,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.cn/tags/index.html</loc>
+    <loc>https://qincaidunxueli.cn/about/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -120,6 +111,13 @@
   </url>
   
   <url>
+    <loc>https://qincaidunxueli.cn/tags/sql%E9%9D%B6%E5%9C%BA/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://qincaidunxueli.cn/tags/Orclesql/</loc>
     <lastmod>2026-11-06</lastmod>
     <changefreq>weekly</changefreq>
@@ -144,13 +142,6 @@
   
   <url>
     <loc>https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/</loc>
-    <lastmod>2026-11-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sqli/</loc>
     <lastmod>2026-11-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
