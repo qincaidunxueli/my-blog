@@ -36,12 +36,12 @@
     <category term="开始" scheme="https://qincaidunxueli.cn/categories/%E5%BC%80%E5%A7%8B/"/>
     <category term="随笔" scheme="https://qincaidunxueli.cn/tags/%E9%9A%8F%E7%AC%94/"/>
     <content>
-      <![CDATA[<p>这是第一篇文章。博客用 Hexo 8 + NexT 8 搭成，纯静态，托管在云端，不需要服务器。</p><h2 id="怎么写一篇新文章"><a href="#怎么写一篇新文章" class="headerlink" title="怎么写一篇新文章"></a>怎么写一篇新文章</h2><p>在项目目录下执行：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npx hexo new post <span class="string">&quot;文章标题&quot;</span></span><br></pre></td></tr></table></figure><p>它会在 <code>source/_posts/</code> 下生成一个 Markdown 文件，用任何编辑器打开写就行。改完执行：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npx hexo server</span><br></pre></td></tr></table></figure><p>打开 <code>http://localhost:4000</code> 就能看到效果，边写边刷新。</p><h2 id="发布"><a href="#发布" class="headerlink" title="发布"></a>发布</h2><p>因为有 GitHub Actions 自动构建，实际上你只要把改动提交上去，线上几分钟后就会更新：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git add .</span><br><span class="line">git commit -m <span class="string">&quot;新文章&quot;</span></span><br><span class="line">git push</span><br></pre></td></tr></table></figure><span id="more"></span><h2 id="图片放哪"><a href="#图片放哪" class="headerlink" title="图片放哪"></a>图片放哪</h2><p>项目开了「文章资源文件夹」，执行 <code>hexo new post</code> 时会自动生成一个同名文件夹，把图片丢进去，然后在文章里这样引用：</p><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![<span class="string">图片说明</span>](<span class="link">hello-blog/图片.png</span>)</span><br></pre></td></tr></table></figure><p>这样图片会跟着文章一起打包，不会出现图床挂了、老文章图片全裂的情况。</p><h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>在正文里插入一行 <code>&lt;!-- more --&gt;</code>，它上面的内容会作为首页摘要显示，下面的内容要点「阅读全文」才看得到。</p>]]>
+      <![CDATA[<p>这是第一篇文章。博客用 Hexo 8 + NexT 8 搭成，纯静态，托管在云端，不需要服务器。</p>]]>
     </content>
     <id>https://qincaidunxueli.cn/2026/11/05/hello-blog/</id>
     <link href="https://qincaidunxueli.cn/2026/11/05/hello-blog/"/>
     <published>2026-11-05T12:00:00.000Z</published>
-    <summary>这个博客是怎么搭起来的，以及以后怎么往里写东西。</summary>
+    <summary>见证开始</summary>
     <title>你好，博客</title>
     <updated>2026-11-05T12:00:00.000Z</updated>
   </entry>
