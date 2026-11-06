@@ -1,25 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>在这里写标题</title>
-    <url>/2026/11/06/2026-11-06-1628/</url>
-    <content><![CDATA[<p>正文从这里开始写。</p>
-<p>写完保存（Ctrl+S），然后关掉这个窗口，双击「发布文章」就行。</p>
-<span id="more"></span>
-
-<p>这一行上面的内容会作为首页摘要显示，下面的内容要点进文章才能看到。</p>
-<h2 id="小标题这样写"><a href="#小标题这样写" class="headerlink" title="小标题这样写"></a>小标题这样写</h2><p>普通段落直接写。想加粗就前后各两个星号：<strong>这样</strong>。</p>
-<p>想放图片：把图片拖进 source&#x2F;_posts 下和这个文件同名的文件夹里，<br>然后写 <img src="/%E6%96%87%E4%BB%B6%E5%A4%B9%E5%90%8D/%E5%9B%BE%E7%89%87%E5%90%8D.png"></p>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-      </categories>
-      <tags>
-        <tag>随笔</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>你好，博客</title>
     <url>/2026/11/05/hello-blog/</url>
     <content><![CDATA[<p>这是第一篇文章。博客用 Hexo 8 + NexT 8 搭成，纯静态，托管在云端，不需要服务器。</p>
@@ -294,7 +275,7 @@
   </entry>
   <entry>
     <title>臭屁琴是猪</title>
-    <url>/2026/11/06/hhh/</url>
+    <url>/2026/11/06/%E7%94%9F%E6%B4%BB/hhh/</url>
     <content><![CDATA[<p>你好你好你好你好你好</p>
 ]]></content>
       <categories>
@@ -306,7 +287,7 @@
   </entry>
   <entry>
     <title>sqlilab</title>
-    <url>/2026/11/06/sqlilab/</url>
+    <url>/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sqli/sqlilab/</url>
     <content><![CDATA[<p>正文从这里开始写。</p>
 <p>写完保存（Ctrl+S），然后关掉这个窗口，双击「发布文章」就行。</p>
 <span id="more"></span>

@@ -22,29 +22,12 @@
     <content>
       <![CDATA[<p>正文从这里开始写。</p><p>写完保存（Ctrl+S），然后关掉这个窗口，双击「发布文章」就行。</p><span id="more"></span><p>这一行上面的内容会作为首页摘要显示，下面的内容要点进文章才能看到。</p><h2 id="小标题这样写"><a href="#小标题这样写" class="headerlink" title="小标题这样写"></a>小标题这样写</h2><p>普通段落直接写。想加粗就前后各两个星号：<strong>这样</strong>。</p><p>想放图片：把图片拖进 source&#x2F;_posts 下和这个文件同名的文件夹里，<br>然后写 <img src="/%E6%96%87%E4%BB%B6%E5%A4%B9%E5%90%8D/%E5%9B%BE%E7%89%87%E5%90%8D.png"></p>]]>
     </content>
-    <id>https://qincaidunxueli.cn/2026/11/06/sqlilab/</id>
-    <link href="https://qincaidunxueli.cn/2026/11/06/sqlilab/"/>
+    <id>https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sqli/sqlilab/</id>
+    <link href="https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sqli/sqlilab/"/>
     <published>2026-11-06T09:10:00.000Z</published>
     <summary>这里写一句话摘要，会显示在首页文章标题下面</summary>
     <title>sqlilab</title>
     <updated>2026-11-06T09:10:00.000Z</updated>
-  </entry>
-  <entry>
-    <author>
-      <name>芹菜炖雪梨</name>
-    </author>
-    <category term="技术" scheme="https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/"/>
-    <category term="基础漏洞" scheme="https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/"/>
-    <category term="随笔" scheme="https://qincaidunxueli.cn/tags/%E9%9A%8F%E7%AC%94/"/>
-    <content>
-      <![CDATA[<p>正文从这里开始写。</p><p>写完保存（Ctrl+S），然后关掉这个窗口，双击「发布文章」就行。</p><span id="more"></span><p>这一行上面的内容会作为首页摘要显示，下面的内容要点进文章才能看到。</p><h2 id="小标题这样写"><a href="#小标题这样写" class="headerlink" title="小标题这样写"></a>小标题这样写</h2><p>普通段落直接写。想加粗就前后各两个星号：<strong>这样</strong>。</p><p>想放图片：把图片拖进 source&#x2F;_posts 下和这个文件同名的文件夹里，<br>然后写 <img src="/%E6%96%87%E4%BB%B6%E5%A4%B9%E5%90%8D/%E5%9B%BE%E7%89%87%E5%90%8D.png"></p>]]>
-    </content>
-    <id>https://qincaidunxueli.cn/2026/11/06/2026-11-06-1628/</id>
-    <link href="https://qincaidunxueli.cn/2026/11/06/2026-11-06-1628/"/>
-    <published>2026-11-06T08:28:00.000Z</published>
-    <summary>这里写一句话摘要，会显示在首页文章标题下面</summary>
-    <title>在这里写标题</title>
-    <updated>2026-11-06T08:28:00.000Z</updated>
   </entry>
   <entry>
     <author>
@@ -55,8 +38,8 @@
     <content>
       <![CDATA[<p>你好你好你好你好你好</p>]]>
     </content>
-    <id>https://qincaidunxueli.cn/2026/11/06/hhh/</id>
-    <link href="https://qincaidunxueli.cn/2026/11/06/hhh/"/>
+    <id>https://qincaidunxueli.cn/2026/11/06/%E7%94%9F%E6%B4%BB/hhh/</id>
+    <link href="https://qincaidunxueli.cn/2026/11/06/%E7%94%9F%E6%B4%BB/hhh/"/>
     <published>2026-11-06T01:55:00.000Z</published>
     <summary>哈哈哈哈哈哈</summary>
     <title>臭屁琴是猪</title>
