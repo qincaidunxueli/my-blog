@@ -316,6 +316,7 @@
 <p>想放图片：把图片拖进 source&#x2F;_posts 下和这个文件同名的文件夹里，<br>然后写 <img src="/%E6%96%87%E4%BB%B6%E5%A4%B9%E5%90%8D/%E5%9B%BE%E7%89%87%E5%90%8D.png"></p>
 ]]></content>
       <categories>
+        <category>技术</category>
         <category>基础漏洞</category>
         <category>sqli</category>
       </categories>
