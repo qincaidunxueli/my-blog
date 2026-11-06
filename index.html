@@ -171,7 +171,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-count">7</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -236,7 +236,7 @@
       </span>
       <span class="post-meta-item-text">发表于</span>
 
-      <time title="创建时间：2026-11-06 18:59" itemprop="dateCreated datePublished" datetime="2026-11-06T18:59:55+08:00">2026-11-06</time>
+      <time title="创建时间：2026-11-06 19:01" itemprop="dateCreated datePublished" datetime="2026-11-06T19:01:26+08:00">2026-11-06</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -307,6 +307,185 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang>
+    <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E8%AF%AD%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="芹菜炖雪梨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="芹菜炖雪梨的小屋">
+      <meta itemprop="description" content="芹菜炖雪梨的小屋，用来存放一些想法和记录。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 芹菜炖雪梨的小屋">
+      <meta itemprop="description" content>
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E8%AF%AD%E6%B3%95/" class="post-title-link" itemprop="url">未命名</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-11-06 19:01" itemprop="dateCreated datePublished" datetime="2026-11-06T19:01:26+08:00">2026-11-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/" itemprop="url" rel="index"><span itemprop="name">基础漏洞</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/" itemprop="url" rel="index"><span itemprop="name">sql重学深化</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-lines"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>936</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>3 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="前置"><a href="#前置" class="headerlink" title="前置"></a>前置</h1><p>学习这个漏洞前确实得学学sql语句 要不然还是有些地方不知道为什么错，绷不住了</p>
+<h3 id="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"><a href="#在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）" class="headerlink" title="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"></a>在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）</h3><h2 id="less23，遇到的"><a href="#less23，遇到的" class="headerlink" title="less23，遇到的"></a>less23，遇到的</h2><p>关于顶层子句的顺序问题和嵌套,group by和order by的<br>顶层子句：属于整条查询的结构块，<strong>不能嵌入 WHERE 的 AND&#x2F;OR 布尔表达式内部</strong><br>顶层子句不能写进where的and&#x2F;or布尔表达式内部<br>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. FROM + JOIN   -- 加载表、多表关联，拿到原始数据集</span><br><span class="line">2. WHERE         -- 过滤原始行，剔除不符合条件的行；不能用聚合函数</span><br><span class="line">3. GROUP BY      -- 对WHERE筛选后的结果分组、合并多行</span><br><span class="line">4. HAVING        -- 分组之后再过滤；**可以使用聚合函数count/sum**</span><br><span class="line">5. SELECT + DISTINCT -- 挑选输出列、计算字段、去重</span><br><span class="line">6. ORDER BY      -- 对SELECT输出的结果集排序</span><br><span class="line">7. LIMIT         -- 截取指定行数，最后一步</span><br></pre></td></tr></table></figure>
+<p>eg23(过滤#，–)：payload:?id&#x3D;1’ and group by 4 or ‘1’&#x3D;’1,</p>
+<h4 id="1、要写进数据库的句子是这样的"><a href="#1、要写进数据库的句子是这样的" class="headerlink" title="1、要写进数据库的句子是这样的"></a>1、要写进数据库的句子是这样的</h4><p><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code><br>由于无法注释掉后面的limit,整个payload就会一直处于where内部，后面打算用换行的方式写成这样payload:?id&#x3D;1’%0agroup%20by%203%0a%20or%20’1’&#x3D;’1<br>效果就是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM users </span><br><span class="line">WHERE id=&#x27;1&#x27;        -- WHERE 到此结束 ✔</span><br><span class="line">GROUP BY 4          -- 顶层子句，成功跑到WHERE外面了！</span><br><span class="line">OR &#x27;1&#x27;=&#x27;1&#x27; LIMIT 0,1</span><br></pre></td></tr></table></figure>
+<p>好像可以，但是</p>
+<h4 id="2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。"><a href="#2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。" class="headerlink" title="2、GROUP BY 后面只能跟分组字段，不能直接接 OR/AND 布尔运算符。"></a>2、<code>GROUP BY</code> 后面<strong>只能跟分组字段</strong>，不能直接接 <code>OR/AND</code> 布尔运算符。</h4><p>MySQL 会把整段理解成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GROUP BY 4 OR/AND &#x27;1&#x27;=&#x27;1&#x27;</span><br></pre></td></tr></table></figure>
+<p>也就不行了，非零数字全被理解为真，就失去了探测列数的作用</p>
+<h4 id="3、group-by-和order-by-探测列数的区别"><a href="#3、group-by-和order-by-探测列数的区别" class="headerlink" title="3、group by 和order by 探测列数的区别"></a>3、group by 和order by 探测列数的区别</h4><h5 id="1-ORDER-BY-探测（CTF-SQLi-Labs-首选）"><a href="#1-ORDER-BY-探测（CTF-SQLi-Labs-首选）" class="headerlink" title="1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）"></a>1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）</h5><h6 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h6><p><code>ORDER BY N</code>：N 代表<strong>结果集的第 N 列</strong>。<br>MySQL 允许用数字代替列名：<code>ORDER BY 1</code>&#x3D; 按第 1 列排序。</p>
+<ul>
+<li>N ≤ 总列数：正常执行，页面正常回显</li>
+<li>N &gt; 总列数：抛出报错 <code>Unknown column &#39;N&#39; in &#39;order clause&#39;</code></li>
+</ul>
+<blockquote>
+<p>通过不断增大数字，报错临界点就是查询的列总数。</p>
+</blockquote>
+<h6 id="用法"><a href="#用法" class="headerlink" title="用法"></a>用法</h6><p>Less1 payload：<code>?id=1&#39; order by 3--+</code><br>注释把源码尾部 <code>&#39; LIMIT 0,1</code> 删掉，最终执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM users WHERE id=&#x27;1&#x27; ORDER BY 3;</span><br></pre></td></tr></table></figure>
+<h6 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h6><ol>
+<li>兼容性好，MySQL5&#x2F;8 都能用，<strong>不受 ONLY_FULL_GROUP_BY 参数影响</strong></li>
+<li>报错信息直观，稳定，靶场通用</li>
+</ol>
+<h6 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h6><ol>
+<li>必须能注释截断源码后面内容，否则语法断裂（Less23 无法使用）</li>
+</ol>
+<h5 id="2-GROUP-BY-探测列数（备选，现在不推荐）"><a href="#2-GROUP-BY-探测列数（备选，现在不推荐）" class="headerlink" title="2. GROUP BY 探测列数（备选，现在不推荐）"></a>2. GROUP BY 探测列数（备选，现在不推荐）</h5><h6 id="原理-1"><a href="#原理-1" class="headerlink" title="原理"></a>原理</h6><p><code>GROUP BY N</code>：同样支持数字代表结果集第 N 列。</p>
+<ul>
+<li>N ≤ 总列数：正常执行</li>
+<li>N &gt; 总列数：报错 <code>Unknown column &#39;N&#39; in &#39;group statement&#39;</code></li>
+</ul>
+<h6 id="用法-1"><a href="#用法-1" class="headerlink" title="用法"></a>用法</h6><p>和 order by 写法几乎一样：<code>?id=1&#39; group by 3--+</code><br>注释截断尾部，让 group by 成为顶层子句。</p>
+<h6 id="致命缺点（重点）"><a href="#致命缺点（重点）" class="headerlink" title="致命缺点（重点）"></a>致命缺点（重点）</h6><ol>
+<li><p><strong>受 <code>ONLY_FULL_GROUP_BY</code> 影响极大</strong>（MySQL5.7、8.0 默认开启）</p>
+<p> 开启后，哪怕 N 是合法列号，也直接报分组语法错误，探测直接失效。</p>
+</li>
+<li><p>group by 会<strong>合并相同值的行</strong>，会改变返回结果行数，容易干扰页面回显。</p>
+</li>
+</ol>
+<h4 id="对比汇总表"><a href="#对比汇总表" class="headerlink" title="对比汇总表"></a>对比汇总表</h4><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>ORDER BY 探测</th>
+<th>GROUP BY 探测</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>探测原理</td>
+<td>按结果集第 N 列排序，列不存在则报错</td>
+<td>按结果集第 N 列分组，列不存在则报错</td>
+</tr>
+<tr>
+<td>高版本 MySQL (8.0)</td>
+<td>✅稳定可用</td>
+<td>❌极易被 ONLY_FULL_GROUP_BY 废掉</td>
+</tr>
+<tr>
+<td>对结果集影响</td>
+<td>只改变顺序，<strong>行数不变</strong></td>
+<td>合并重复行，<strong>改变行数</strong></td>
+</tr>
+<tr>
+<td>报错信息</td>
+<td><code>Unknown column ... in &#39;order clause&#39;</code></td>
+<td><code>Unknown column ... in &#39;group statement&#39;</code></td>
+</tr>
+<tr>
+<td>推荐程度</td>
+<td>⭐⭐⭐⭐⭐ 首选</td>
+<td>⭐ 仅旧版本 MySQL 备选</td>
+</tr>
+<tr>
+<td>使用前提</td>
+<td>都需要注释截断源码尾部，放到 WHERE 外面</td>
+<td>同左</td>
+</tr>
+</tbody></table>
+<h1 id><a href="#" class="headerlink" title></a></h1>
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang>
     <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -336,7 +515,7 @@
       </span>
       <span class="post-meta-item-text">发表于</span>
 
-      <time title="创建时间：2026-11-06 18:59" itemprop="dateCreated datePublished" datetime="2026-11-06T18:59:55+08:00">2026-11-06</time>
+      <time title="创建时间：2026-11-06 19:01" itemprop="dateCreated datePublished" datetime="2026-11-06T19:01:26+08:00">2026-11-06</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -499,185 +678,6 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang>
-    <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E8%AF%AD%E6%B3%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="芹菜炖雪梨">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="芹菜炖雪梨的小屋">
-      <meta itemprop="description" content="芹菜炖雪梨的小屋，用来存放一些想法和记录。">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | 芹菜炖雪梨的小屋">
-      <meta itemprop="description" content>
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E8%AF%AD%E6%B3%95/" class="post-title-link" itemprop="url">未命名</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-11-06 18:59" itemprop="dateCreated datePublished" datetime="2026-11-06T18:59:55+08:00">2026-11-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/" itemprop="url" rel="index"><span itemprop="name">基础漏洞</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/" itemprop="url" rel="index"><span itemprop="name">sql重学深化</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-lines"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>936</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>3 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="前置"><a href="#前置" class="headerlink" title="前置"></a>前置</h1><p>学习这个漏洞前确实得学学sql语句 要不然还是有些地方不知道为什么错，绷不住了</p>
-<h3 id="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"><a href="#在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）" class="headerlink" title="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"></a>在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）</h3><h2 id="less23，遇到的"><a href="#less23，遇到的" class="headerlink" title="less23，遇到的"></a>less23，遇到的</h2><p>关于顶层子句的顺序问题和嵌套,group by和order by的<br>顶层子句：属于整条查询的结构块，<strong>不能嵌入 WHERE 的 AND&#x2F;OR 布尔表达式内部</strong><br>顶层子句不能写进where的and&#x2F;or布尔表达式内部<br>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. FROM + JOIN   -- 加载表、多表关联，拿到原始数据集</span><br><span class="line">2. WHERE         -- 过滤原始行，剔除不符合条件的行；不能用聚合函数</span><br><span class="line">3. GROUP BY      -- 对WHERE筛选后的结果分组、合并多行</span><br><span class="line">4. HAVING        -- 分组之后再过滤；**可以使用聚合函数count/sum**</span><br><span class="line">5. SELECT + DISTINCT -- 挑选输出列、计算字段、去重</span><br><span class="line">6. ORDER BY      -- 对SELECT输出的结果集排序</span><br><span class="line">7. LIMIT         -- 截取指定行数，最后一步</span><br></pre></td></tr></table></figure>
-<p>eg23(过滤#，–)：payload:?id&#x3D;1’ and group by 4 or ‘1’&#x3D;’1,</p>
-<h4 id="1、要写进数据库的句子是这样的"><a href="#1、要写进数据库的句子是这样的" class="headerlink" title="1、要写进数据库的句子是这样的"></a>1、要写进数据库的句子是这样的</h4><p><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code><br>由于无法注释掉后面的limit,整个payload就会一直处于where内部，后面打算用换行的方式写成这样payload:?id&#x3D;1’%0agroup%20by%203%0a%20or%20’1’&#x3D;’1<br>效果就是：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM users </span><br><span class="line">WHERE id=&#x27;1&#x27;        -- WHERE 到此结束 ✔</span><br><span class="line">GROUP BY 4          -- 顶层子句，成功跑到WHERE外面了！</span><br><span class="line">OR &#x27;1&#x27;=&#x27;1&#x27; LIMIT 0,1</span><br></pre></td></tr></table></figure>
-<p>好像可以，但是</p>
-<h4 id="2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。"><a href="#2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。" class="headerlink" title="2、GROUP BY 后面只能跟分组字段，不能直接接 OR/AND 布尔运算符。"></a>2、<code>GROUP BY</code> 后面<strong>只能跟分组字段</strong>，不能直接接 <code>OR/AND</code> 布尔运算符。</h4><p>MySQL 会把整段理解成：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GROUP BY 4 OR/AND &#x27;1&#x27;=&#x27;1&#x27;</span><br></pre></td></tr></table></figure>
-<p>也就不行了，非零数字全被理解为真，就失去了探测列数的作用</p>
-<h4 id="3、group-by-和order-by-探测列数的区别"><a href="#3、group-by-和order-by-探测列数的区别" class="headerlink" title="3、group by 和order by 探测列数的区别"></a>3、group by 和order by 探测列数的区别</h4><h5 id="1-ORDER-BY-探测（CTF-SQLi-Labs-首选）"><a href="#1-ORDER-BY-探测（CTF-SQLi-Labs-首选）" class="headerlink" title="1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）"></a>1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）</h5><h6 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h6><p><code>ORDER BY N</code>：N 代表<strong>结果集的第 N 列</strong>。<br>MySQL 允许用数字代替列名：<code>ORDER BY 1</code>&#x3D; 按第 1 列排序。</p>
-<ul>
-<li>N ≤ 总列数：正常执行，页面正常回显</li>
-<li>N &gt; 总列数：抛出报错 <code>Unknown column &#39;N&#39; in &#39;order clause&#39;</code></li>
-</ul>
-<blockquote>
-<p>通过不断增大数字，报错临界点就是查询的列总数。</p>
-</blockquote>
-<h6 id="用法"><a href="#用法" class="headerlink" title="用法"></a>用法</h6><p>Less1 payload：<code>?id=1&#39; order by 3--+</code><br>注释把源码尾部 <code>&#39; LIMIT 0,1</code> 删掉，最终执行：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM users WHERE id=&#x27;1&#x27; ORDER BY 3;</span><br></pre></td></tr></table></figure>
-<h6 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h6><ol>
-<li>兼容性好，MySQL5&#x2F;8 都能用，<strong>不受 ONLY_FULL_GROUP_BY 参数影响</strong></li>
-<li>报错信息直观，稳定，靶场通用</li>
-</ol>
-<h6 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h6><ol>
-<li>必须能注释截断源码后面内容，否则语法断裂（Less23 无法使用）</li>
-</ol>
-<h5 id="2-GROUP-BY-探测列数（备选，现在不推荐）"><a href="#2-GROUP-BY-探测列数（备选，现在不推荐）" class="headerlink" title="2. GROUP BY 探测列数（备选，现在不推荐）"></a>2. GROUP BY 探测列数（备选，现在不推荐）</h5><h6 id="原理-1"><a href="#原理-1" class="headerlink" title="原理"></a>原理</h6><p><code>GROUP BY N</code>：同样支持数字代表结果集第 N 列。</p>
-<ul>
-<li>N ≤ 总列数：正常执行</li>
-<li>N &gt; 总列数：报错 <code>Unknown column &#39;N&#39; in &#39;group statement&#39;</code></li>
-</ul>
-<h6 id="用法-1"><a href="#用法-1" class="headerlink" title="用法"></a>用法</h6><p>和 order by 写法几乎一样：<code>?id=1&#39; group by 3--+</code><br>注释截断尾部，让 group by 成为顶层子句。</p>
-<h6 id="致命缺点（重点）"><a href="#致命缺点（重点）" class="headerlink" title="致命缺点（重点）"></a>致命缺点（重点）</h6><ol>
-<li><p><strong>受 <code>ONLY_FULL_GROUP_BY</code> 影响极大</strong>（MySQL5.7、8.0 默认开启）</p>
-<p> 开启后，哪怕 N 是合法列号，也直接报分组语法错误，探测直接失效。</p>
-</li>
-<li><p>group by 会<strong>合并相同值的行</strong>，会改变返回结果行数，容易干扰页面回显。</p>
-</li>
-</ol>
-<h4 id="对比汇总表"><a href="#对比汇总表" class="headerlink" title="对比汇总表"></a>对比汇总表</h4><table>
-<thead>
-<tr>
-<th>项目</th>
-<th>ORDER BY 探测</th>
-<th>GROUP BY 探测</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>探测原理</td>
-<td>按结果集第 N 列排序，列不存在则报错</td>
-<td>按结果集第 N 列分组，列不存在则报错</td>
-</tr>
-<tr>
-<td>高版本 MySQL (8.0)</td>
-<td>✅稳定可用</td>
-<td>❌极易被 ONLY_FULL_GROUP_BY 废掉</td>
-</tr>
-<tr>
-<td>对结果集影响</td>
-<td>只改变顺序，<strong>行数不变</strong></td>
-<td>合并重复行，<strong>改变行数</strong></td>
-</tr>
-<tr>
-<td>报错信息</td>
-<td><code>Unknown column ... in &#39;order clause&#39;</code></td>
-<td><code>Unknown column ... in &#39;group statement&#39;</code></td>
-</tr>
-<tr>
-<td>推荐程度</td>
-<td>⭐⭐⭐⭐⭐ 首选</td>
-<td>⭐ 仅旧版本 MySQL 备选</td>
-</tr>
-<tr>
-<td>使用前提</td>
-<td>都需要注释截断源码尾部，放到 WHERE 外面</td>
-<td>同左</td>
-</tr>
-</tbody></table>
-<h1 id><a href="#" class="headerlink" title></a></h1>
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang>
     <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/%E5%AD%A6%E4%B9%A0%E6%88%90%E6%9E%9C/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -707,7 +707,7 @@
       </span>
       <span class="post-meta-item-text">发表于</span>
 
-      <time title="创建时间：2026-11-06 18:59" itemprop="dateCreated datePublished" datetime="2026-11-06T18:59:55+08:00">2026-11-06</time>
+      <time title="创建时间：2026-11-06 19:01" itemprop="dateCreated datePublished" datetime="2026-11-06T19:01:26+08:00">2026-11-06</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -860,106 +860,6 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sqli/sqlilab/">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang>
-    <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/06/%E7%94%9F%E6%B4%BB/hhh/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="芹菜炖雪梨">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="芹菜炖雪梨的小屋">
-      <meta itemprop="description" content="芹菜炖雪梨的小屋，用来存放一些想法和记录。">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | 芹菜炖雪梨的小屋">
-      <meta itemprop="description" content>
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/11/06/%E7%94%9F%E6%B4%BB/hhh/" class="post-title-link" itemprop="url">臭屁琴是猪</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-11-06 09:55" itemprop="dateCreated datePublished" datetime="2026-11-06T09:55:00+08:00">2026-11-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E7%94%9F%E6%B4%BB/" itemprop="url" rel="index"><span itemprop="name">生活</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-lines"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>10</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>1 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>哈哈哈哈哈哈</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2026/11/06/%E7%94%9F%E6%B4%BB/hhh/">
                 阅读全文 &raquo;
               </a>
             </div>
