@@ -157,7 +157,17 @@ function renderTreeHTML(roots, all, total, ctx) {
     `<span><b>${total}</b> 篇文章</span>` +
     `</div>` +
     `<ul class="ct-root">${roots.map((r) => renderNode(r, 1, ctx)).join('')}</ul>` +
-    `</div>`
+    `</div>` +
+    // 交互脚本：第三层（文章列表）点击展开，手机上没有悬停所以整行都能点
+    `<script>(function(){` +
+    `var touch=window.matchMedia('(hover: none)').matches;` +
+    `var nodes=document.querySelectorAll('.ct-node.ct-has-sub');` +
+    `Array.prototype.forEach.call(nodes,function(node){` +
+    `var link=node.querySelector('.ct-link');if(!link)return;` +
+    `var hasArticles=node.classList.contains('ct-has-articles');` +
+    `if(!touch&&!hasArticles)return;` +
+    `link.addEventListener('click',function(e){e.preventDefault();node.classList.toggle('ct-open');});` +
+    `});})();</script>`
   );
 }
 
