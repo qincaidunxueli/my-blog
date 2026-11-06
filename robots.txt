@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 
 # 部署后把下面一行改成你的真实域名
-Sitemap: https://qincaidunxueli.liqin.workers.dev/sitemap.xml
+Sitemap: https://qincaidunxueli.cn/sitemap.xml
