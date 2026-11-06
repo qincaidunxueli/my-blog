@@ -4,7 +4,7 @@ date: 2026-11-05 20:00:00
 tags:
   - 随笔
 categories:
-  - 开始
+  - 生活
 description: 见证开始
 ---
 
