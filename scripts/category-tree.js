@@ -76,7 +76,6 @@ function renderCategoryTree() {
     `<span><b>${posts}</b> 篇文章</span>` +
     `</div>` +
     `<ul class="ct-root">${roots.map((r) => renderNode(r, 1)).join('')}</ul>` +
-    `<p class="ct-tip">把鼠标移到带 <span class="ct-caret ct-caret-demo">›</span> 的分类上，可以看到它的下一层</p>` +
     `</div>`
   );
 }
