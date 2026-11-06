@@ -12,7 +12,7 @@ timezone: 'Asia/Shanghai'
 
 # ===== URL =====
 ## 部署后改成你的真实域名，例如 https://blog.example.com
-url: https://qincaidunxueli.liqin.workers.dev
+url: https://qincaidunxueli.cn
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
