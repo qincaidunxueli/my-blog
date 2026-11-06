@@ -32,6 +32,18 @@
       </tags>
   </entry>
   <entry>
+    <title>臭屁琴是猪</title>
+    <url>/2026/11/06/hhh/</url>
+    <content><![CDATA[<p>你好你好你好你好你好</p>
+]]></content>
+      <categories>
+        <category>生活</category>
+      </categories>
+      <tags>
+        <tag>随笔</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>从零搭一个国内能打开的 Hexo 博客：全流程与七个坑</title>
     <url>/2026/11/06/hexo-blog-notes/</url>
     <content><![CDATA[<p>这个博客是从零搭起来的：Hexo 8 + NexT 8，托管在 Cloudflare Workers，域名在国内可直接访问。</p>
@@ -290,18 +302,6 @@
         <tag>Hexo</tag>
         <tag>建站</tag>
         <tag>Cloudflare</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>臭屁琴是猪</title>
-    <url>/2026/11/06/hhh/</url>
-    <content><![CDATA[<p>你好你好你好你好你好</p>
-]]></content>
-      <categories>
-        <category>生活</category>
-      </categories>
-      <tags>
-        <tag>随笔</tag>
       </tags>
   </entry>
 </search>
