@@ -7,3 +7,5 @@ db.json
 Thumbs.db
 source/.obsidian/workspace*.json
 source/.obsidian/cache
+_trace.log
+_gen.log

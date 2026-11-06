@@ -9,20 +9,28 @@ function pad(n) { return String(n).padStart(2, '0'); }
 const now = new Date();
 const msg = `更新文章 ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-// 把 Obsidian 生成的相对图片路径改成站点绝对路径：../images/x.png  ->  /images/x.png
+// 递归列出 _posts 下所有 .md（支持分类文件夹）
+function walkMd(dir, out = []) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) walkMd(p, out);
+    else if (e.isFile() && e.name.endsWith('.md')) out.push(p);
+  }
+  return out;
+}
+
+// 把 Obsidian 生成的相对图片路径改成站点绝对路径：../../images/x.png -> /images/x.png
 function fixImagePaths() {
   const postsDir = path.join(root, 'source', '_posts');
   let fixed = [];
-  for (const f of fs.readdirSync(postsDir)) {
-    if (!f.endsWith('.md')) continue;
-    const p = path.join(postsDir, f);
+  for (const p of walkMd(postsDir)) {
     const src = fs.readFileSync(p, 'utf8');
     const out = src
-      .replace(/\]\(\.\.\/images\//g, '](/images/')
+      .replace(/\]\((?:[.][.]\/)+images\//g, '](/images/')
       .replace(/\]\(images\//g, '](/images/');
     if (out !== src) {
       fs.writeFileSync(p, out, 'utf8');
-      fixed.push(f);
+      fixed.push(path.relative(postsDir, p));
     }
   }
   if (fixed.length) console.log('  已修正图片路径：' + fixed.join('、'));
@@ -32,12 +40,11 @@ function fixImagePaths() {
 function renameToTitle() {
   const postsDir = path.join(root, 'source', '_posts');
   const renamed = [];
-  for (const f of fs.readdirSync(postsDir)) {
-    if (!f.endsWith('.md')) continue;
-    const base = f.replace(/\.md$/, '');
+  for (const p of walkMd(postsDir)) {
+    const dir = path.dirname(p);
+    const base = path.basename(p, '.md');
     if (!/^\d{4}-\d{2}-\d{2}-\d{4}(-\d+)?$/.test(base)) continue;
 
-    const p = path.join(postsDir, f);
     const src = fs.readFileSync(p, 'utf8');
     const m = src.match(/^---[\s\S]*?\ntitle:\s*(.+?)\s*\n/);
     if (!m) continue;
@@ -51,10 +58,10 @@ function renameToTitle() {
       .slice(0, 60);
     if (!slug) continue;
 
-    let target = path.join(postsDir, slug + '.md');
+    let target = path.join(dir, slug + '.md');
     if (fs.existsSync(target)) continue; // 已有同名文件就不动，避免覆盖
     fs.renameSync(p, target);
-    renamed.push(`${base} → ${slug}`);
+    renamed.push(`${path.relative(postsDir, p)} → ${slug}`);
   }
   if (renamed.length) console.log('  已按标题重命名：' + renamed.join('、'));
 }

@@ -1,11 +1,17 @@
 /*!
- * 分类树：把 Hexo 的扁平分类还原成父子层级，输出可悬停展开的 HTML。
+ * 分类树：把 Hexo 的扁平分类还原成父子层级，生成分类总览页。
  * 位于 scripts/ 目录，构建时由 Hexo 自动加载。
- * 用法：在任意页面 md 正文里写一行 {% cat_tree %}
+ *
+ * 为什么用生成器而不是文章里的 {% cat_tree %} 标签：
+ * Hexo 会在归类之前把页面内容预渲染进缓存，标签会拿到旧分类；
+ * 生成器在归类（before_generate）之后才运行，数据一定是新的。
  */
 
+const esc = (s) =>
+  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 function buildTree(categories) {
-  const all = categories.toArray().map((cat) => ({
+  const all = categories.map((cat) => ({
     id: cat._id || cat.name,
     name: cat.name,
     path: cat.path,
@@ -26,12 +32,13 @@ function buildTree(categories) {
 
   const byCount = (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN');
   roots.sort(byCount);
-  roots.forEach((r) => r.children.sort(byCount));
+  const sortKids = (n) => {
+    n.children.sort(byCount);
+    n.children.forEach(sortKids);
+  };
+  roots.forEach(sortKids);
   return { roots, all };
 }
-
-const esc = (s) =>
-  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function renderNode(node, depth) {
   const href =
@@ -59,12 +66,10 @@ function renderNode(node, depth) {
   );
 }
 
-function renderCategoryTree() {
-  const categories = hexo.locals.get('categories');
-  if (!categories) return '';
-
-  const { roots, all } = buildTree(categories);
-  if (!all.length) return '<p class="ct-empty">还没有分类，写文章时加上 categories 就会出现。</p>';
+function renderTreeHTML(roots, all) {
+  if (!all.length) {
+    return '<p class="ct-empty">还没有分类。把文章放进 _posts 下的分类文件夹里，分类会自动出现。</p>';
+  }
 
   const posts = roots.reduce((sum, c) => sum + c.count, 0);
 
@@ -80,6 +85,25 @@ function renderCategoryTree() {
   );
 }
 
-hexo.extend.tag.register('cat_tree', function () {
-  return renderCategoryTree();
+hexo.extend.generator.register('categories_tree_page', function (locals) {
+  const cats = locals.categories;
+  const list = !cats ? [] : cats.toArray ? cats.toArray() : Array.from(cats);
+
+  const { roots, all } = buildTree(list);
+  const html = renderTreeHTML(roots, all);
+  const now = new Date();
+
+  return [
+    {
+      path: 'categories/index.html',
+      data: {
+        title: '分类',
+        date: now,
+        updated: now,
+        content: html,
+        comments: false,
+      },
+      layout: 'page',
+    },
+  ];
 });

@@ -1,11 +1,8 @@
 ---
-title: 在这里写标题
-date: 2026-11-06 16:28:00
+title: sqlilab
+date: 2026-11-06 17:10:00
 tags:
   - 随笔
-categories:
-  - 技术
-  - 基础漏洞
 description: 这里写一句话摘要，会显示在首页文章标题下面
 ---
 
