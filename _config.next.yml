@@ -87,7 +87,7 @@ open_graph:
   options:
     # 分享到微信/微博/Twitter 时的缩略图
     twitter_card: summary_large_image
-    twitter_image: /images/avatar.png
+    twitter_image: /images/og-cover.png
     #twitter_id: <twitter:creator>
     #twitter_site: <twitter:site>
     #fb_admins: <fb:admin_id>
