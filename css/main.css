@@ -1410,7 +1410,7 @@ pre code {
     vertical-align: middle;
   }
   .links-of-author a::before {
-    background: #a29618;
+    background: #22ed8e;
     display: inline-block;
     margin-right: 3px;
     transform: translateY(-2px);
@@ -3156,6 +3156,10 @@ header.header {
   transform: rotate(90deg);
   opacity: 0.9;
 }
+/* 二级默认展开，箭头同步转为展开方向 */
+.ct-root > .ct-node > .ct-link .ct-caret {
+  transform: rotate(90deg);
+}
 /* 子分类：默认收起，hover 时平滑展开 */
 .ct-sub {
   max-height: 0;
@@ -3165,6 +3169,14 @@ header.header {
   padding-left: 16px;
   border-left: 2px solid rgba(128,128,128,0.22);
   transition: max-height 0.32s ease, opacity 0.26s ease, margin-top 0.32s ease, padding-top 0.32s ease, padding-bottom 0.32s ease;
+}
+/* 一级的直接子层（第二层）默认展开，让层级关系一眼可见 */
+.ct-root > .ct-node > .ct-sub {
+  max-height: none;
+  opacity: 1;
+  margin-top: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 .ct-has-sub:hover > .ct-sub,
 .ct-has-sub:focus-within > .ct-sub {
