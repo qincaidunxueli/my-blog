@@ -29,22 +29,4 @@
         <tag>随笔</tag>
       </tags>
   </entry>
-  <entry>
-    <title>test</title>
-    <url>/2026/11/05/test/</url>
-    <content><![CDATA[<p>正文从这里开始写。</p>
-<p>写完保存（Ctrl+S），然后关掉这个窗口，双击「发布文章」就行。</p>
-<span id="more"></span>
-
-<p>这一行上面的内容会作为首页摘要显示，下面的内容要点进文章才能看到。</p>
-<h2 id="小标题这样写"><a href="#小标题这样写" class="headerlink" title="小标题这样写"></a>小标题这样写</h2><p>普通段落直接写。想加粗就前后各两个星号：<strong>这样</strong>。</p>
-<p>想放图片：把图片拖进 source&#x2F;_posts 下和这个文件同名的文件夹里，<br>然后写 <img src="/%E6%96%87%E4%BB%B6%E5%A4%B9%E5%90%8D/%E5%9B%BE%E7%89%87%E5%90%8D.png"></p>
-]]></content>
-      <categories>
-        <category>生活</category>
-      </categories>
-      <tags>
-        <tag>随笔</tag>
-      </tags>
-  </entry>
 </search>

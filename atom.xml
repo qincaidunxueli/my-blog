@@ -10,23 +10,7 @@
   <rights>All rights reserved 2026, 芹菜炖雪梨</rights>
   <subtitle>记录生活与技术</subtitle>
   <title>芹菜炖雪梨的小屋</title>
-  <updated>2026-11-05T13:53:00.000Z</updated>
-  <entry>
-    <author>
-      <name>芹菜炖雪梨</name>
-    </author>
-    <category term="生活" scheme="https://qincaidunxueli.cn/categories/%E7%94%9F%E6%B4%BB/"/>
-    <category term="随笔" scheme="https://qincaidunxueli.cn/tags/%E9%9A%8F%E7%AC%94/"/>
-    <content>
-      <![CDATA[<p>正文从这里开始写。</p><p>写完保存（Ctrl+S），然后关掉这个窗口，双击「发布文章」就行。</p><span id="more"></span><p>这一行上面的内容会作为首页摘要显示，下面的内容要点进文章才能看到。</p><h2 id="小标题这样写"><a href="#小标题这样写" class="headerlink" title="小标题这样写"></a>小标题这样写</h2><p>普通段落直接写。想加粗就前后各两个星号：<strong>这样</strong>。</p><p>想放图片：把图片拖进 source&#x2F;_posts 下和这个文件同名的文件夹里，<br>然后写 <img src="/%E6%96%87%E4%BB%B6%E5%A4%B9%E5%90%8D/%E5%9B%BE%E7%89%87%E5%90%8D.png"></p>]]>
-    </content>
-    <id>https://qincaidunxueli.cn/2026/11/05/test/</id>
-    <link href="https://qincaidunxueli.cn/2026/11/05/test/"/>
-    <published>2026-11-05T13:53:00.000Z</published>
-    <summary>这里写一句话摘要，会显示在首页文章标题下面</summary>
-    <title>test</title>
-    <updated>2026-11-05T13:53:00.000Z</updated>
-  </entry>
+  <updated>2026-11-05T12:00:00.000Z</updated>
   <entry>
     <author>
       <name>芹菜炖雪梨</name>
