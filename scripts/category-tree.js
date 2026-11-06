@@ -106,8 +106,10 @@ function applyCounts(nodes, allMap) {
 
 function renderLink(node, depth, expandable) {
   const caret = expandable ? '<span class="ct-caret" aria-hidden="true">›</span>' : '';
+  // 分类本身不再跳转（分类详情页已取消），点击只负责展开/收起
   return (
-    `<a class="ct-link ct-d${depth}" href="${urlOf(node.path)}">` +
+    `<a class="ct-link ct-d${depth}" href="javascript:void(0)"` +
+    ` data-cat="${esc(node.name)}" role="button" aria-expanded="false">` +
     `<span class="ct-name">${esc(node.name)}</span>` +
     `<span class="ct-count">${node.count}</span>${caret}</a>`
   );
@@ -158,15 +160,17 @@ function renderTreeHTML(roots, all, total, ctx) {
     `</div>` +
     `<ul class="ct-root">${roots.map((r) => renderNode(r, 1, ctx)).join('')}</ul>` +
     `</div>` +
-    // 交互脚本：第三层（文章列表）点击展开，手机上没有悬停所以整行都能点
+    // 交互脚本：一级分类默认展开第二层，其余层级都要点击才展开
     `<script>(function(){` +
-    `var touch=window.matchMedia('(hover: none)').matches;` +
+    `var roots=document.querySelectorAll('.ct-root > .ct-node.ct-has-sub:not(.ct-has-articles)');` +
+    `Array.prototype.forEach.call(roots,function(n){n.classList.add('ct-open');` +
+    `var l=n.querySelector('.ct-link');if(l)l.setAttribute('aria-expanded','true');});` +
     `var nodes=document.querySelectorAll('.ct-node.ct-has-sub');` +
     `Array.prototype.forEach.call(nodes,function(node){` +
     `var link=node.querySelector('.ct-link');if(!link)return;` +
-    `var hasArticles=node.classList.contains('ct-has-articles');` +
-    `if(!touch&&!hasArticles)return;` +
-    `link.addEventListener('click',function(e){e.preventDefault();node.classList.toggle('ct-open');});` +
+    `link.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();` +
+    `var open=node.classList.toggle('ct-open');` +
+    `link.setAttribute('aria-expanded',open?'true':'false');});` +
     `});})();</script>`
   );
 }
