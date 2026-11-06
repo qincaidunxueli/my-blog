@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://qincaidunxueli.cn/2026/11/06/%E8%87%AD%E5%B1%81%E7%90%B4%E6%98%AF%E7%8C%AA/</loc>
+    
+    <lastmod>2026-11-06</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://qincaidunxueli.cn/2026/11/06/hexo-blog-notes/</loc>
     
     <lastmod>2026-11-06</lastmod>
@@ -29,7 +38,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.cn/categories/index.html</loc>
+    <loc>https://qincaidunxueli.cn/tags/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -38,7 +47,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.cn/tags/index.html</loc>
+    <loc>https://qincaidunxueli.cn/categories/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
@@ -54,13 +63,6 @@
     <priority>1.0</priority>
   </url>
 
-  
-  <url>
-    <loc>https://qincaidunxueli.cn/tags/%E9%9A%8F%E7%AC%94/</loc>
-    <lastmod>2026-11-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
   
   <url>
     <loc>https://qincaidunxueli.cn/tags/Hexo/</loc>
@@ -83,7 +85,21 @@
     <priority>0.2</priority>
   </url>
   
+  <url>
+    <loc>https://qincaidunxueli.cn/tags/%E9%9A%8F%E7%AC%94/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
 
+  
+  <url>
+    <loc>https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
   
   <url>
     <loc>https://qincaidunxueli.cn/categories/%E5%BC%80%E5%A7%8B/</loc>
@@ -93,7 +109,7 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/</loc>
+    <loc>https://qincaidunxueli.cn/categories/%E7%94%9F%E6%B4%BB/</loc>
     <lastmod>2026-11-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
