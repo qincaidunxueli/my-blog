@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-32.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha256-4Lad8m4ZWW1Lgb9+sMVLYEfnIh7BjV1NQMEe79Pviks=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"qincaidunxueli.cn","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.29.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"flat"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="关于XSS在java环境下和PHP下的不同之处">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java环境下XSS">
+<meta property="og:url" content="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/Java%E7%8E%AF%E5%A2%83%E4%B8%8BXSS/index.html">
+<meta property="og:site_name" content="芹菜炖雪梨的小屋">
+<meta property="og:description" content="关于XSS在java环境下和PHP下的不同之处">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-11-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-05T16:00:00.000Z">
+<meta property="article:author" content="芹菜炖雪梨">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://qincaidunxueli.cn/images/og-cover.png">
+
+
+<link rel="canonical" href="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/Java%E7%8E%AF%E5%A2%83%E4%B8%8BXSS/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/Java%E7%8E%AF%E5%A2%83%E4%B8%8BXSS/","path":"2026/11/05/技术/基础漏洞/XSS/Java环境下XSS/","title":"Java环境下XSS"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Java环境下XSS | 芹菜炖雪梨的小屋</title>
+  
+
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Java环境下XSS","description":"关于XSS在java环境下和PHP下的不同之处","url":"https://qincaidunxueli.cn/2026/11/05/技术/基础漏洞/XSS/Java环境下XSS/","mainEntityOfPage":{"@type":"WebPage","@id":"https://qincaidunxueli.cn/2026/11/05/技术/基础漏洞/XSS/Java环境下XSS/"},"datePublished":"2026-11-05T16:00:00.000Z","dateModified":"2026-11-05T16:00:00.000Z","author":{"@type":"Person","name":"芹菜炖雪梨","url":"https://qincaidunxueli.cn/"},"publisher":{"@type":"Organization","name":"芹菜炖雪梨的小屋","logo":{"@type":"ImageObject","url":"https://qincaidunxueli.cn/images/avatar.png"}},"image":"https://qincaidunxueli.cn/images/avatar.png","inLanguage":"zh-CN"}</script>
+
+<meta name="author" content="芹菜炖雪梨">
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="芹菜炖雪梨的小屋" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+      <i class="fa fa-search fa-fw fa-lg"></i>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">芹菜炖雪梨的小屋</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录生活与技术</p>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-layer-group fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  
+  <template id="search-popup-template"><div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80" placeholder="搜索..." spellcheck="false" type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div></template>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81XSS%E5%B8%B8%E8%A7%81%E8%A7%A6%E5%8F%91%E4%BD%8D%E7%BD%AE"><span class="nav-number">1.</span> <span class="nav-text">一、XSS常见触发位置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-JSP%E8%A1%A8%E8%BE%BE%E5%BC%8F"><span class="nav-number">1.1.</span> <span class="nav-text">1. JSP表达式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-EL"><span class="nav-number">1.2.</span> <span class="nav-text">2. EL</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-ModelAndView-%E7%B1%BB%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-number">1.3.</span> <span class="nav-text">3. ModelAndView 类的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-ModelMap"><span class="nav-number">1.4.</span> <span class="nav-text">4. ModelMap</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-Model%E7%B1%BB%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-number">1.5.</span> <span class="nav-text">5. Model类的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8EphpXSS%E5%B8%B8%E8%A7%81%E8%A7%A6%E5%8F%91%E4%BD%8D%E7%BD%AE%E5%AF%B9%E6%AF%94"><span class="nav-number">1.6.</span> <span class="nav-text">与phpXSS常见触发位置对比</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#PHP-%E8%BE%93%E5%87%BA%E8%AF%AD%E6%B3%95%EF%BC%88%E6%BC%8F%E6%B4%9E%E9%A3%8E%E9%99%A9%E7%82%B9%EF%BC%89"><span class="nav-number">1.6.1.</span> <span class="nav-text">PHP 输出语法（漏洞风险点）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%A0%B8%E5%BF%83%E5%BC%82%E5%90%8C%E5%AF%B9%E6%AF%94"><span class="nav-number">1.6.2.</span> <span class="nav-text">三、核心异同对比</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%8F%8D%E5%B0%84%E5%9E%8BXSS"><span class="nav-number">2.</span> <span class="nav-text">二、反射型XSS</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%AD%98%E5%82%A8%E5%9E%8BXSS"><span class="nav-number">3.</span> <span class="nav-text">三、存储型XSS</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B4%E5%A5%97%E5%AE%A1%E8%AE%A1%E8%BF%BD%E8%B8%AA%E6%B5%81%E7%A8%8B"><span class="nav-number">3.1.</span> <span class="nav-text">整套审计追踪流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%85%A5%E5%8F%A3%E5%8F%91%E7%8E%B0"><span class="nav-number">3.1.1.</span> <span class="nav-text">1. 入口发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-ShowServlet%EF%BC%88%E6%9F%A5%E8%AF%A2-%E8%BD%AC%E5%8F%91%EF%BC%89"><span class="nav-number">3.1.2.</span> <span class="nav-text">2. ShowServlet（查询 + 转发）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Service-%E5%B1%82%E8%B0%83%E7%94%A8-DAO-%E5%B1%82%E6%9F%A5%E8%AF%A2"><span class="nav-number">3.1.3.</span> <span class="nav-text">3. Service 层调用 DAO 层查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-DAO-%E5%B1%82%EF%BC%9A%E8%AF%BB%E5%8F%96%E6%95%B0%E6%8D%AE%E5%BA%93%E7%95%99%E8%A8%80"><span class="nav-number">3.1.4.</span> <span class="nav-text">4. DAO 层：读取数据库留言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E8%BE%93%E5%87%BA%E7%82%B9%EF%BC%9Amessage-jsp%EF%BC%88%E6%BC%8F%E6%B4%9E%E7%9C%9F%E6%AD%A3%E7%88%86%E5%8F%91%E7%82%B9%EF%BC%89"><span class="nav-number">3.1.5.</span> <span class="nav-text">5. 输出点：message.jsp（漏洞真正爆发点）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%9B%9E%E6%BA%AF%E5%85%A5%E5%BA%93%E9%93%BE%E8%B7%AF%EF%BC%88%E6%BC%8F%E6%B4%9E%E8%BE%93%E5%85%A5%E5%85%A5%E5%8F%A3%EF%BC%89"><span class="nav-number">3.1.6.</span> <span class="nav-text">6. 回溯入库链路（漏洞输入入口）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0"><span class="nav-number">3.1.7.</span> <span class="nav-text">7. 漏洞复现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E6%A0%B9%E6%BA%90"><span class="nav-number">3.2.</span> <span class="nav-text">漏洞根源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%92%8C-PHP-%E7%89%88%E6%9C%AC%E5%AD%98%E5%82%A8-XSS-%E5%AE%A1%E8%AE%A1%E5%AF%B9%E6%AF%94"><span class="nav-number">3.3.</span> <span class="nav-text">和 PHP 版本存储 XSS 审计对比</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AF%B9%E4%BA%8EXSS%E7%9A%84%E4%BF%AE%E5%A4%8D"><span class="nav-number">4.</span> <span class="nav-text">对于XSS的修复</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="芹菜炖雪梨" src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">芹菜炖雪梨</p>
+  <div class="site-description" itemprop="description">芹菜炖雪梨的小屋，用来存放一些想法和记录。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/Java%E7%8E%AF%E5%A2%83%E4%B8%8BXSS/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="芹菜炖雪梨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="芹菜炖雪梨的小屋">
+      <meta itemprop="description" content="芹菜炖雪梨的小屋，用来存放一些想法和记录。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Java环境下XSS | 芹菜炖雪梨的小屋">
+      <meta itemprop="description" content="关于XSS在java环境下和PHP下的不同之处">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Java环境下XSS
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-11-06 00:00" itemprop="dateCreated datePublished" datetime="2026-11-06T00:00:00+08:00">2026-11-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/" itemprop="url" rel="index"><span itemprop="name">基础漏洞</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/" itemprop="url" rel="index"><span itemprop="name">XSS</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-lines"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>10 分钟</span>
+    </span>
+</div>
+
+            <div class="post-description">关于XSS在java环境下和PHP下的不同之处</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><span id="more"></span>
+<h1 id="一、XSS常见触发位置"><a href="#一、XSS常见触发位置" class="headerlink" title="一、XSS常见触发位置"></a>一、XSS常见触发位置</h1><p>XSS漏洞在产生后必然会有相关的输入&#x2F;输出，因此我们只需快速找到这些输入&#x2F;输出点，即可快速跟踪发现漏洞。</p>
+<p>输入在Java中常用”request.getParameter(param)”或”${param}”获取用户的输入信息。输出主要表现为前端的渲染，我们可以通过定位前端中一些常见的标识来找到输出，任何根据后端逻辑判断漏洞是否存在</p>
+<h2 id="1-JSP表达式"><a href="#1-JSP表达式" class="headerlink" title="1. JSP表达式"></a>1. JSP表达式</h2><p>“&lt;%&#x3D;变量 %&gt;”是”&lt;% out.println(变量); %&gt;“的简写方式，”&lt;%&#x3D;%&gt;“用于将已声明的变量或表达式输出到外网页中。<br>下面两种形式的写法，效果相同：<br>第一种：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;%=msg%&gt;</span><br><span class="line">&lt;% out.println(变量); %&gt;</span><br></pre></td></tr></table></figure>
+<p>第二种</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;% String msg=request.getParameter(&#x27;msg&#x27;); %&gt;</span><br><span class="line">&lt;%=msg%&gt;</span><br></pre></td></tr></table></figure>
+<p>通过”request.getParameter”获取msg传入的值，然后通过&lt;%&#x3D;msg%&gt;输出到网页中。</p>
+<h2 id="2-EL"><a href="#2-EL" class="headerlink" title="2. EL"></a>2. EL</h2><p>EL(Expression Language,表达式语言)是为了使JSP写起来更简单。<br>例如：“&lt;%&#x3D;request.getParameter(“username”)%&gt;”等价于“${param.username}”。<br>JSP标准标签库(JSTL)是一个JSP标签集合，它封装了JSP应用的通用核心功能：</p>
+<table>
+<thead>
+<tr>
+<th>标签</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>&lt;c:out&gt;</code></td>
+<td>在 JSP 页面输出数据，等价于脚本表达式 <code>&lt;%= ... %&gt;</code>，<strong>默认会自动转义 HTML，天然可以防御 XSS</strong></td>
+</tr>
+<tr>
+<td><code>&lt;c:set&gt;</code></td>
+<td>定义 &#x2F; 保存域中的变量，设置属性值</td>
+</tr>
+<tr>
+<td><code>&lt;c:remove&gt;</code></td>
+<td>删除指定域中的变量 &#x2F; 属性</td>
+</tr>
+<tr>
+<td><code>&lt;c:catch&gt;</code></td>
+<td>捕获标签体内抛出的异常，并且可以把异常信息保存到变量中</td>
+</tr>
+<tr>
+<td><code>&lt;c:if&gt;</code></td>
+<td>条件判断标签，作用和 Java 中的<code>if</code>一样</td>
+</tr>
+<tr>
+<td><code>&lt;c:choose&gt;</code></td>
+<td>多分支判断的父标签，本身不做判断，只作为<code>&lt;c:when&gt;</code>、<code>&lt;c:otherwise&gt;</code>的容器（类似 switch）</td>
+</tr>
+<tr>
+<td><code>&lt;c:when&gt;</code></td>
+<td><code>&lt;c:choose&gt;</code>的子标签，写判断条件，条件成立则执行标签内代码</td>
+</tr>
+<tr>
+<td><code>&lt;c:otherwise&gt;</code></td>
+<td><code>&lt;c:choose&gt;</code>的子标签，放在所有<code>&lt;c:when&gt;</code>之后，当上面所有 when 条件都不成立时执行</td>
+</tr>
+<tr>
+<td><code>&lt;c:import&gt;</code></td>
+<td>引入一个绝对或者相对 URL 对应的页面内容，将内容包含到当前页面</td>
+</tr>
+<tr>
+<td><code>&lt;c:forEach&gt;</code></td>
+<td>基础迭代标签，用来遍历集合、数组，实现循环</td>
+</tr>
+<tr>
+<td><code>&lt;c:forTokens&gt;</code></td>
+<td>分隔迭代标签，按照指定分隔符拆分字符串并循环输出</td>
+</tr>
+<tr>
+<td><code>&lt;c:param&gt;</code></td>
+<td>用于给包含或者重定向的 URL 传递请求参数</td>
+</tr>
+<tr>
+<td><code>&lt;c:redirect&gt;</code></td>
+<td>服务端重定向，跳转到新的 URL 地址</td>
+</tr>
+<tr>
+<td><code>&lt;c:url&gt;</code></td>
+<td>生成带参数的 URL，自动处理 URL 编码</td>
+</tr>
+<tr>
+<td>（1）&lt;c:out&gt;标签</td>
+<td></td>
+</tr>
+<tr>
+<td>&lt;c:out&gt;标签用来显示一个表达式的结果，与&lt;%&#x3D; %&gt;作用相似，它们的区别是，&lt;c:out&gt;标签可以直接通过“.”操作符来访问属性，如：</td>
+<td></td>
+</tr>
+<tr>
+<td>&lt;c:out value&#x3D;”${user.getUsername}”</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>  (2) &lt;c:if&gt;<br>  &lt;c:if&gt;标签用来判断表达式的值，如果表达式的值为true，则执行其主体内容：<br>  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;c:if test=&quot;$&#123;user.salary&gt;200&#125;&quot;</span><br><span class="line">&lt;p&gt;我的工资为：value=&quot;$&#123;user.salary&gt;200&#125;&quot;&lt;/p&gt;</span><br><span class="line">&lt;/c:if&gt;</span><br></pre></td></tr></table></figure><br>  (3) &lt;c:forEach&gt;<br>  &lt;c:forEach&gt;标签的作用是迭代输出标签内部的内容。它既可以进行固定次数的迭代输出，也可以依据集合中对象的个数来决定迭代次数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&lt;table&gt;</span><br><span class="line">    &lt;tr&gt;&lt;th&gt;名字&lt;/th&gt;&lt;th&gt;说明&lt;/th&gt;&lt;th&gt;图片预览&lt;/th&gt;&lt;/tr&gt;</span><br><span class="line">    &lt;c:forEach items=&quot;$&#123;data&#125;&quot; var=&quot;item&quot;&gt;</span><br><span class="line">        &lt;tr&gt;&lt;td&gt;$&#123;item.advertName&#125;&lt;/td&gt;&lt;td&gt;$&#123;item.notes&#125;&lt;/td&gt;&lt;td&gt;&lt;img src=&quot;$&#123;item.defPath&#125;&quot;/&gt;&lt;/td&gt;&lt;/tr&gt;</span><br><span class="line">    &lt;/c:forEach&gt;</span><br><span class="line">&lt;/table&gt;</span><br><span class="line"></span><br><span class="line">&lt;ul&gt;</span><br><span class="line">    &lt;li&gt;&lt;a href=&quot;?nowPage=$&#123;nowPage-1&#125;&quot;&gt;←上一页&lt;/a&gt;&lt;/li&gt;</span><br><span class="line">    &lt;c:forEach varStatus=&quot;i&quot; begin=&quot;1&quot; end=&quot;$&#123;sumPage&#125;&quot;&gt;</span><br><span class="line">        &lt;c:choose&gt;</span><br><span class="line">            &lt;c:when test=&quot;$&#123;nowPage==i.count&#125;&quot;&gt;</span><br><span class="line">                &lt;li class=&#x27;disabled&#x27;&gt;$&#123;i.count&#125;&lt;/li&gt;</span><br><span class="line">            &lt;/c:when&gt;</span><br><span class="line">            &lt;c:otherwise&gt;</span><br><span class="line">                &lt;li class=&#x27;active&#x27;&gt;&lt;a href=&quot;?nowPage=$&#123;i.count&#125;&quot;&gt;$&#123;i.count&#125;&lt;/a&gt;&lt;/li&gt;</span><br><span class="line">            &lt;/c:otherwise&gt;</span><br><span class="line">        &lt;/c:choose&gt;</span><br><span class="line">    &lt;/c:forEach&gt;</span><br><span class="line">    &lt;li&gt;&lt;a href=&quot;?nowPage=$&#123;nowPage+1&#125;&quot;&gt;下一页→&lt;/a&gt;&lt;/li&gt;</span><br><span class="line">&lt;/ul&gt;</span><br></pre></td></tr></table></figure>
+<p> 代码解释:<br>1.第一段：遍历 <code>${data}</code> 集合，每一条数据存入 <code>item</code>，在表格里输出广告名称、说明、图片。<br>2.第二段：分页页码，<code>begin=&quot;1&quot; end=&quot;${sumPage}&quot;</code> 从第 1 页循环到总页数；<br><code>&lt;c:when&gt;</code> 判断当前页等于页码时，页码不可点击（<code>disabled</code>）<br><code>&lt;c:otherwise&gt;</code> 其余页码生成可跳转链接<br>3.<code>varStatus=&quot;i&quot;</code>：迭代状态对象，<code>i.count</code> 代表当前循环的序号</p>
+<h2 id="3-ModelAndView-类的使用"><a href="#3-ModelAndView-类的使用" class="headerlink" title="3. ModelAndView 类的使用"></a>3. ModelAndView 类的使用</h2><p>MdoelAndView类用来存储处理完成后的结果数据，以及显示该数据的视图，其前端JSP页面可以使用“${参数}”的方法来获取值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">package com.dgr.controller;</span><br><span class="line">// 包声明：当前类放在 com.dgr.controller 包下</span><br><span class="line"></span><br><span class="line">import org.springframework.stereotype.Controller;</span><br><span class="line">// 导入@Controller注解，标记这是SpringMVC控制器</span><br><span class="line">import org.springframework.web.bind.annotation.RequestMapping;</span><br><span class="line">// 请求映射注解，用来绑定访问地址</span><br><span class="line">import org.springframework.web.servlet.ModelAndView;</span><br><span class="line">// 模型视图对象：同时携带【数据Model】+【视图View】</span><br><span class="line"></span><br><span class="line">@RequestMapping(&quot;mvc&quot;)</span><br><span class="line">// 类上的@RequestMapping：给当前控制器加路径前缀</span><br><span class="line">// 这个类下所有接口地址前面都要带上 /mvc</span><br><span class="line">@Controller</span><br><span class="line">// 核心注解：告诉Spring，这是MVC控制器，接收web请求</span><br><span class="line">public class TestRequestMapping &#123;</span><br><span class="line"></span><br><span class="line">    @RequestMapping(value=&quot;/getMessage&quot;)</span><br><span class="line">    // 方法级别的映射，拼接类上路径，完整访问地址： /mvc/getMessage</span><br><span class="line">    public ModelAndView getMessage()&#123;</span><br><span class="line">        // 返回值是ModelAndView，封装页面数据和跳转页面名称</span><br><span class="line">        ModelAndView modelAndView = new ModelAndView();</span><br><span class="line">        // 实例化ModelAndView对象</span><br><span class="line"></span><br><span class="line">        modelAndView.setViewName(&quot;message&quot;);</span><br><span class="line">        // 设置视图名：跳转到名为 message 的页面</span><br><span class="line">        // 配合视图解析器，会自动拼接前后缀，比如 /WEB-INF/jsp/message.jsp</span><br><span class="line"></span><br><span class="line">        modelAndView.addObject(&quot;message&quot;, &quot;Hello World&quot;);</span><br><span class="line">        // 向域中存入数据：key=message，值=Hello World</span><br><span class="line">        // 在jsp页面可以用EL表达式 $&#123;message&#125; 取出这个值展示</span><br><span class="line"></span><br><span class="line">        return modelAndView;</span><br><span class="line">        // 返回模型视图，交给SpringMVC处理，渲染页面</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="4-ModelMap"><a href="#4-ModelMap" class="headerlink" title="4. ModelMap"></a>4. ModelMap</h2><p>Spring 也提供了ModelMap类，这是Java.util.Map实现的，可以根据模型属性的具体类型自动生成模型属性的名称：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Public String testmethod(String someparam,ModelMap model)&#123;</span><br><span class="line">     //省略方法处理逻辑</span><br><span class="line">     //将数据放置到ModelMap类的model对象中，第二个参数可以是任何java类型</span><br><span class="line">     Model.addAttribute(&quot;key&quot;,someparam);</span><br><span class="line">     return &quot;success&quot;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="5-Model类的使用"><a href="#5-Model类的使用" class="headerlink" title="5. Model类的使用"></a>5. Model类的使用</h2><p>Model类是一个接口类，通过attribute()添加数据，储存的数据域的范围是requestScope:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Public String index(Model model)&#123;</span><br><span class="line">      Model.addAttribute(&quot;result&quot;,&quot;后台返回&quot;);</span><br><span class="line">      return &quot;result&quot;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过这些常见语法的总结我们不难归纳出一些常见的关键字，通过这些关键字可以快速地定位至具有前后端交互功能的代码片段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&lt;%=</span><br><span class="line">$&#123;</span><br><span class="line">&lt;c:out</span><br><span class="line">&lt;c:if</span><br><span class="line">&lt;c:forEach</span><br><span class="line">ModelAndview</span><br><span class="line">ModelMap</span><br><span class="line">Model</span><br><span class="line">request.getParameter</span><br><span class="line">request.getAttribute</span><br><span class="line">response.getWriter().print()</span><br><span class="line">response.getWriter().writer()</span><br></pre></td></tr></table></figure>
+
+<h2 id="与phpXSS常见触发位置对比"><a href="#与phpXSS常见触发位置对比" class="headerlink" title="与phpXSS常见触发位置对比"></a>与phpXSS常见触发位置对比</h2><h3 id="PHP-输出语法（漏洞风险点）"><a href="#PHP-输出语法（漏洞风险点）" class="headerlink" title="PHP 输出语法（漏洞风险点）"></a>PHP 输出语法（漏洞风险点）</h3><p>1、<code>&lt;?php echo $_GET[&#39;msg&#39;]; ?&gt;</code> 直接输出，无转义，典型反射 XSS<br>简写：<code>&lt;?=$_GET[&#39;msg&#39;] ?&gt;</code>（短标签，审计高频漏洞点）<br>2、获取用户输入：<br><code>$_GET[] URL 参数</code>、<code>$_POST[]</code> POST 提交、<code>$_REQUEST[]</code> 统一获取 GET&#x2F;POST<br>3、、输出函数（高危，直接输出）<br>echo、print、print_r、var_dump<br>重点：PHP 原生 echo不会自动转义 HTML</p>
+<p> PHP 防御函数：<code>htmlspecialchars()</code>，等价 JSP 的<code>&lt;c:out&gt;</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php echo htmlspecialchars($_GET[&#x27;msg&#x27;]); ?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>存储型场景：从 MySQL 取出数据，直接 echo 输出，就是存储 XSS</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// 从数据库读取评论内容</span><br><span class="line">$comment = $row[&#x27;comment&#x27;];</span><br><span class="line">echo $comment;</span><br></pre></td></tr></table></figure>
+
+<p><strong>PHP 审计关键词</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;?=</span><br><span class="line">echo</span><br><span class="line">print</span><br><span class="line">$_GET</span><br><span class="line">$_POST</span><br><span class="line">$_REQUEST</span><br><span class="line">htmlspecialchars</span><br></pre></td></tr></table></figure>
+
+<h3 id="三、核心异同对比"><a href="#三、核心异同对比" class="headerlink" title="三、核心异同对比"></a>三、核心异同对比</h3><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>JSP(JavaWeb)</th>
+<th>PHP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>获取用户输入</td>
+<td><code>request.getParameter()</code> &#x2F; <code>${param.xxx}</code></td>
+<td><code>$_GET / $_POST / $_REQUEST</code></td>
+</tr>
+<tr>
+<td>直接输出（危险）</td>
+<td><code>&lt;%=xxx%&gt;</code>、<code>${xxx}</code></td>
+<td><code>echo、&lt;?= ?&gt;</code></td>
+</tr>
+<tr>
+<td>自带自动转义输出</td>
+<td><code>&lt;c:out value=&quot;&quot;/&gt;</code></td>
+<td>无原生标签，需要手动调用<code>htmlspecialchars()</code></td>
+</tr>
+<tr>
+<td>后端传数据到页面</td>
+<td>Model&#x2F;ModelAndView&#x2F;ModelMap 存入 request 域</td>
+<td>直接在脚本内拼接变量，不需要单独 Model 对象</td>
+</tr>
+<tr>
+<td>DOM-XSS 场景</td>
+<td>JS 中取出<code>${}</code>渲染到 DOM</td>
+<td>JS 取出 PHP echo 出来的值渲染 DOM</td>
+</tr>
+</tbody></table>
+<h1 id="二、反射型XSS"><a href="#二、反射型XSS" class="headerlink" title="二、反射型XSS"></a>二、反射型XSS</h1><p>这类型XSS在源码上看其实和php环境下差不多</p>
+<h1 id="三、存储型XSS"><a href="#三、存储型XSS" class="headerlink" title="三、存储型XSS"></a>三、存储型XSS</h1><h2 id="整套审计追踪流程"><a href="#整套审计追踪流程" class="headerlink" title="整套审计追踪流程"></a>整套审计追踪流程</h2><h3 id="1-入口发现"><a href="#1-入口发现" class="headerlink" title="1. 入口发现"></a>1. 入口发现</h3><p>访问路由 <code>/show</code>，页面会打印用户留言，根据 <code>web.xml</code> 找到该路由对应的 Servlet：<code>com.sec.servlet.ShowServlet</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;servlet&gt;</span><br><span class="line">    &lt;description&gt;&lt;/description&gt;</span><br><span class="line">    &lt;display-name&gt;show&lt;/display-name&gt;</span><br><span class="line">    &lt;servlet-name&gt;show&lt;/servlet-name&gt;</span><br><span class="line">    &lt;servlet-class&gt;com.sec.servlet.ShowServlet&lt;/servlet-class&gt;</span><br><span class="line">&lt;/servlet&gt;</span><br><span class="line">&lt;servlet-mapping&gt;</span><br><span class="line">    &lt;servlet-name&gt;show&lt;/servlet-name&gt;</span><br><span class="line">    &lt;url-pattern&gt;/show&lt;/url-pattern&gt;</span><br><span class="line">&lt;/servlet-mapping&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-ShowServlet（查询-转发）"><a href="#2-ShowServlet（查询-转发）" class="headerlink" title="2. ShowServlet（查询 + 转发）"></a>2. ShowServlet（查询 + 转发）</h3><p>在<code>ShowServlet</code>中：</p>
+<p>1.实例化业务类 <code>MessageInfoServiceImpl</code><br>2.调用 <code>MessageInfoShowService()</code> 获取留言列表<br>3.通过 <code>req.setAttribute(&quot;msg&quot;, msg)</code> 将留言列表放到 request 域<br>4.转发到 <code>message.jsp</code> 页面渲染输出</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public void ShowMessage(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException &#123;</span><br><span class="line">    MessageInfoService msginfo = new MessageInfoServiceImpl();</span><br><span class="line">    List&lt;MessageInfo&gt; msg = msginfo.MessageInfoShowService();</span><br><span class="line">    if(msg != null)&#123;</span><br><span class="line">        req.setAttribute(&quot;msg&quot;, msg);</span><br><span class="line">        req.getRequestDispatcher(&quot;/message.jsp&quot;).forward(req, resp);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-Service-层调用-DAO-层查询"><a href="#3-Service-层调用-DAO-层查询" class="headerlink" title="3. Service 层调用 DAO 层查询"></a>3. Service 层调用 DAO 层查询</h3><p><code>MessageInfoShowService()</code> 调用 <code>MessageInfoShowDao()</code>，由 DAO 负责和数据库交互：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public List&lt;MessageInfo&gt; MessageInfoShowService()&#123;</span><br><span class="line">    List&lt;MessageInfo&gt; msg = msginfo.MessageInfoShowDao();</span><br><span class="line">    return msg;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-DAO-层：读取数据库留言"><a href="#4-DAO-层：读取数据库留言" class="headerlink" title="4. DAO 层：读取数据库留言"></a>4. DAO 层：读取数据库留言</h3><p><code>MessageInfoShowDao</code> 建立 JDBC 连接，执行<code>select * from message</code>查询全部留言，循环取出<code>name</code>、<code>mail</code>、<code>message</code>字段，封装进实体类，最后返回 List 给上层：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public List&lt;MessageInfo&gt; MessageInfoShowDao()&#123;</span><br><span class="line">    Connection conns = null;</span><br><span class="line">    PreparedStatement ps = null;</span><br><span class="line">    ResultSet rs = null;</span><br><span class="line">    List&lt;MessageInfo&gt; messageinfo = null;</span><br><span class="line">    try &#123;</span><br><span class="line">        Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;);</span><br><span class="line">        conns = DriverManager.getConnection(&quot;jdbc:mysql://localhost:3306/sec_xss&quot;,&quot;root&quot;,&quot;root&quot;);</span><br><span class="line">        String sql = &quot;select * from message&quot;;</span><br><span class="line">        ps = conns.prepareStatement(sql);</span><br><span class="line">        rs = ps.executeQuery();</span><br><span class="line">        messageinfo = new ArrayList&lt;MessageInfo&gt;();</span><br><span class="line">        while(rs.next())&#123;</span><br><span class="line">            MessageInfo msg = new MessageInfo();</span><br><span class="line">            msg.setName(rs.getString(&quot;name&quot;));</span><br><span class="line">            msg.setMail(rs.getString(&quot;mail&quot;));</span><br><span class="line">            msg.setMessage(rs.getString(&quot;message&quot;));</span><br><span class="line">            messageinfo.add(msg);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; catch (Exception e) &#123;</span><br><span class="line">        // 异常处理</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        // 资源关闭</span><br><span class="line">    &#125;</span><br><span class="line">    return messageinfo;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-输出点：message-jsp（漏洞真正爆发点）"><a href="#5-输出点：message-jsp（漏洞真正爆发点）" class="headerlink" title="5. 输出点：message.jsp（漏洞真正爆发点）"></a>5. 输出点：message.jsp（漏洞真正爆发点）</h3><p>JSP 页面从 request 域取出<code>msg</code>列表，循环遍历，<strong>直接输出数据库读取出来的数据，没有任何 HTML 转义</strong>，恶意脚本直接写入 HTML 页面，浏览器解析执行，触发 XSS。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&lt;%</span><br><span class="line">    List&lt;MessageInfo&gt; msginfo = (ArrayList&lt;MessageInfo&gt;)request.getAttribute(&quot;msg&quot;);</span><br><span class="line">    for(MessageInfo m:msginfo)&#123;</span><br><span class="line">%&gt;</span><br><span class="line">&lt;table&gt;</span><br><span class="line">    &lt;tr&gt;&lt;td class=&quot;blytd&quot;&gt;姓名：&lt;/td&gt;&lt;td&gt;&lt;%=m.getName()%&gt;&lt;/td&gt;&lt;/tr&gt;</span><br><span class="line">    &lt;tr&gt;&lt;td class=&quot;blytd&quot;&gt;mail：&lt;/td&gt;&lt;td&gt;&lt;%=m.getMail()%&gt;&lt;/td&gt;&lt;/tr&gt;</span><br><span class="line">    &lt;tr&gt;&lt;td class=&quot;blytd&quot;&gt;内容：&lt;/td&gt;&lt;td&gt;&lt;%=m.getMessage()%&gt;&lt;/td&gt;&lt;/tr&gt;</span><br><span class="line">&lt;/table&gt;</span><br><span class="line">&lt;%</span><br><span class="line">    &#125;</span><br><span class="line">%&gt;</span><br></pre></td></tr></table></figure>
+
+<p> 这里的<code>&lt;%= %&gt;</code>就是 JSP 脚本表达式，<strong>默认不做 HTML 编码</strong>，是本次漏洞的输出点。</p>
+<h3 id="6-回溯入库链路（漏洞输入入口）"><a href="#6-回溯入库链路（漏洞输入入口）" class="headerlink" title="6. 回溯入库链路（漏洞输入入口）"></a>6. 回溯入库链路（漏洞输入入口）</h3><p>上面这条是<strong>查询展示链路</strong>，接下来需要逆向追踪：<strong>数据是怎么写入数据库的</strong>，也就是攻击入口。</p>
+<p>1.<code>MessageInfoStoreDao</code> 负责入库操作，使用 JDBC <code>INSERT</code>语句把<code>name/mail/message</code>插入<code>message</code>表：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public boolean MessageInfoStoreDao(String name, String mail, String message)&#123;</span><br><span class="line">    Connection conn = null;</span><br><span class="line">    PreparedStatement ps = null;</span><br><span class="line">    boolean result = false;</span><br><span class="line">    try &#123;</span><br><span class="line">        Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;);</span><br><span class="line">        conn = DriverManager.getConnection(&quot;jdbc:mysql://localhost:3306/sec_xss&quot;,&quot;root&quot;,&quot;root&quot;);</span><br><span class="line">        String sql = &quot;INSERT INTO message (name,mail,message) VALUES (?,?,?)&quot;;</span><br><span class="line">        ps = conn.prepareStatement(sql);</span><br><span class="line">        ps.setString(1, name);</span><br><span class="line">        ps.setString(2, mail);</span><br><span class="line">        ps.setString(3, message);</span><br><span class="line">        ps.executeUpdate();</span><br><span class="line">        result = true;</span><br><span class="line">    &#125; catch (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        //关闭资源</span><br><span class="line">    &#125;</span><br><span class="line">    return result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 这里使用了<code>PreparedStatement</code>预编译，<strong>防止了 SQL 注入，但是完全没有对 XSS 做过滤转义</strong>恶意 JS 原样存入数据库。</p>
+<p>2.Service 层只是简单调用 DAO：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public boolean MessageInfoStoreService(String name, String mail, String message)&#123;</span><br><span class="line">    return msginfo.MessageInfoStoreDao(name, mail, message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3.最终入口 <code>StoreXSS</code> Servlet：</p>
+<p>通过 <code>req.getParameter()</code> 获取 GET 参数，<strong>没有校验、过滤</strong>，直接传给 Service 入库：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public void StoreXSS(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException &#123;</span><br><span class="line">    String name = req.getParameter(&quot;name&quot;);</span><br><span class="line">    String mail = req.getParameter(&quot;mail&quot;);</span><br><span class="line">    String message = req.getParameter(&quot;message&quot;);</span><br><span class="line">    if(name != null &amp;&amp; mail != null &amp;&amp; message != null)&#123;</span><br><span class="line">        MessageInfoService msginfo = new MessageInfoServiceImpl();</span><br><span class="line">        msginfo.MessageInfoStoreService(name, mail, message);</span><br><span class="line">        resp.getWriter().print(&quot;&lt;script&gt;alert(\&quot;添加成功\&quot;)&lt;/script&gt;&quot;);</span><br><span class="line">        resp.getWriter().flush();</span><br><span class="line">        resp.getWriter().close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-漏洞复现"><a href="#7-漏洞复现" class="headerlink" title="7. 漏洞复现"></a>7. 漏洞复现</h3><p>构造 GET 请求，传入 XSS payload：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">?name=123&amp;mail=123&amp;message=&lt;script&gt;alert(&#x27;QCCA&#x27;)&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>1.访问该 Servlet，留言存入数据库<br>2.访问 <code>/show</code> 查看留言页面<br>3.JSP 直接输出数据库中的<code>&lt;script&gt;</code>标签，浏览器执行 JS 弹窗，存储 XSS 触发</p>
+<h2 id="漏洞根源"><a href="#漏洞根源" class="headerlink" title="漏洞根源"></a>漏洞根源</h2><ol>
+<li>输入侧：没有对用户提交的<code>message</code>做过滤</li>
+<li><strong>输出侧（最关键）：JSP 页面使用<code>&lt;%= %&gt;</code>直接输出数据库字段，没有 HTML 实体编码</strong></li>
+<li>预编译仅仅防御 SQL 注入，和 XSS 防护无关</li>
+</ol>
+<h2 id="和-PHP-版本存储-XSS-审计对比"><a href="#和-PHP-版本存储-XSS-审计对比" class="headerlink" title="和 PHP 版本存储 XSS 审计对比"></a>和 PHP 版本存储 XSS 审计对比</h2><p>1.Java 这套 MVC 架构：<strong>输入、入库、查询、输出被拆分到 Servlet&#x2F;Service&#x2F;Dao&#x2F;JSP 多个文件</strong>，审计需要顺着调用栈跨文件追踪，漏洞不在 Java 代码里，而在 JSP 视图层；<br>2.传统 PHP：很多时候入库、查询、echo 输出写在同一个 PHP 文件里，一条文件内就能走完完整链路；<br>3.攻击利用层面：两者 Payload 完全一样，浏览器只关心最终返回的 HTML，不区分后端语言。</p>
+<h1 id="对于XSS的修复"><a href="#对于XSS的修复" class="headerlink" title="对于XSS的修复"></a>对于XSS的修复</h1><p>和PHP本质逻辑一样，只是因为环境不同，语法差异，最简单的就是对所有的输出采用HTML实体编码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;c:out value=&quot;$&#123;msg&#125;&quot; /&gt; </span><br><span class="line">1. 功能：把$&#123;msg&#125;的数据展示到页面（显示数据） </span><br><span class="line">2. 自带特性：默认对输出内容做HTML实体编码，&lt; &gt; &amp; &quot; &#x27; 都会被转义 </span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%E6%B7%B1%E5%8C%96%E6%80%BB%E7%BB%93/" rel="prev" title="XSS深化总结">
+                  <i class="fa fa-angle-left"></i> XSS深化总结
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/" rel="next" title="sql 打靶日记23~75">
+                  sql 打靶日记23~75 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">芹菜炖雪梨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="external nofollow noopener noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="external nofollow noopener noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

@@ -22,7 +22,7 @@
     <meta name="description" content="关于Oracle sql 与Mysql 的不同之处">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Oracle sql">
-<meta property="og:url" content="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/Oracle%20sql/index.html">
+<meta property="og:url" content="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/index.html">
 <meta property="og:site_name" content="芹菜炖雪梨的小屋">
 <meta property="og:description" content="关于Oracle sql 与Mysql 的不同之处">
 <meta property="og:locale" content="zh_CN">
@@ -34,10 +34,10 @@
 <meta name="twitter:image" content="https://qincaidunxueli.cn/images/og-cover.png">
 
 
-<link rel="canonical" href="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/Oracle%20sql/">
+<link rel="canonical" href="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/Oracle%20sql/","path":"2026/11/05/技术/基础漏洞/sql重学深化/Oracle sql/","title":"Oracle sql"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/","path":"2026/11/05/技术/基础漏洞/SQLi/Oracle sql/","title":"Oracle sql"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>Oracle sql | 芹菜炖雪梨的小屋</title>
@@ -68,7 +68,7 @@
 
 
 
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Oracle sql","description":"关于Oracle sql 与Mysql 的不同之处","url":"https://qincaidunxueli.cn/2026/11/05/技术/基础漏洞/sql重学深化/Oracle sql/","mainEntityOfPage":{"@type":"WebPage","@id":"https://qincaidunxueli.cn/2026/11/05/技术/基础漏洞/sql重学深化/Oracle sql/"},"datePublished":"2026-11-05T16:00:00.000Z","dateModified":"2026-11-05T16:00:00.000Z","author":{"@type":"Person","name":"芹菜炖雪梨","url":"https://qincaidunxueli.cn/"},"publisher":{"@type":"Organization","name":"芹菜炖雪梨的小屋","logo":{"@type":"ImageObject","url":"https://qincaidunxueli.cn/images/avatar.png"}},"image":"https://qincaidunxueli.cn/images/avatar.png","inLanguage":"zh-CN"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Oracle sql","description":"关于Oracle sql 与Mysql 的不同之处","url":"https://qincaidunxueli.cn/2026/11/05/技术/基础漏洞/SQLi/Oracle sql/","mainEntityOfPage":{"@type":"WebPage","@id":"https://qincaidunxueli.cn/2026/11/05/技术/基础漏洞/SQLi/Oracle sql/"},"datePublished":"2026-11-05T16:00:00.000Z","dateModified":"2026-11-05T16:00:00.000Z","author":{"@type":"Person","name":"芹菜炖雪梨","url":"https://qincaidunxueli.cn/"},"publisher":{"@type":"Organization","name":"芹菜炖雪梨的小屋","logo":{"@type":"ImageObject","url":"https://qincaidunxueli.cn/images/avatar.png"}},"image":"https://qincaidunxueli.cn/images/avatar.png","inLanguage":"zh-CN"}</script>
 
 <meta name="author" content="芹菜炖雪梨">
 
@@ -171,12 +171,12 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-count">8</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
@@ -208,7 +208,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/Oracle%20sql/">
+    <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -253,7 +253,7 @@
         </span>
           ，
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/" itemprop="url" rel="index"><span itemprop="name">sql重学深化</span></a>
+          <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/" itemprop="url" rel="index"><span itemprop="name">SQLi</span></a>
         </span>
     </span>
 
@@ -462,7 +462,7 @@
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/sql%E9%87%8D%E5%AD%A6%E6%B7%B1%E5%8C%96/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/" rel="prev" title="sql 打靶日记23~75">
+                <a href="/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/" rel="prev" title="sql 打靶日记23~75">
                   <i class="fa fa-angle-left"></i> sql 打靶日记23~75
                 </a>
             </div>
