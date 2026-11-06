@@ -1410,7 +1410,7 @@ pre code {
     vertical-align: middle;
   }
   .links-of-author a::before {
-    background: #491fff;
+    background: #a1693e;
     display: inline-block;
     margin-right: 3px;
     transform: translateY(-2px);
@@ -3238,13 +3238,60 @@ header.header {
   color: var(--text-color);
   opacity: 0.7;
 }
+/* 叶子分类：悬停展开该分类下的文章 */
+.ct-articles {
+  list-style: none;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin: 0 0 0 26px;
+  padding: 0 0 0 16px;
+  border-left: 2px solid rgba(128,128,128,0.22);
+  transition: max-height 0.32s ease, opacity 0.26s ease, margin-top 0.32s ease, padding-top 0.32s ease, padding-bottom 0.32s ease;
+}
+.ct-has-sub:hover > .ct-articles,
+.ct-has-sub:focus-within > .ct-articles {
+  max-height: 900px;
+  opacity: 1;
+  margin-top: 4px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  transition-delay: 0.1s;
+}
+.ct-articles .ct-article,
+.ct-sub .ct-article {
+  display: block;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-color);
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-decoration: none;
+  opacity: 0.72;
+  overflow-wrap: break-word;
+  transition: background 0.2s ease, opacity 0.2s ease, padding-left 0.2s ease;
+}
+.ct-articles .ct-article::before,
+.ct-sub .ct-article::before {
+  content: "·";
+  margin-right: 8px;
+  opacity: 0.6;
+}
+.ct-articles .ct-article:hover,
+.ct-sub .ct-article:hover {
+  background: var(--menu-item-bg-color);
+  padding-left: 18px;
+  opacity: 1;
+}
 .ct-empty {
   color: var(--text-color);
   opacity: 0.6;
 }
 /* 触屏 / 窄屏：没有 hover，子分类直接展开显示 */
 @media (hover: none), (max-width: 767px) {
-  .ct-sub {
+  .ct-sub,
+  .ct-articles {
     max-height: none;
     opacity: 1;
     margin-top: 6px;
@@ -3262,6 +3309,10 @@ header.header {
     gap: 10px;
   }
   .ct-sub {
+    margin-left: 12px;
+    padding-left: 9px;
+  }
+  .ct-articles {
     margin-left: 12px;
     padding-left: 9px;
   }
