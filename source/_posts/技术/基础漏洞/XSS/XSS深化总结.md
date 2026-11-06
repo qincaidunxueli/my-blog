@@ -1,8 +1,8 @@
 ---
 title: XSS深化总结
 date: 2026-11-06
+description: 简单总结一下深化结果
 ---
-
 <!-- more -->
 ## 一、XSS漏洞产生的根本原因
 
