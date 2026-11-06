@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://qincaidunxueli.cn/2026/11/06/hexo-blog-notes/</loc>
+    
+    <lastmod>2026-11-06</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://qincaidunxueli.cn/2026/11/05/hello-blog/</loc>
     
     <lastmod>2026-11-05</lastmod>
@@ -53,10 +62,38 @@
     <priority>0.2</priority>
   </url>
   
+  <url>
+    <loc>https://qincaidunxueli.cn/tags/Hexo/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://qincaidunxueli.cn/tags/%E5%BB%BA%E7%AB%99/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://qincaidunxueli.cn/tags/Cloudflare/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
 
   
   <url>
     <loc>https://qincaidunxueli.cn/categories/%E5%BC%80%E5%A7%8B/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/</loc>
     <lastmod>2026-11-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
