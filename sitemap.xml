@@ -20,15 +20,6 @@
   </url>
   
   <url>
-    <loc>https://qincaidunxueli.cn/about/index.html</loc>
-    
-    <lastmod>2026-11-05</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://qincaidunxueli.cn/categories/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
@@ -39,6 +30,15 @@
   
   <url>
     <loc>https://qincaidunxueli.cn/tags/index.html</loc>
+    
+    <lastmod>2026-11-05</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://qincaidunxueli.cn/about/index.html</loc>
     
     <lastmod>2026-11-05</lastmod>
     
