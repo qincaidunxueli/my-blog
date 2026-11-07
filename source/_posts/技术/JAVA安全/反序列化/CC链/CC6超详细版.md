@@ -162,7 +162,8 @@ public class cc6study {
         // StringBuilder可以不断往后追加内容，不会反复新建对象  
         for (byte b : payload) {  
             sd.append(String.format("%02x",b));  
-            // 02：不足两位的时候，前面补 0。比如字节 0x0a ->输出 0a，而不是 a               // Java 里byte 是有符号的负数，format 内部会自动处理，输出正确的两位hex。 
+            // 02：不足两位的时候，前面补 0。比如字节 0x0a ->输出 0a，而不是 a
+            // Java 里byte 是有符号的负数，format 内部会自动处理，输出正确的两位hex。 
             // sd.append(...),把转好的两位十六进制字符，追加到 sd 里面,  
             // 坏了连这个都不知道，暴露java低陋的水平功底了  
         }  
@@ -171,7 +172,8 @@ public class cc6study {
         //==========================================================  
         //本地验证  
         /*  
-        ByteArrayInputStream bis = new ByteArrayInputStream(payload);               ObjectInputStream ois = new ObjectInputStream(bis);
+        ByteArrayInputStream bis = new ByteArrayInputStream(payload);
+        ObjectInputStream ois = new ObjectInputStream(bis);
         ois.readObject();        
         ois.close();        
          */  
