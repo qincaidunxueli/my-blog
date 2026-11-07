@@ -1,7 +1,7 @@
 https://qincaidunxueli.cn/2026/11/07/%E7%94%9F%E6%B4%BB/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/
 https://qincaidunxueli.cn/2026/11/07/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/
-https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/hexo-blog-notes/
 https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/
+https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/hexo-blog-notes/
 https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/
 https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/Java%E7%8E%AF%E5%A2%83%E4%B8%8BXSS/
 https://qincaidunxueli.cn/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/
@@ -13,15 +13,15 @@ https://qincaidunxueli.cn/about/index.html
 https://qincaidunxueli.cn/tags/index.html
 https://qincaidunxueli.cn/
 https://qincaidunxueli.cn/tags/%E9%9A%8F%E7%AC%94/
+https://qincaidunxueli.cn/tags/Orclesql/
 https://qincaidunxueli.cn/tags/Hexo/
 https://qincaidunxueli.cn/tags/%E5%BB%BA%E7%AB%99/
 https://qincaidunxueli.cn/tags/Cloudflare/
-https://qincaidunxueli.cn/tags/Orclesql/
 https://qincaidunxueli.cn/tags/sql%E9%9D%B6%E5%9C%BA/
 https://qincaidunxueli.cn/categories/%E7%94%9F%E6%B4%BB/
 https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/
-https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/
 https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/
+https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/
 https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/
 https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/
 https://qincaidunxueli.cn/categories/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/
