@@ -53,8 +53,7 @@ import java.util.Map;
 public class cc6study {  
     public static void main(String[] args) throws Exception {  
   
-        
-// =================================================================  
+        //==============================================================================  
         // 第二块：构造反射执行链（Transformer数组）  
   
         //构成反射执行链（Transformer数组）  
@@ -88,7 +87,7 @@ public class cc6study {
         // 这一整条数组，交给 ChainedTransformer 串行跑。  
         // 输入 → ConstantTransformer → Invoker1 → Invoker2 → Invoker3 → 命令执行。  
   
-        //==================================================================  
+        //=====================================================================================  
         // 第三块 ：LzayMap+TideMapEntry跳板构造  
   
         Map innerMap = new HashMap();  
@@ -111,6 +110,8 @@ public class cc6study {
          ->触发transform  
          这是二层跳板。  
         */  
+//========================================================================================
+        //第四块：入口类 BadAttributeValueExpException + 反射改 val
         BadAttributeValueExpException bad = new BadAttributeValueExpException("aaa");  
         // 先new一个对象，构造参数只是初始化val为字符串"aaa"，后面我们要覆盖掉val  
         Field valField = BadAttributeValueExpException.class.getDeclaredField("val");  
