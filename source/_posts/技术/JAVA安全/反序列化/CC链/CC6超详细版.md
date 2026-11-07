@@ -109,9 +109,9 @@ public class cc6study {
          只要调用entry.toString()->自动执行lazyMap.get("testkey")
          ->触发transform  
          这是二层跳板。  
-        */  
-//========================================================================================
-        //第四块：入口类 BadAttributeValueExpException + 反射改 val
+        */
+        //=====================================================================================
+        // 第四块：入口类 BadAttributeValueExpException + 反射改 val
         BadAttributeValueExpException bad = new BadAttributeValueExpException("aaa");  
         // 先new一个对象，构造参数只是初始化val为字符串"aaa"，后面我们要覆盖掉val  
         Field valField = BadAttributeValueExpException.class.getDeclaredField("val");  
